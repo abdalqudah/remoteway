@@ -9,6 +9,7 @@ function errorHandler(err, req, res, next) {
   const known = err instanceof AppError;
   const status = known ? err.status : 500;
   if (!known) console.error(`[error] ${req.method} ${req.originalUrl}`, err);
+  if (!known || status >= 500) require('../modules/admin/errors.service').record(err, req); // eslint-disable-line global-require
 
   const code = known ? err.code : 'INTERNAL_ERROR';
   const message = known ? err.message : 'Something went wrong. Please try again.';

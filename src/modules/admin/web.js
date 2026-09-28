@@ -6,6 +6,7 @@ const { LIMIT_KEYS } = require('../../db/catalog');
 const admin = require('./admin.service');
 const subscriptions = require('../billing/subscription.service');
 const auditLog = require('../organizations/audit.service');
+const audit = require('../../core/audit');
 const bcrypt = require('bcryptjs');
 const { E } = require('../../core/errors');
 const { singleFile } = require('../../middleware/upload');
@@ -15,6 +16,7 @@ const router = express.Router();
 
 const access = require('./access');
 const team = require('./team.service');
+const security = require('../auth/security.service');
 
 router.use((req, res, next) => {
   req.ctx = { userId: req.user.id, organizationId: null, permissions: new Set(), ip: req.ip, userAgent: req.get('user-agent') };
@@ -26,6 +28,13 @@ router.use((req, res, next) => {
   if (!access.can(req.user, section, !['GET', 'HEAD'].includes(req.method))) return next(E.forbidden(`platform.${section}`));
   return next();
 });
+
+// When the platform requires it, the team must turn on two-factor sign-in before using the panel.
+router.use(wrap(async (req, res, next) => {
+  if (security.hasTwoFactor(req.user) || !(await security.requireAdmin2fa())) return next();
+  req.session.securityBack = '/admin';
+  return res.redirect('/security?required=1');
+}));
 
 router.get('/', wrap(async (req, res) => {
   res.page('pages/admin/overview', { layout: 'admin', title: req.t('admin.title'), stats: await admin.overview(), orgs: (await admin.listOrganizations()).slice(0, 8) });
@@ -290,10 +299,92 @@ router.post('/ai/test', form(async (req, res) => {
 // ---------- Internal CRM ----------
 router.use('/crm', require('../crm/web'));
 
+// ---------- Database backups ----------
+const backups = require('./backup.service');
+const errorLog = require('./errors.service');
+const renderBackups = async (req, res, extra = {}) => res.page('pages/admin/backups', {
+  layout: 'admin', title: req.t('admin.backups'), list: backups.list(), settings: await backups.settings(), dir: backups.DIR, inlineFormError: true, ...extra,
+});
+router.get('/backups', wrap((req, res) => renderBackups(req, res)));
+router.post('/backups', form(async (req, res) => {
+  const r = await backups.create(req.ctx, { label: 'manual' });
+  flash(req, 'success', req.t('admin.backup_created', { name: r.name }));
+  res.redirect('/admin/backups');
+}, renderBackups));
+router.post('/backups/settings', form(async (req, res) => {
+  await backups.saveSettings(req.ctx, { enabled: req.body.enabled === '1', hour: req.body.hour, keep: req.body.keep });
+  flash(req, 'success', req.t('common.saved'));
+  res.redirect('/admin/backups');
+}, renderBackups));
+router.post('/backups/import', ...singleFile('file', { big: true }), form(async (req, res) => {
+  const name = await backups.importFile(req.ctx, req.file?.buffer);
+  flash(req, 'success', req.t('admin.backup_imported', { name }));
+  res.redirect('/admin/backups');
+}, renderBackups));
+router.get('/backups/:name/download', wrap(async (req, res) => {
+  const stream = backups.openRead(req.params.name);
+  await audit.record(req.ctx, 'platform.backup_downloaded', { newValues: { name: req.params.name } });
+  res.set({ 'Content-Type': 'application/gzip', 'Content-Disposition': `attachment; filename="${req.params.name}"`, 'Cache-Control': 'no-store' });
+  stream.pipe(res);
+}));
+router.post('/backups/:name/restore', form(async (req, res) => {
+  const r = await backups.restore(req.ctx, req.params.name, req.body.password);
+  // The restored database has its own sessions table: sign in again.
+  req.session.destroy(() => {});
+  res.clearCookie('rw.sid');
+  res.redirect(`/login?restored=1&safety=${encodeURIComponent(r.safety)}`);
+}, (req, res, extra) => renderBackups(req, res, { ...extra, restoreName: req.params.name })));
+router.post('/backups/:name/delete', form(async (req, res) => {
+  await backups.remove(req.ctx, req.params.name);
+  flash(req, 'success', req.t('admin.backup_deleted'));
+  res.redirect('/admin/backups');
+}, renderBackups));
+
+// ---------- Launch readiness ----------
+router.get('/launch', wrap(async (req, res) => {
+  res.page('pages/admin/launch', { layout: 'admin', title: req.t('admin.launch'), result: await require('./launch.service').run(req.user) }); // eslint-disable-line global-require
+}));
+
+// ---------- Privacy policy & terms ----------
+const legal = require('../site/legal.service');
+const renderLegal = async (req, res, extra = {}) => {
+  const d = await legal.details();
+  const text = (kind, lang) => d.custom[kind][lang] || legal.DEFAULTS[kind][lang];
+  res.page('pages/admin/legal', { layout: 'admin', title: req.t('admin.legal'), d, text, ...extra });
+};
+router.get('/legal', wrap((req, res) => renderLegal(req, res)));
+router.post('/legal', form(async (req, res) => {
+  await legal.save(req.ctx, req.body);
+  flash(req, 'success', req.t('common.saved'));
+  res.redirect('/admin/legal');
+}, renderLegal));
+
+// ---------- Error log ----------
+router.get('/errors', wrap(async (req, res) => {
+  const q = String(req.query.q || '').slice(0, 100);
+  res.page('pages/admin/errors', { layout: 'admin', title: req.t('admin.errors'), q, list: await errorLog.list({ q }), groups: await errorLog.groups(7), counts: await errorLog.counts() });
+}));
+router.post('/errors/clear', wrap(async (req, res) => {
+  await errorLog.clear();
+  await audit.record(req.ctx, 'platform.errors_cleared', {});
+  flash(req, 'success', req.t('admin.errors_cleared'));
+  res.redirect('/admin/errors');
+}));
+
 // ---------- Platform team ----------
 const renderTeam = async (req, res, extra = {}) => res.page('pages/admin/team', {
-  layout: 'admin', title: req.t('admin.team'), members: await team.list(), roles: access.ROLES, sections: access.SECTIONS, ...extra,
+  layout: 'admin', title: req.t('admin.team'), members: await team.list(), roles: access.ROLES, sections: access.SECTIONS, require2fa: await security.requireAdmin2fa(), ...extra,
 });
+router.post('/team/security', form(async (req, res) => {
+  await security.setRequireAdmin2fa(req.ctx, req.body.require_admin_2fa === '1');
+  flash(req, 'success', req.t('common.saved'));
+  res.redirect('/admin/team');
+}, renderTeam));
+router.post('/team/:id/reset-2fa', form(async (req, res) => {
+  await security.resetForUser(req.ctx, Number(req.params.id));
+  flash(req, 'success', req.t('admin.team_2fa_reset_done'));
+  res.redirect('/admin/team');
+}, renderTeam));
 router.get('/team', wrap((req, res) => renderTeam(req, res)));
 router.post('/team', form(async (req, res) => {
   await team.add(req.ctx, { name: req.body.name, email: req.body.email, role: req.body.role, password: req.body.password });

@@ -157,7 +157,7 @@ router.post('/account/password', form(async (req, res) => {
   const data = validate(z.object({
     current_password: z.string().min(1), new_password: z.string().min(8, 'Password must be at least 8 characters.').max(128),
   }), req.body);
-  await authService.changePassword(req.ctx, { currentPassword: data.current_password, newPassword: data.new_password });
+  await authService.changePassword({ ...req.ctx, sessionId: req.sessionID }, { currentPassword: data.current_password, newPassword: data.new_password });
   flash(req, 'success', req.t('settings.password_changed'));
   res.redirect('/app/settings/account');
 }, renderAccount));

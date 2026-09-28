@@ -20,6 +20,10 @@ const SECTIONS = {
   system: ['owner'],
   team: ['owner'],
   crm: ['owner', 'admin', 'sales', 'support'],
+  backups: ['owner'],
+  errors: ['owner', 'admin'],
+  launch: ['owner', 'admin'],
+  legal: ['owner', 'admin'],
 };
 // Changing things (POST) in these sections needs a narrower role than reading them.
 const WRITE = {

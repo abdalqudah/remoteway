@@ -39,6 +39,7 @@ function locals(req, res, next) {
     arabicFont: config.arabicFontInstalled,
     assetV: ASSET_V,
     escapeHtml: (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]),
+    cookiesOk: req.cookies?.rw_cookies_ok === '1',
     baseUrl: process.env.APP_URL ? config.appUrl.replace(/\/+$/, '') : `${req.protocol}://${req.get('host')}`,
     icon: (name, cls = '') => `<svg class="icon ${cls}" aria-hidden="true"><use href="/icons.svg?v=${ASSET_V}#i-${name}"></use></svg>`,
     roleName: (r) => {
@@ -74,7 +75,7 @@ function flash(req, type, message) {
 // (verifyCsrfAfterUpload). Multipart sent anywhere else is refused so it can never skip the check.
 const MULTIPART_ROUTES = [/^\/app\/documents(\/\d+\/versions)?\/?$/, /^\/app\/employees\/import\/?$/, /^\/api\/v1\/documents\/?$/, /^\/admin\/system\/update\/?$/,
   /^\/app\/recruitment\/candidates(\/\d+)?\/?$/, /^\/careers\/[a-z0-9-]+\/jobs\/[a-z0-9-]+\/apply\/?$/,
-  /^\/app\/learning\/manage\/courses\/\d+\/lessons(\/\d+)?\/?$/, /^\/app\/settings\/branding\/logo\/?$/, /^\/me\/profile\/(photo|cv)\/?$/];
+  /^\/app\/learning\/manage\/courses\/\d+\/lessons(\/\d+)?\/?$/, /^\/app\/settings\/branding\/logo\/?$/, /^\/me\/profile\/(photo|cv)\/?$/, /^\/admin\/backups\/import\/?$/];
 
 function tokenValid(req, sent) {
   return Boolean(req.session?.csrf && sent && safeEqual(sent, req.session.csrf));

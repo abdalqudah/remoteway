@@ -1,0 +1,14 @@
+<h1><%= t('auth.forgot_title') %></h1>
+<% if (sent) { %>
+<div class="alert alert-success mt-4" role="status"><%- icon('mail-check') %><div><%= t('auth.forgot_sent') %></div></div>
+<p class="mt-4 text-2 small"><%= t('auth.forgot_sent_hint') %></p>
+<a class="btn btn-secondary btn-block mt-6" href="/login"><%= t('auth.back_to_login') %></a>
+<% } else { %>
+<p class="lead"><%= t('auth.forgot_lead') %></p>
+<form method="post" action="/forgot" class="stack mt-6" novalidate>
+  <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+  <%- include('../../partials/field', { name: 'email', label: t('fields.email'), type: 'email', required: true, autocomplete: 'email' }) %>
+  <button class="btn btn-dark btn-lg btn-block" type="submit"><%= t('auth.forgot_send') %></button>
+</form>
+<p class="mt-6 text-2"><a class="link" href="/login"><%= t('auth.back_to_login') %></a></p>
+<% } %>

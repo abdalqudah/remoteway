@@ -4,7 +4,7 @@
   <section class="panel span-2">
     <div class="panel-head"><h2><%= t('admin.team_members') %></h2><span class="badge"><%= fmt.number(members.length) %></span></div>
     <div class="table-wrap"><table class="table">
-      <thead><tr><th><%= t('fields.name') %></th><th><%= t('admin.team_role') %></th><th><%= t('admin.team_last_login') %></th><th class="actions"></th></tr></thead>
+      <thead><tr><th><%= t('fields.name') %></th><th><%= t('admin.team_role') %></th><th><%= t('admin.team_last_login') %></th><th><%= t('auth.twofa_short') %></th><th class="actions"></th></tr></thead>
       <tbody><% members.forEach(function (m) { var me = m.id === currentUser.id; %><tr>
         <td><div style="font-weight:600"><%= m.name %><% if (me) { %> <span class="badge"><%= t('admin.team_you') %></span><% } %></div><div class="muted small" dir="ltr"><%= m.email %></div></td>
         <td><% if (me) { %><%= t('admin.role_' + (m.platform_role || 'owner')) %><% } else { %>
@@ -12,6 +12,7 @@
             <select class="select select-sm" name="role" aria-label="<%= t('admin.team_role') %>"><% roles.forEach(function (r) { %><option value="<%= r %>"<%= (m.platform_role || 'owner') === r ? ' selected' : '' %>><%= t('admin.role_' + r) %></option><% }) %></select>
             <button class="btn btn-secondary btn-sm" type="submit"><%= t('common.save') %></button></form><% } %></td>
         <td class="nowrap small muted"><%= m.last_login_at ? fmt.date(m.last_login_at, { dateStyle: 'medium', timeStyle: 'short' }) : '—' %></td>
+        <td class="nowrap"><% if (m.two_factor_enabled_at) { %><span class="badge badge-success"><%- icon('shield-check', 'icon-sm') %><%= t('auth.twofa_on') %></span><% if (!me) { %> <form class="inline" method="post" action="/admin/team/<%= m.id %>/reset-2fa" data-confirm="<%= t('admin.team_2fa_reset_confirm', { name: m.name }) %>"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><button class="btn btn-ghost btn-sm" type="submit"><%= t('admin.team_2fa_reset') %></button></form><% } %><% } else { %><span class="badge badge-warning"><%= t('auth.twofa_off') %></span><% } %></td>
         <td class="actions"><% if (!me) { %><form method="post" action="/admin/team/<%= m.id %>/remove" data-confirm="<%= t('admin.team_remove_confirm', { name: m.name }) %>"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><button class="btn btn-danger-ghost btn-sm" type="submit"><%= t('admin.team_remove') %></button></form><% } %></td>
       </tr><% }) %></tbody>
     </table></div>
@@ -28,6 +29,15 @@
     <div class="panel-foot"><button class="btn btn-dark" type="submit"><%- icon('user-plus') %><%= t('admin.team_add') %></button></div>
   </form>
 </div>
+<form class="panel mt-6" method="post" action="/admin/team/security">
+  <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+  <div class="panel-head"><div><h2><%- icon('shield-check') %> <%= t('admin.team_security') %></h2><div class="panel-sub"><%= t('admin.team_security_sub') %></div></div></div>
+  <div class="panel-body">
+    <label class="check"><input type="checkbox" name="require_admin_2fa" value="1"<%= require2fa ? ' checked' : '' %>> <span><%= t('admin.team_require_2fa') %></span></label>
+    <% if (!currentUser.two_factor_enabled_at) { %><p class="small text-2 mt-2"><%= t('admin.team_require_2fa_hint') %> <a class="link" href="/security"><%= t('auth.twofa_start') %></a></p><% } %>
+  </div>
+  <div class="panel-foot"><button class="btn btn-dark" type="submit"><%= t('common.save') %></button></div>
+</form>
 <section class="panel mt-6">
   <div class="panel-head"><h2><%= t('admin.team_roles') %></h2></div>
   <div class="table-wrap"><table class="table">

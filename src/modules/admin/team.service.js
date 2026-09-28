@@ -9,7 +9,7 @@ const { ROLES } = require('./access');
 
 async function list() {
   return knex('users').where({ is_super_admin: true }).orderBy('name')
-    .select('id', 'name', 'email', 'platform_role', 'status', 'last_login_at', 'created_at');
+    .select('id', 'name', 'email', 'platform_role', 'status', 'last_login_at', 'created_at', 'two_factor_enabled_at');
 }
 
 async function ownersLeft(trx, exceptId) {

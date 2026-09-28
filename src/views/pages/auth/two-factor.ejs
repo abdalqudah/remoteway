@@ -1,0 +1,8 @@
+<h1><%= t('auth.twofa_title') %></h1>
+<p class="lead"><%= t('auth.twofa_lead') %></p>
+<form method="post" action="/login/2fa" class="stack mt-6" novalidate>
+  <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+  <%- include('../../partials/field', { name: 'code', label: t('auth.twofa_code'), required: true, autocomplete: 'one-time-code', attrs: 'inputmode="numeric" autofocus dir="ltr" maxlength="11"', help: t('auth.twofa_code_help') }) %>
+  <button class="btn btn-dark btn-lg btn-block" type="submit"><%= t('auth.twofa_verify') %></button>
+</form>
+<p class="mt-6 text-2"><a class="link" href="/login"><%= t('auth.back_to_login') %></a></p>

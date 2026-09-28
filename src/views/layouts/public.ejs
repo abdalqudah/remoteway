@@ -28,6 +28,7 @@
   </div>
 </header>
 <main>
+  <% if (typeof notice !== 'undefined' && notice) { %><div class="container mt-4"><div class="alert alert-success" role="status"><%- icon('circle-check') %><div><%= notice %></div></div></div><% } %>
   <% if (flash && flash.length) { %><div class="container mt-4"><%- include('../partials/flash') %></div><% } %>
   <%- body %>
 </main>
@@ -35,8 +36,15 @@
   <div class="container inner">
     <div class="row"><%- include('../partials/logo') %></div>
     <div class="row wrap small"><span>© <%= new Date().getFullYear() %> RemoteWay</span><span>·</span><span><%= t('site.footer_tagline') %></span></div>
+    <nav class="row wrap small footer-links" aria-label="<%= t('legal.nav') %>"><a href="/privacy"><%= t('legal.privacy_title') %></a><a href="/terms"><%= t('legal.terms_title') %></a><a href="/demo"><%= t('legal.contact') %></a></nav>
   </div>
 </footer>
+<% if (!cookiesOk) { %>
+<div class="cookie-note" role="region" aria-label="<%= t('legal.cookies') %>" data-cookie-note>
+  <span><%- icon('cookie', 'icon-sm') %> <%= t('legal.cookie_text') %> <a class="link" href="/privacy"><%= t('legal.more') %></a></span>
+  <form method="post" action="/preferences/cookies"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><button class="btn btn-dark btn-sm" type="submit"><%= t('legal.cookie_ok') %></button></form>
+</div>
+<% } %>
 <script src="/js/app.js?v=<%= assetV %>" defer></script>
 </body>
 </html>

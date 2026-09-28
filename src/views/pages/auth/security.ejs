@@ -1,0 +1,70 @@
+<a class="link small" href="<%= back %>"><%- icon('arrow-left', 'flip-rtl') %><%= t('common.back') %></a>
+<h1 class="mt-2"><%= t('auth.security_title') %></h1>
+<p class="lead"><%= t('auth.security_lead') %></p>
+<% if (required && !on) { %><div class="alert alert-warning mt-4" role="alert"><%- icon('shield-alert') %><div><%= t('auth.twofa_required') %></div></div><% } %>
+
+<section class="panel mt-6">
+  <div class="panel-head"><h2><%- icon('shield-check') %> <%= t('auth.twofa_name') %></h2>
+    <span class="badge <%= on ? 'badge-success' : 'badge-neutral' %>"><%= on ? t('auth.twofa_on') : t('auth.twofa_off') %></span></div>
+  <div class="panel-body stack">
+  <% if (typeof recoveryCodes !== 'undefined' && recoveryCodes) { %>
+    <div class="alert alert-success" role="status"><%- icon('circle-check') %><div><%= t('auth.twofa_enabled') %></div></div>
+    <p><strong><%= t('auth.recovery_title') %></strong><br><span class="text-2 small"><%= t('auth.recovery_hint') %></span></p>
+    <div class="recovery-codes" dir="ltr"><% recoveryCodes.forEach(function (c) { %><span><%= c %></span><% }) %></div>
+    <a class="btn btn-dark" href="<%= back %>"><%= t('auth.recovery_saved') %></a>
+  <% } else if (on) { %>
+    <p class="text-2"><%= t('auth.twofa_on_text') %></p>
+    <form method="post" action="/security/2fa/disable" class="stack" novalidate>
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+      <%- include('../../partials/field', { name: 'password', label: t('settings.current_password'), type: 'password', required: true, autocomplete: 'current-password' }) %>
+      <div><button class="btn btn-danger" type="submit"><%= t('auth.twofa_disable') %></button></div>
+    </form>
+  <% } else if (setup) { %>
+    <ol class="steps-list" id="setup">
+      <li><%= t('auth.twofa_step1') %></li>
+      <li><%= t('auth.twofa_step2') %></li>
+    </ol>
+    <div class="twofa-qr"><%- setup.svg %></div>
+    <p class="small text-2"><%= t('auth.twofa_manual') %> <code dir="ltr" class="select-all"><%= setup.secret.replace(/(.{4})/g, '$1 ').trim() %></code></p>
+    <form method="post" action="/security/2fa/enable" class="stack" novalidate>
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+      <%- include('../../partials/field', { name: 'code', label: t('auth.twofa_code'), required: true, autocomplete: 'one-time-code', attrs: 'inputmode="numeric" dir="ltr" maxlength="6"' }) %>
+      <div><button class="btn btn-dark" type="submit"><%= t('auth.twofa_enable') %></button></div>
+    </form>
+  <% } else { %>
+    <p class="text-2"><%= t('auth.twofa_off_text') %></p>
+    <form method="post" action="/security/2fa/start">
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+      <button class="btn btn-dark" type="submit"><%- icon('smartphone') %><%= t('auth.twofa_start') %></button>
+    </form>
+  <% } %>
+  </div>
+</section>
+
+<section class="panel mt-6">
+  <div class="panel-head"><h2><%- icon('download') %> <%= t('privacy.your_data') %></h2></div>
+  <div class="panel-body stack">
+    <p class="text-2"><%= t('privacy.export_text') %></p>
+    <div><a class="btn btn-secondary" href="/security/export"><%- icon('download') %><%= t('privacy.export') %></a></div>
+  </div>
+</section>
+
+<% if (!currentUser.is_super_admin) { %>
+<section class="panel mt-6 panel-danger">
+  <div class="panel-head"><h2><%- icon('user-x') %> <%= t('privacy.delete_title') %></h2></div>
+  <div class="panel-body stack">
+    <p class="text-2"><%= t('privacy.delete_text') %></p>
+    <% if (owned.length) { %>
+      <div class="alert alert-warning" role="alert"><%- icon('triangle-alert') %><div><%= t('privacy.delete_owner', { names: owned.map(function (o) { return o.name; }).join('، ') }) %></div></div>
+    <% } else { %>
+    <details<%= typeof deleteOpen !== 'undefined' && deleteOpen ? ' open' : '' %>><summary class="btn btn-danger-ghost"><%= t('privacy.delete_start') %></summary>
+      <form method="post" action="/security/delete" class="stack mt-4" novalidate data-confirm="<%= t('privacy.delete_confirm') %>">
+        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+        <%- include('../../partials/field', { name: 'confirm', label: t('privacy.delete_type_email', { email: currentUser.email }), autocomplete: 'off', attrs: 'dir="ltr"' }) %>
+        <%- include('../../partials/field', { name: 'password', label: t('settings.current_password'), type: 'password', required: true, autocomplete: 'current-password' }) %>
+        <div><button class="btn btn-danger" type="submit"><%= t('privacy.delete_go') %></button></div>
+      </form></details>
+    <% } %>
+  </div>
+</section>
+<% } %>

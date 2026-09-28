@@ -19,6 +19,10 @@
       <% if (_can('ai')) { %><a href="/admin/ai" class="<%= adminSection === 'ai' ? 'active' : '' %>"><%- icon('sparkles') %><%= t('admin.ai') %></a><% } %>
       <% if (_can('jobs')) { %><a href="/admin/jobs" class="<%= adminSection === 'jobs' ? 'active' : '' %>"><%- icon('zap') %><%= t('admin.jobs') %></a><% } %>
       <% if (_can('team')) { %><a href="/admin/team" class="<%= adminSection === 'team' ? 'active' : '' %>"><%- icon('user-cog') %><%= t('admin.team') %></a><% } %>
+      <% if (_can('launch')) { %><a href="/admin/launch" class="<%= adminSection === 'launch' ? 'active' : '' %>"><%- icon('rocket') %><%= t('admin.launch') %></a><% } %>
+      <% if (_can('legal')) { %><a href="/admin/legal" class="<%= adminSection === 'legal' ? 'active' : '' %>"><%- icon('scale') %><%= t('admin.legal') %></a><% } %>
+      <% if (_can('backups')) { %><a href="/admin/backups" class="<%= adminSection === 'backups' ? 'active' : '' %>"><%- icon('database') %><%= t('admin.backups') %></a><% } %>
+      <% if (_can('errors')) { %><a href="/admin/errors" class="<%= adminSection === 'errors' ? 'active' : '' %>"><%- icon('bug') %><%= t('admin.errors') %></a><% } %>
       <% if (_can('system')) { %><a href="/admin/system" class="<%= adminSection === 'system' ? 'active' : '' %>"><%- icon('package') %><%= t('admin.system') %></a><% } %>
       <div class="nav-group"><div class="nav-title"><%= t('admin.workspace') %></div><a href="/app"><%- icon('arrow-left', 'flip-rtl') %><%= t('admin.back_to_app') %></a></div>
     </nav>
@@ -31,6 +35,7 @@
       <div class="topbar-actions">
         <a class="btn btn-ghost btn-sm" href="<%= langUrl(locale === 'ar' ? 'en' : 'ar') %>"><%- icon('languages') %><%= locale === 'ar' ? 'EN' : 'ع' %></a>
         <button class="btn btn-ghost btn-icon" type="button" data-theme-toggle aria-label="<%= t('common.toggle_theme') %>"><%- icon('moon', 'theme-moon') %><%- icon('sun', 'theme-sun hidden') %></button>
+        <a class="btn btn-ghost btn-icon" href="/security" title="<%= t('auth.security_title') %>" aria-label="<%= t('auth.security_title') %>"><%- icon('shield-check') %></a>
         <form method="post" action="/logout"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><button class="btn btn-ghost btn-sm" type="submit"><%- icon('log-out') %><%= t('auth.logout') %></button></form>
       </div>
     </header>

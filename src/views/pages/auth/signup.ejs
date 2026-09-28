@@ -28,7 +28,7 @@
 
   <section class="stack hidden" data-step>
     <%- include('../../partials/plan-picker') %>
-    <label class="check"><input type="checkbox" name="terms"<%= old && old.terms ? ' checked' : '' %>><span><%= t('auth.accept_terms') %></span></label>
+    <label class="check"><input type="checkbox" name="terms"<%= old && old.terms ? ' checked' : '' %>><span><%= t('legal.accept_pre') %> <a class="link" href="/terms" target="_blank" rel="noopener"><%= t('legal.terms_title') %></a> <%= t('legal.and') %> <a class="link" href="/privacy" target="_blank" rel="noopener"><%= t('legal.privacy_title') %></a>.</span></label>
     <% if (errors && errors.terms) { %><span class="field-error"><%= errors.terms %></span><% } %>
     <div class="form-actions"><button class="btn btn-ghost" type="button" data-prev><%= t('common.back') %></button><button class="btn btn-primary btn-lg" type="submit"><%= t('auth.create_workspace') %></button></div>
   </section>

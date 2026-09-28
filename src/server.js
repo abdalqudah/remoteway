@@ -131,6 +131,13 @@ async function start() {
   // Internal CRM: e-mail reminders for due follow-ups (every 15 minutes).
   const crm = require('./modules/crm/crm.service');
   setInterval(() => crm.sendReminders().catch((e) => console.error('[crm]', e.message)), 15 * 60_000).unref();
+  // Daily database backup (checked hourly; runs once a day after the chosen hour) and error-log cleanup.
+  const backups = require('./modules/admin/backup.service');
+  const backupTick = () => backups.autoBackup().catch((e) => console.error('[backup]', e.message));
+  setTimeout(backupTick, 120_000).unref();
+  setInterval(backupTick, 3600_000).unref();
+  setInterval(() => require('./modules/admin/errors.service').prune(90).catch(() => {}), 24 * 3600_000).unref();
+  process.on('unhandledRejection', (err) => { console.error('[unhandled]', err); require('./modules/admin/errors.service').record(err, { method: 'BG', originalUrl: '(background)' }); });
   // Phusion Passenger / LiteSpeed (cPanel "Setup Node.js App") passes a socket path via PORT; listen() accepts both.
   const server = app.listen(PORT, () => console.log(`[remoteway] listening on ${PORT} (${config.env})`));
   const shutdown = () => server.close(() => knex.destroy().then(() => process.exit(0)));

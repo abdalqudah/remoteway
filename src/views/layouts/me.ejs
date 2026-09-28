@@ -36,6 +36,7 @@
           <div class="menu">
             <div class="menu-label truncate"><%= currentUser.email %></div>
             <% if (!hasWorkspace) { %><a href="/organizations/new"><%- icon('building-2', 'icon-sm') %><%= t('me.create_company') %></a><% } %>
+            <a href="/security"><%- icon('shield-check', 'icon-sm') %><%= t('auth.security_title') %></a>
             <div class="sep"></div>
             <form method="post" action="/logout"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><button type="submit"><%- icon('log-out', 'icon-sm') %><%= t('auth.logout') %></button></form>
           </div>

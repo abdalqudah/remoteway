@@ -1,9 +1,11 @@
 <h1><%= t('auth.login_title') %></h1>
 <p class="lead"><%= t('auth.login_lead') %></p>
+<% if (typeof restored !== 'undefined' && restored) { %><div class="alert alert-success mt-4" role="status"><%- icon('archive-restore') %><div><%= t('admin.backup_restored') %></div></div><% } %>
 <form method="post" action="/login" class="stack mt-6" novalidate>
   <input type="hidden" name="_csrf" value="<%= csrfToken %>">
   <%- include('../../partials/field', { name: 'email', label: t('fields.email'), type: 'email', required: true, autocomplete: 'email' }) %>
   <%- include('../../partials/field', { name: 'password', label: t('fields.password'), type: 'password', required: true, autocomplete: 'current-password' }) %>
+  <div class="text-end small" style="margin-top:-6px"><a class="link" href="/forgot"><%= t('auth.forgot_link') %></a></div>
   <button class="btn btn-dark btn-lg btn-block" type="submit"><%= t('auth.login') %><%- icon('arrow-right', 'flip-rtl') %></button>
 </form>
 <a class="btn btn-secondary btn-block mt-4" href="/sso"><%- icon('key-round') %><%= t('sso.sign_in') %></a>

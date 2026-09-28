@@ -1,0 +1,36 @@
+<div class="page-head"><div><h1><%= t('admin.errors') %></h1><p><%= t('admin.errors_sub') %></p></div>
+  <% if (list.length) { %><div class="page-actions"><form method="post" action="/admin/errors/clear" data-confirm="<%= t('admin.errors_clear_confirm') %>"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><button class="btn btn-secondary" type="submit"><%- icon('trash-2') %><%= t('admin.errors_clear') %></button></form></div><% } %></div>
+
+<section class="kpis mb-6" style="grid-template-columns:repeat(3,minmax(0,1fr))">
+  <div class="kpi"><div class="kpi-label"><%- icon('bug', 'icon-sm') %><%= t('admin.errors_24h') %></div><div class="kpi-value"><%= fmt.number(counts.day) %></div></div>
+  <div class="kpi"><div class="kpi-label"><%- icon('history', 'icon-sm') %><%= t('admin.errors_7d') %></div><div class="kpi-value"><%= fmt.number(counts.week) %></div></div>
+  <div class="kpi"><div class="kpi-label"><%- icon('layers', 'icon-sm') %><%= t('admin.errors_distinct') %></div><div class="kpi-value"><%= fmt.number(groups.length) %></div></div>
+</section>
+
+<% if (!list.length && !q) { %>
+<section class="panel"><div class="empty"><%- icon('circle-check') %><p><%= t('admin.errors_none') %></p></div></section>
+<% } else { %>
+<% if (groups.length) { %>
+<section class="panel mb-6">
+  <div class="panel-head"><h2><%= t('admin.errors_top') %></h2></div>
+  <div class="table-wrap"><table class="table">
+    <thead><tr><th><%= t('admin.errors_message') %></th><th><%= t('admin.errors_path') %></th><th class="text-end"><%= t('admin.errors_times') %></th><th><%= t('admin.errors_last') %></th></tr></thead>
+    <tbody><% groups.forEach(function (g) { %><tr><td class="small" style="max-width:420px"><%= g.message %></td><td class="mono small" dir="ltr"><%= g.path %></td><td class="text-end num"><%= fmt.number(Number(g.n)) %></td><td class="small muted nowrap"><%= fmt.date(g.last, { dateStyle: 'medium', timeStyle: 'short' }) %></td></tr><% }) %></tbody>
+  </table></div>
+</section>
+<% } %>
+<section class="panel">
+  <div class="panel-head"><h2><%= t('admin.errors_recent') %></h2>
+    <form method="get" action="/admin/errors" class="row-sm"><input class="input input-sm" type="search" name="q" value="<%= q %>" placeholder="<%= t('common.search') %>" aria-label="<%= t('common.search') %>"></form></div>
+  <div class="stack" style="padding:12px 16px">
+  <% list.forEach(function (e) { %>
+    <details class="error-row">
+      <summary><span class="badge badge-danger"><%= e.method %></span> <span class="mono small" dir="ltr"><%= e.path %></span> <span class="grow truncate"><%= e.message %></span> <span class="muted small nowrap"><%= fmt.date(e.created_at, { dateStyle: 'medium', timeStyle: 'short' }) %></span></summary>
+      <div class="small text-2 mt-2"><%= t('admin.errors_user') %>: <%= e.user_email || '—' %> · IP <span dir="ltr"><%= e.ip || '—' %></span><% if (e.organization_id) { %> · <a class="link" href="/admin/organizations/<%= e.organization_id %>">#<%= e.organization_id %></a><% } %></div>
+      <% if (e.stack) { %><pre class="error-stack" dir="ltr"><%= e.stack %></pre><% } %>
+    </details>
+  <% }) %>
+  <% if (!list.length) { %><p class="muted"><%= t('common.none') %></p><% } %>
+  </div>
+</section>
+<% } %>

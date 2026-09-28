@@ -1,0 +1,365 @@
+// Launch hardening: password reset by email, two-step verification (TOTP + recovery codes) at sign-in,
+// admin-team 2FA enforcement and reset, sessions ending after a password change.
+const fs = require('fs');
+const os = require('os');
+const path = require('path');
+const zlib = require('zlib');
+process.env.BACKUP_PATH = fs.mkdtempSync(path.join(os.tmpdir(), 'rw-backups-'));
+const { test, before, after, describe } = require('node:test');
+const assert = require('node:assert/strict');
+const bcrypt = require('bcryptjs');
+const h = require('./helpers');
+const mailer = require('../src/core/mailer');
+const totp = require('../src/core/totp');
+
+const pub = () => h.request.agent(h.getApp());
+const csrfOf = (text) => text.match(/name="csrf-token" content="([^"]+)"/)[1];
+async function startLogin(email, password) {
+  const agent = pub();
+  const csrf = csrfOf((await agent.get('/login')).text);
+  const res = await agent.post('/login').type('form').send({ _csrf: csrf, email, password });
+  return { agent, csrf, res };
+}
+async function superAdmin(role = 'owner') {
+  const email = `${role}${Date.now()}${Math.random().toString(36).slice(2, 6)}@rw.test`;
+  const [id] = await h.knex('users').insert({ name: `${role} person`, email, password_hash: await bcrypt.hash('Password#123', 4), is_super_admin: true, platform_role: role });
+  return { id, email };
+}
+const nextCode = (secret, offset = 0) => totp.codeAt(secret, totp.stepOf(Date.now()) + offset);
+
+before(async () => { await h.resetDatabase(); });
+after(async () => { await h.knex.destroy(); fs.rmSync(process.env.BACKUP_PATH, { recursive: true, force: true }); });
+
+describe('password reset', () => {
+  test('sends a one-time link, sets the new password, ends old sessions', async () => {
+    const co = await h.createCompany();
+    const old = await h.login(co.email, co.password);
+    assert.equal((await old.get('/app')).status, 200);
+
+    mailer.testOutbox.length = 0;
+    const a = pub();
+    const page = await a.get('/forgot');
+    assert.equal(page.status, 200);
+    const sent = await a.post('/forgot').type('form').send({ _csrf: csrfOf(page.text), email: co.email.toUpperCase() });
+    assert.equal(sent.status, 200);
+    assert.match(sent.text, /reset link is on its way/);
+    const mail = mailer.testOutbox.find((m) => m.to === co.email);
+    assert.ok(mail, 'reset email sent');
+    const token = mail.html.match(/\/reset\/([a-f0-9]{64})/)[1];
+    const row = await h.knex('password_resets').first();
+    assert.notEqual(row.token_hash, token, 'only the hash is stored');
+
+    const form = await a.get(`/reset/${token}`);
+    assert.equal(form.status, 200);
+    assert.match(form.text, /name="password_confirm"/);
+    const bad = await a.post(`/reset/${token}`).type('form').send({ _csrf: csrfOf(form.text), password: 'NewPass#2026', password_confirm: 'nope' });
+    assert.equal(bad.status, 422);
+    const ok = await a.post(`/reset/${token}`).type('form').send({ _csrf: csrfOf(form.text), password: 'NewPass#2026', password_confirm: 'NewPass#2026' });
+    assert.equal(ok.status, 302);
+    assert.equal(ok.headers.location, '/login');
+
+    // Old session is gone; the link no longer works; the new password does
+    assert.equal((await old.get('/app')).status, 302);
+    const again = await a.get(`/reset/${token}`);
+    assert.match(again.text, /expired or was already used/);
+    const reused = await a.post(`/reset/${token}`).type('form').send({ _csrf: csrfOf(again.text), password: 'Another#2026', password_confirm: 'Another#2026' });
+    assert.equal(reused.status, 404);
+    await assert.rejects(h.login(co.email, co.password));
+    await h.login(co.email, 'NewPass#2026');
+  });
+
+  test('same answer for unknown emails, no mail, and at most 3 links an hour', async () => {
+    mailer.testOutbox.length = 0;
+    const a = pub();
+    const page = await a.get('/forgot');
+    const r = await a.post('/forgot').type('form').send({ _csrf: csrfOf(page.text), email: 'nobody@nowhere.test' });
+    assert.equal(r.status, 200);
+    assert.match(r.text, /reset link is on its way/);
+    assert.equal(mailer.testOutbox.length, 0);
+
+    const co = await h.createCompany();
+    for (let i = 0; i < 5; i += 1) await a.post('/forgot').type('form').send({ _csrf: csrfOf(page.text), email: co.email });
+    assert.equal(mailer.testOutbox.filter((m) => m.to === co.email).length, 3);
+    // An expired link is refused
+    await h.knex('password_resets').update({ expires_at: new Date(Date.now() - 1000) });
+    const token = mailer.testOutbox[0].html.match(/\/reset\/([a-f0-9]{64})/)[1];
+    assert.match((await a.get(`/reset/${token}`)).text, /expired or was already used/);
+  });
+
+  test('login page links to the reset flow', async () => {
+    assert.match((await pub().get('/login')).text, /href="\/forgot"/);
+  });
+});
+
+describe('two-step verification', () => {
+  let co; let recovery; let secret;
+  test('set up from /security with a QR code, recovery codes shown once', async () => {
+    co = await h.createCompany();
+    const s = await h.login(co.email, co.password);
+    assert.match((await s.get('/security')).text, /Set up two-step verification/);
+    await s.form('/security/2fa/start', {});
+    const page = await s.get('/security');
+    assert.match(page.text, /<svg/);
+    secret = page.text.match(/<code dir="ltr" class="select-all">([A-Z2-7 ]+)<\/code>/)[1].replace(/ /g, '');
+    const wrong = await s.form('/security/2fa/enable', { code: '000000' });
+    assert.equal(wrong.status, 422);
+    const done = await s.form('/security/2fa/enable', { code: nextCode(secret) });
+    assert.equal(done.status, 200);
+    recovery = [...done.text.matchAll(/<span>([a-f0-9]{5}-[a-f0-9]{5})<\/span>/g)].map((m) => m[1]);
+    assert.equal(recovery.length, 10);
+    const u = await h.knex('users').where({ email: co.email }).first();
+    assert.ok(u.two_factor_enabled_at);
+    assert.ok(!String(u.two_factor_secret_enc).includes(secret), 'secret stored encrypted');
+    assert.ok(!JSON.stringify(u.two_factor_recovery).includes(recovery[0]), 'recovery codes stored hashed');
+  });
+
+  test('sign-in asks for the code; a code cannot be reused; recovery codes work once', async () => {
+    const { agent, csrf, res } = await startLogin(co.email, co.password);
+    assert.equal(res.headers.location, '/login/2fa');
+    assert.equal((await agent.get('/app')).status, 302, 'no session before the second step');
+    const bad = await agent.post('/login/2fa').type('form').send({ _csrf: csrf, code: '123456' });
+    assert.equal(bad.status, 422);
+    // The step used at enable time cannot be replayed; the next one works
+    const ok = await agent.post('/login/2fa').type('form').send({ _csrf: csrf, code: nextCode(secret, 1) });
+    assert.equal(ok.status, 302);
+    assert.equal((await agent.get('/app')).status, 200);
+
+    const again = await startLogin(co.email, co.password);
+    const replay = await again.agent.post('/login/2fa').type('form').send({ _csrf: again.csrf, code: nextCode(secret, 1) });
+    assert.equal(replay.status, 422);
+    assert.match(replay.text, /already used/);
+    const rec = await again.agent.post('/login/2fa').type('form').send({ _csrf: again.csrf, code: recovery[0] });
+    assert.equal(rec.status, 302);
+
+    const third = await startLogin(co.email, co.password);
+    const used = await third.agent.post('/login/2fa').type('form').send({ _csrf: third.csrf, code: recovery[0] });
+    assert.equal(used.status, 422);
+  });
+
+  test('turning it off needs the current password', async () => {
+    const { agent, csrf } = await startLogin(co.email, co.password);
+    await agent.post('/login/2fa').type('form').send({ _csrf: csrf, code: recovery[1] });
+    const tok = csrfOf((await agent.get('/security')).text);
+    assert.equal((await agent.post('/security/2fa/disable').type('form').send({ _csrf: tok, password: 'wrong' })).status, 422);
+    assert.equal((await agent.post('/security/2fa/disable').type('form').send({ _csrf: tok, password: co.password })).status, 302);
+    const plain = await startLogin(co.email, co.password);
+    assert.notEqual(plain.res.headers.location, '/login/2fa');
+  });
+
+  test('platform can require 2FA for the admin team; the owner can reset a teammate', async () => {
+    const owner = await superAdmin('owner');
+    const support = await superAdmin('support');
+    const o = await h.login(owner.email, 'Password#123');
+    assert.equal((await o.get('/admin/team')).status, 200);
+    assert.equal((await o.form('/admin/team/security', { require_admin_2fa: '1' })).status, 302);
+    const blocked = await o.get('/admin');
+    assert.equal(blocked.status, 302);
+    assert.equal(blocked.headers.location, '/security?required=1');
+    assert.match((await o.get('/security?required=1')).text, /requires two-step verification/);
+
+    // Support person cannot change the setting, and is also sent to set up 2FA
+    const s = await h.login(support.email, 'Password#123');
+    assert.equal((await s.get('/admin/crm')).headers.location, '/security?required=1');
+
+    // Owner turns it on and gets back in
+    await o.form('/security/2fa/start', {});
+    const sec = (await o.get('/security')).text.match(/<code dir="ltr" class="select-all">([A-Z2-7 ]+)<\/code>/)[1].replace(/ /g, '');
+    await o.form('/security/2fa/enable', { code: nextCode(sec) });
+    assert.equal((await o.get('/admin')).status, 200);
+    // Required: the team cannot switch it off
+    assert.equal((await o.form('/security/2fa/disable', { password: 'Password#123' })).status, 409);
+
+    // Owner resets a teammate's 2FA
+    await h.knex('users').where({ id: support.id }).update({ two_factor_enabled_at: new Date(), two_factor_secret_enc: 'x' });
+    assert.equal((await o.form(`/admin/team/${support.id}/reset-2fa`, {})).status, 302);
+    const u = await h.knex('users').where({ id: support.id }).first();
+    assert.equal(u.two_factor_enabled_at, null);
+    assert.ok(await h.knex('audit_logs').where({ action: 'auth.2fa_reset' }).first());
+    await o.form('/admin/team/security', {});
+  });
+
+  test('changing the password signs out other devices', async () => {
+    const c = await h.createCompany();
+    const one = await h.login(c.email, c.password);
+    const two = await h.login(c.email, c.password);
+    const r = await one.form('/app/settings/account/password', { current_password: c.password, new_password: 'Changed#2026' });
+    assert.equal(r.status, 302);
+    assert.equal((await one.get('/app')).status, 200, 'this device stays signed in');
+    assert.equal((await two.get('/app')).status, 302, 'the other device is signed out');
+  });
+});
+
+describe('database backups', () => {
+  let o; let owner;
+  test('only the platform owner opens backups', async () => {
+    owner = await superAdmin('owner');
+    o = await h.login(owner.email, 'Password#123');
+    assert.equal((await o.get('/admin/backups')).status, 200);
+    const fin = await h.login((await superAdmin('finance')).email, 'Password#123');
+    assert.equal((await fin.get('/admin/backups')).status, 403);
+  });
+
+  test('backup, change data, restore: data comes back, a safety copy is kept', async () => {
+    const co = await h.createCompany({ name: 'Backup Co' });
+    await h.knex('organizations').where({ id: co.organizationId }).update({ name: 'Before «قبل» O\'Neil\n; line' });
+    const r = await o.form('/admin/backups', {});
+    assert.equal(r.status, 302);
+    const files = fs.readdirSync(process.env.BACKUP_PATH);
+    assert.equal(files.length, 1);
+    const sql = zlib.gunzipSync(fs.readFileSync(path.join(process.env.BACKUP_PATH, files[0]))).toString();
+    assert.match(sql, /^-- RemoteWay database backup/);
+    assert.match(sql, /CREATE TABLE `organizations`/);
+    assert.ok(!/INSERT INTO `sessions`/.test(sql), 'sessions are not backed up');
+
+    // Download
+    const dl = await o.get(`/admin/backups/${files[0]}/download`).buffer(true).parse((res, cb) => { const b = []; res.on('data', (c) => b.push(c)); res.on('end', () => cb(null, Buffer.concat(b))); });
+    assert.equal(dl.status, 200);
+    assert.equal(dl.headers['content-type'], 'application/gzip');
+    assert.ok(dl.body.length > 100);
+    assert.equal((await o.get('/admin/backups/..%2F..%2Fetc%2Fpasswd/download')).status, 404);
+
+    await h.knex('organizations').where({ id: co.organizationId }).update({ name: 'After' });
+    const wrong = await o.form(`/admin/backups/${files[0]}/restore`, { password: 'nope' });
+    assert.equal(wrong.status, 422);
+    const done = await o.form(`/admin/backups/${files[0]}/restore`, { password: 'Password#123' });
+    assert.equal(done.status, 302);
+    assert.match(done.headers.location, /^\/login\?restored=1/);
+    const org = await h.knex('organizations').where({ id: co.organizationId }).first();
+    assert.equal(org.name, 'Before «قبل» O\'Neil\n; line');
+    const after = fs.readdirSync(process.env.BACKUP_PATH);
+    assert.equal(after.length, 2);
+    assert.ok(after.some((n) => n.includes('before-restore')));
+    assert.ok(await h.knex('audit_logs').where({ action: 'platform.backup_restored' }).first());
+    o = await h.login(owner.email, 'Password#123');
+  });
+
+  test('upload checks the file; daily schedule runs once a day and keeps the newest', async () => {
+    const bad = await o.agent.post('/admin/backups/import').field('_csrf', o.csrf).attach('file', Buffer.from('hello'), 'x.sql.gz');
+    assert.equal(bad.status, 422);
+    const good = fs.readFileSync(path.join(process.env.BACKUP_PATH, fs.readdirSync(process.env.BACKUP_PATH)[0]));
+    const ok = await o.agent.post('/admin/backups/import').field('_csrf', o.csrf).attach('file', good, 'copy.sql.gz');
+    assert.equal(ok.status, 302);
+    assert.ok(fs.readdirSync(process.env.BACKUP_PATH).some((n) => n.endsWith('-imported.sql.gz')));
+
+    const backups = require('../src/modules/admin/backup.service');
+    assert.equal((await o.form('/admin/backups/settings', { enabled: '1', hour: '0', keep: '3' })).status, 302);
+    const first = await backups.autoBackup(new Date());
+    assert.ok(first && first.name.endsWith('-auto.sql.gz'));
+    assert.equal(await backups.autoBackup(new Date()), null, 'once a day');
+    assert.equal(fs.readdirSync(process.env.BACKUP_PATH).length, 3, 'only the newest 3 kept');
+    assert.equal((await o.form('/admin/backups/settings', { enabled: '1', hour: '30', keep: '3' })).status, 422);
+  });
+});
+
+describe('error log', () => {
+  test('unexpected errors are stored without secrets and shown to owners/admins', async () => {
+    const errorsSvc = require('../src/modules/admin/errors.service');
+    const err = new Error('DB exploded password=hunter2 token: abc123');
+    await errorsSvc.record(err, { method: 'POST', originalUrl: '/app/x?token=zzz', ip: '1.2.3.4' });
+    const row = await h.knex('app_errors').orderBy('id', 'desc').first();
+    assert.equal(row.path, '/app/x');
+    assert.ok(!row.message.includes('hunter2') && !row.message.includes('abc123'));
+    const owner = await superAdmin('owner');
+    const o = await h.login(owner.email, 'Password#123');
+    const page = await o.get('/admin/errors');
+    assert.equal(page.status, 200);
+    assert.match(page.text, /DB exploded/);
+    const sup = await h.login((await superAdmin('support')).email, 'Password#123');
+    assert.equal((await sup.get('/admin/errors')).status, 403);
+    await o.form('/admin/errors/clear', {});
+    assert.equal(Number((await h.knex('app_errors').count({ n: '*' }).first()).n), 0);
+  });
+});
+
+describe('privacy, terms and personal data rights', () => {
+  test('public legal pages in both languages, editable by the platform', async () => {
+    const en = await pub().get('/privacy');
+    assert.equal(en.status, 200);
+    assert.match(en.text, /Personal Data Protection Law/);
+    assert.match(en.text, /<h2>Your rights<\/h2>/);
+    const ar = await pub().get('/terms?lang=ar');
+    assert.equal(ar.status, 200);
+    assert.match(ar.text, /شروط الخدمة/);
+    assert.match((await pub().get('/')).text, /href="\/privacy"/);
+    assert.match((await pub().get('/signup')).text, /href="\/terms"/);
+
+    const owner = await superAdmin('owner');
+    const o = await h.login(owner.email, 'Password#123');
+    assert.equal((await o.get('/admin/legal')).status, 200);
+    const r = await o.form('/admin/legal', { company: 'RemoteWay Co. Ltd', email: 'privacy@remoteway.sa', privacy_en: '## Hello\n<script>alert(1)</script> {company} — {email}', privacy_ar: '', terms_en: '', terms_ar: '' });
+    assert.equal(r.status, 302);
+    const page = (await pub().get('/privacy')).text;
+    assert.match(page, /<h2>Hello<\/h2>/);
+    assert.match(page, /&lt;script&gt;alert\(1\)&lt;\/script&gt; RemoteWay Co. Ltd/);
+    assert.match(page, /mailto:privacy@remoteway.sa/);
+    // Arabic keeps the starting text, with the entity filled in
+    assert.match((await pub().get('/privacy?lang=ar')).text, /RemoteWay Co. Ltd/);
+    const sup = await h.login((await superAdmin('support')).email, 'Password#123');
+    assert.equal((await sup.get('/admin/legal')).status, 403);
+  });
+
+  test('cookie note can be dismissed; robots.txt and sitemap.xml', async () => {
+    const a = pub();
+    const home = await a.get('/');
+    assert.match(home.text, /data-cookie-note/);
+    await a.post('/preferences/cookies').type('form').send({ _csrf: csrfOf(home.text) });
+    assert.ok(!/data-cookie-note/.test((await a.get('/')).text));
+    const robots = await pub().get('/robots.txt');
+    assert.match(robots.text, /Disallow: \/admin/);
+    assert.match(robots.text, /Sitemap: .*\/sitemap.xml/);
+    const map = await pub().get('/sitemap.xml');
+    assert.equal(map.headers['content-type'].split(';')[0], 'application/xml');
+    assert.match(map.text, /<loc>[^<]*\/privacy<\/loc>/);
+  });
+
+  test('a person downloads their data without secrets', async () => {
+    const co = await h.createCompany();
+    const s = await h.login(co.email, co.password);
+    const r = await s.get('/security/export');
+    assert.equal(r.status, 200);
+    assert.match(r.headers['content-disposition'], /remoteway-my-data/);
+    const data = JSON.parse(r.text);
+    assert.equal(data.account.email, co.email);
+    assert.equal(data.account.password_hash, undefined);
+    assert.equal(data.memberships[0].is_owner, true);
+  });
+
+  test('company owners must hand over first; others can delete their account', async () => {
+    const co = await h.createCompany();
+    const owner = await h.login(co.email, co.password);
+    const blocked = await owner.form('/security/delete', { confirm: co.email, password: co.password });
+    assert.equal(blocked.status, 409);
+
+    const member = await h.addMember(co.organizationId, 'employee');
+    const m = await h.login(member.email, member.password);
+    assert.equal((await m.form('/security/delete', { confirm: 'wrong@x.com', password: member.password })).status, 422);
+    const ok = await m.form('/security/delete', { confirm: member.email, password: member.password });
+    assert.equal(ok.status, 302);
+    assert.equal(ok.headers.location, '/?deleted=1');
+    const u = await h.knex('users').where({ id: member.userId }).first();
+    assert.ok(u.deleted_at);
+    assert.equal(u.status, 'disabled');
+    assert.equal(u.name, 'Deleted user');
+    assert.ok(u.email.endsWith('@deleted.invalid'));
+    assert.equal(await h.knex('memberships').where({ user_id: member.userId }).first(), undefined);
+    assert.equal((await m.get('/app')).status, 302, 'signed out');
+    await assert.rejects(h.login(member.email, member.password));
+    const c = await h.knex('crm_contacts').where({ user_id: member.userId }).first();
+    if (c) { assert.equal(c.email, null); assert.equal(c.opt_out_email, 1); }
+  });
+});
+
+describe('launch readiness', () => {
+  test('lists blocking items for a development setup; admins only', async () => {
+    const owner = await superAdmin('owner');
+    await h.knex('users').where({ id: owner.id }).update({ password_hash: await bcrypt.hash('Admin@12345', 4) });
+    const o = await h.login(owner.email, 'Admin@12345');
+    const r = await o.get('/admin/launch');
+    assert.equal(r.status, 200);
+    assert.match(r.text, /blocking item/);
+    assert.match(r.text, /check-row is-fail/);
+    assert.ok(r.text.includes(owner.email), 'default password is flagged');
+    const sales = await h.login((await superAdmin('sales')).email, 'Password#123');
+    assert.equal((await sales.get('/admin/launch')).status, 403);
+  });
+});

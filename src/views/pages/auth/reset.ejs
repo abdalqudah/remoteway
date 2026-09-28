@@ -1,0 +1,13 @@
+<h1><%= t('auth.reset_title') %></h1>
+<% if (!valid) { %>
+<div class="alert alert-warning mt-4" role="alert"><%- icon('triangle-alert') %><div><%= t('auth.reset_invalid') %></div></div>
+<a class="btn btn-dark btn-block mt-6" href="/forgot"><%= t('auth.forgot_again') %></a>
+<% } else { %>
+<p class="lead"><%= t('auth.reset_lead') %></p>
+<form method="post" action="/reset/<%= token %>" class="stack mt-6" novalidate>
+  <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+  <%- include('../../partials/field', { name: 'password', label: t('settings.new_password'), type: 'password', required: true, autocomplete: 'new-password', help: t('auth.password_help') }) %>
+  <%- include('../../partials/field', { name: 'password_confirm', label: t('auth.password_confirm'), type: 'password', required: true, autocomplete: 'new-password' }) %>
+  <button class="btn btn-dark btn-lg btn-block" type="submit"><%= t('auth.reset_save') %></button>
+</form>
+<% } %>

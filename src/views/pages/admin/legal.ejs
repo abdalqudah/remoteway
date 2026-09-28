@@ -1,0 +1,25 @@
+<% var o = old || {}; %>
+<div class="page-head"><div><h1><%= t('admin.legal') %></h1><p><%= t('admin.legal_sub') %></p></div>
+  <div class="page-actions"><a class="btn btn-secondary" href="/privacy" target="_blank" rel="noopener"><%- icon('external-link') %><%= t('legal.privacy_title') %></a><a class="btn btn-secondary" href="/terms" target="_blank" rel="noopener"><%- icon('external-link') %><%= t('legal.terms_title') %></a></div></div>
+<div class="alert alert-warning mb-6" role="note"><%- icon('scale') %><div><%= t('admin.legal_lawyer') %></div></div>
+<form method="post" action="/admin/legal" class="stack" novalidate>
+  <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+  <section class="panel">
+    <div class="panel-head"><h2><%= t('admin.legal_details') %></h2></div>
+    <div class="panel-body grid grid-2">
+      <%- include('../../partials/field', { name: 'company', label: t('admin.legal_company'), value: o.company || d.company, help: t('admin.legal_company_help') }) %>
+      <%- include('../../partials/field', { name: 'email', label: t('admin.legal_email'), type: 'email', value: o.email !== undefined ? o.email : d.email, attrs: 'dir="ltr"', help: t('admin.legal_email_help') }) %>
+    </div>
+  </section>
+  <% ['privacy', 'terms'].forEach(function (kind) { %>
+  <section class="panel">
+    <div class="panel-head"><div><h2><%= t('legal.' + kind + '_title') %></h2><div class="panel-sub"><%= t('admin.legal_format') %></div></div>
+      <% if (d.custom[kind].ar || d.custom[kind].en) { %><span class="badge badge-info"><%= t('admin.legal_edited') %></span><% } else { %><span class="badge"><%= t('admin.legal_default') %></span><% } %></div>
+    <div class="panel-body grid grid-2">
+      <div class="field"><label class="label" for="f-<%= kind %>_ar">العربية</label><textarea class="textarea legal-editor" id="f-<%= kind %>_ar" name="<%= kind %>_ar" dir="rtl"><%= o[kind + '_ar'] !== undefined ? o[kind + '_ar'] : text(kind, 'ar') %></textarea></div>
+      <div class="field"><label class="label" for="f-<%= kind %>_en">English</label><textarea class="textarea legal-editor" id="f-<%= kind %>_en" name="<%= kind %>_en" dir="ltr"><%= o[kind + '_en'] !== undefined ? o[kind + '_en'] : text(kind, 'en') %></textarea></div>
+    </div>
+  </section>
+  <% }) %>
+  <div><button class="btn btn-dark" type="submit"><%= t('common.save_changes') %></button> <span class="small muted"><%= t('admin.legal_reset_hint') %></span></div>
+</form>

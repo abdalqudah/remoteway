@@ -1,0 +1,33 @@
+<%
+  var FIX = { node_env: '/admin/system', app_url: null, session_secret: null, app_key: null, node_version: null, storage: null, innodb: '/admin/system',
+    my_2fa: '/security', team_2fa: '/admin/team', default_passwords: '/admin/team', demo_data: null,
+    email: '/admin/email', backup_recent: '/admin/backups', backup_schedule: '/admin/backups', errors: '/admin/errors', jobs: '/admin/jobs',
+    payments: '/admin/payments', legal: '/admin/legal', plans: '/admin/plans', ai: '/admin/ai' };
+  var ICON = { ok: 'circle-check', warn: 'triangle-alert', fail: 'circle-x' };
+  var groups = ['server', 'security', 'ops', 'business'];
+%>
+<div class="page-head"><div><h1><%= t('admin.launch') %></h1><p><%= t('launch.sub') %></p></div>
+  <div class="page-actions"><a class="btn btn-secondary" href="/admin/launch"><%- icon('history') %><%= t('launch.recheck') %></a></div></div>
+
+<div class="alert <%= result.ready ? 'alert-success' : 'alert-warning' %> mb-6" role="status"><%- icon(result.ready ? 'rocket' : 'triangle-alert') %>
+  <div class="grow"><div class="alert-title"><%= result.ready ? t('launch.ready') : t('launch.not_ready', { n: result.score.fail }) %></div>
+  <div class="text-2"><%= t('launch.score', { ok: result.score.ok, warn: result.score.warn, fail: result.score.fail }) %></div></div></div>
+
+<div class="grid grid-2">
+<% groups.forEach(function (g) { var list = result.checks.filter(function (x) { return x.group === g; }); %>
+  <section class="panel">
+    <div class="panel-head"><h2><%= t('launch.group_' + g) %></h2></div>
+    <ul class="check-rows">
+    <% list.forEach(function (x) { %>
+      <li class="check-row is-<%= x.status %>">
+        <span class="check-icon"><%- icon(ICON[x.status]) %></span>
+        <div class="grow"><div class="check-title"><%= t('launch.' + x.key) %></div>
+          <% if (x.status !== 'ok') { %><div class="small text-2"><%= t('launch.' + x.key + '_fix', x.vars) %></div><% } else { var okT = t('launch.' + x.key + '_ok', x.vars); if (okT !== 'launch.' + x.key + '_ok') { %><div class="small muted"><%= okT %></div><% } } %></div>
+        <% if (x.status !== 'ok' && FIX[x.key]) { %><a class="btn btn-ghost btn-sm" href="<%= FIX[x.key] %>"><%= t('launch.open') %><%- icon('arrow-right', 'flip-rtl icon-sm') %></a><% } %>
+      </li>
+    <% }) %>
+    </ul>
+  </section>
+<% }) %>
+</div>
+<p class="small muted mt-6"><%= t('launch.note') %></p>

@@ -1,0 +1,9 @@
+<section class="container legal-page">
+  <nav class="legal-tabs" aria-label="<%= t('legal.nav') %>">
+    <a href="/privacy" class="<%= doc.kind === 'privacy' ? 'active' : '' %>"><%= t('legal.privacy_title') %></a>
+    <a href="/terms" class="<%= doc.kind === 'terms' ? 'active' : '' %>"><%= t('legal.terms_title') %></a>
+  </nav>
+  <h1><%= t('legal.' + doc.kind + '_title') %></h1>
+  <p class="muted small"><%= t('legal.last_updated') %>: <span dir="ltr"><%= doc.updated %></span></p>
+  <article class="legal-body"><%- doc.html %></article>
+</section>

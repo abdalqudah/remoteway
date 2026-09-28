@@ -7,7 +7,7 @@
   <%- include('../../partials/field', { name: 'name', label: t('fields.full_name'), required: true, autocomplete: 'name' }) %>
   <%- include('../../partials/field', { name: 'email', label: t('fields.email'), type: 'email', required: true, autocomplete: 'email' }) %>
   <%- include('../../partials/field', { name: 'password', label: t('fields.password'), type: 'password', required: true, autocomplete: 'new-password', help: t('auth.password_help'), attrs: 'minlength="8"' }) %>
-  <label class="check"><input type="checkbox" name="terms"><span><%= t('talent.join_terms') %></span></label>
+  <label class="check"><input type="checkbox" name="terms"><span><%= t('legal.accept_pre') %> <a class="link" href="/terms" target="_blank" rel="noopener"><%= t('legal.terms_title') %></a> <%= t('legal.and') %> <a class="link" href="/privacy" target="_blank" rel="noopener"><%= t('legal.privacy_title') %></a>.</span></label>
   <% if (errors && errors.terms) { %><span class="field-error"><%= errors.terms %></span><% } %>
   <button class="btn btn-dark btn-lg btn-block" type="submit"><%= t('talent.join_cta') %></button>
   <p class="muted small text-center"><%= t('talent.join_company_q') %> <a href="/signup"><%= t('talent.join_company_link') %></a> · <a href="/login"><%= t('auth.login') %></a></p>

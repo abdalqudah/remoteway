@@ -1,0 +1,52 @@
+<% var sz = function (b) { return b > 1048576 ? (b / 1048576).toFixed(1) + ' MB' : Math.max(1, Math.ceil(b / 1024)) + ' KB'; }; %>
+<div class="page-head"><div><h1><%= t('admin.backups') %></h1><p><%= t('admin.backups_sub') %></p></div>
+  <div class="page-actions"><form method="post" action="/admin/backups"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><button class="btn btn-dark" type="submit" data-busy-label="<%= t('admin.backup_running') %>"><%- icon('database') %><%= t('admin.backup_now') %></button></form></div></div>
+
+<% if (typeof formError !== 'undefined' && formError) { %><div class="alert alert-error mb-6" role="alert"><%- icon('circle-alert') %><div><%= formError.message %></div></div><% } %>
+
+<div class="grid grid-3">
+  <section class="panel span-2">
+    <div class="panel-head"><h2><%= t('admin.backup_list') %></h2><span class="badge"><%= fmt.number(list.length) %></span></div>
+    <% if (!list.length) { %><div class="empty"><%- icon('database') %><p><%= t('admin.backup_empty') %></p></div><% } else { %>
+    <div class="table-wrap"><table class="table">
+      <thead><tr><th><%= t('admin.backup_file') %></th><th><%= t('admin.backup_kind') %></th><th class="text-end"><%= t('admin.backup_size') %></th><th class="actions"></th></tr></thead>
+      <tbody><% list.forEach(function (b) { %><tr>
+        <td><div style="font-weight:600"><%= fmt.date(b.createdAt, { dateStyle: 'medium', timeStyle: 'short' }) %></div><div class="muted small mono" dir="ltr"><%= b.name %></div></td>
+        <td><span class="badge<%= b.label === 'auto' ? ' badge-info' : b.label === 'before-restore' ? ' badge-warning' : '' %>"><%= t('admin.backup_label_' + (['auto', 'manual', 'imported', 'before-restore'].indexOf(b.label) !== -1 ? b.label.replace('-', '_') : 'manual')) %></span></td>
+        <td class="text-end num nowrap"><%= sz(b.size) %></td>
+        <td class="actions nowrap">
+          <a class="btn btn-secondary btn-sm" href="/admin/backups/<%= b.name %>/download"><%- icon('download', 'icon-sm') %><%= t('common.download') %></a>
+          <details class="restore-box"<%= typeof restoreName !== 'undefined' && restoreName === b.name ? ' open' : '' %>><summary class="btn btn-ghost btn-sm"><%- icon('archive-restore', 'icon-sm') %><%= t('admin.backup_restore') %></summary>
+            <form method="post" action="/admin/backups/<%= b.name %>/restore" class="stack mt-2" data-confirm="<%= t('admin.backup_restore_confirm') %>" novalidate>
+              <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+              <p class="small text-2" style="white-space:normal"><%= t('admin.backup_restore_warn') %></p>
+              <%- include('../../partials/field', { name: 'password', label: t('admin.confirm_password'), type: 'password', required: true, autocomplete: 'current-password', errors: typeof restoreName !== 'undefined' && restoreName === b.name ? errors : {} }) %>
+              <button class="btn btn-danger btn-sm" type="submit"><%= t('admin.backup_restore_go') %></button>
+            </form></details>
+          <form class="inline" method="post" action="/admin/backups/<%= b.name %>/delete" data-confirm="<%= t('admin.backup_delete_confirm') %>"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><button class="btn btn-danger-ghost btn-sm" type="submit" aria-label="<%= t('common.delete') %>"><%- icon('trash-2', 'icon-sm') %></button></form>
+        </td>
+      </tr><% }) %></tbody>
+    </table></div><% } %>
+    <div class="panel-body small text-2"><%- icon('info', 'icon-sm') %> <%= t('admin.backup_where') %> <code dir="ltr"><%= dir %></code></div>
+  </section>
+
+  <div class="stack">
+    <form class="panel" method="post" action="/admin/backups/settings" novalidate>
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+      <div class="panel-head"><div><h2><%= t('admin.backup_schedule') %></h2><div class="panel-sub"><%= t('admin.backup_schedule_sub') %></div></div></div>
+      <div class="panel-body stack">
+        <label class="check"><input type="checkbox" name="enabled" value="1"<%= settings.enabled ? ' checked' : '' %>> <span><%= t('admin.backup_daily') %></span></label>
+        <%- include('../../partials/field', { name: 'hour', label: t('admin.backup_hour'), type: 'select', value: settings.hour, options: Array.from({ length: 24 }, function (_, h) { return { value: h, label: (h < 10 ? '0' : '') + h + ':00 UTC — ' + (((h + 3) % 24) < 10 ? '0' : '') + ((h + 3) % 24) + ':00 ' + t('admin.riyadh_time') }; }) }) %>
+        <%- include('../../partials/field', { name: 'keep', label: t('admin.backup_keep'), type: 'number', value: settings.keep, attrs: 'min="1" max="90"', help: t('admin.backup_keep_help') }) %>
+      </div>
+      <div class="panel-foot"><button class="btn btn-dark" type="submit"><%= t('common.save') %></button></div>
+    </form>
+    <form class="panel" method="post" action="/admin/backups/import" enctype="multipart/form-data" novalidate>
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+      <div class="panel-head"><div><h2><%= t('admin.backup_import') %></h2><div class="panel-sub"><%= t('admin.backup_import_sub') %></div></div></div>
+      <div class="panel-body"><input class="file-input" type="file" name="file" accept=".gz,application/gzip" required aria-label="<%= t('admin.backup_import') %>">
+        <% if (errors && errors.file) { %><span class="field-error"><%= errors.file %></span><% } %></div>
+      <div class="panel-foot"><button class="btn btn-secondary" type="submit"><%- icon('upload') %><%= t('admin.backup_import_go') %></button></div>
+    </form>
+  </div>
+</div>
