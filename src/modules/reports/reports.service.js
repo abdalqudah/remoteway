@@ -305,6 +305,8 @@ async function deliver({ scheduleId }) {
     throw e;
   }
   let sent = 0;
+  const brand = await require('../branding/branding.service').forEmail(s.organization_id); // eslint-disable-line global-require
+  const base = brand ? brand.base : config.appUrl;
   for (const userId of parse(s.recipients, [])) {
     const rctx = await ctxFor(s.organization_id, userId);
     if (!rctx || !rctx.permissions.has('reports.view')) continue;
@@ -316,8 +318,9 @@ async function deliver({ scheduleId }) {
     const table = toTable(result, t);
     await mailer.send({
       to: user.email,
-      subject: `RemoteWay — ${report.name}`,
-      html: mailer.layout({ locale: user.locale, title: report.name, body: t('reports.email_body', { rows: result.rows.length }), cta: t('reports.open'), href: `${config.appUrl}/app/reports/saved/${report.id}` }),
+      subject: `${brand ? brand.name : 'RemoteWay'} — ${report.name}`,
+      html: mailer.layout({ locale: user.locale, title: report.name, body: t('reports.email_body', { rows: result.rows.length }), cta: t('reports.open'), href: `${base}/app/reports/saved/${report.id}`, brand }),
+      fromName: brand ? brand.senderName : null,
       attachments: [{ filename: `${report.name.replace(/[^\p{L}\p{N} _-]/gu, '').trim() || 'report'}.csv`, content: csv.build(table.header, table.rows), contentType: 'text/csv; charset=utf-8' }],
     });
     sent += 1;

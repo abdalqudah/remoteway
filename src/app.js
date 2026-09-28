@@ -40,6 +40,7 @@ function createApp() {
   }));
   app.use(compression());
   app.use('/', express.static(path.join(__dirname, '..', 'public'), { maxAge: config.isProd ? '7d' : 0, index: false }));
+  app.use('/org-brand', require('./modules/branding/web').files); // company logos and white-label themes (public)
   app.use(express.urlencoded({ extended: true, limit: '200kb' }));
   app.use(express.json({ limit: '200kb' }));
   app.use(cookieParser());
@@ -58,7 +59,10 @@ function createApp() {
   // Render a view inside a layout: res.page('pages/x', { layout: 'app', ... }).
   app.use((req, res, next) => {
     res.page = (view, data = {}) => {
-      const layout = data.layout || 'app';
+      // Printable pages (reports, analytics, compliance) open on the company letterhead with ?print=1.
+      const print = data.printable && req.query.print === '1';
+      const layout = print ? 'print' : data.layout || 'app';
+      if (print) data.letterhead = true;
       res.render(view, data, (err, body) => {
         if (err) return next(err);
         return res.render(`layouts/${layout}`, { ...data, body }, (err2, html) => (err2 ? next(err2) : res.send(html)));
@@ -69,6 +73,7 @@ function createApp() {
 
   app.use(loadUser);
   app.use(web.locals);
+  app.use(require('./modules/branding/web').hostLocals); // a white-label company's own domain
   app.use(web.csrf);
 
   app.get('/healthz', async (req, res) => {

@@ -7,6 +7,7 @@
 <div class="page-head"><div><h1><%= t('compliance.title') %></h1><p><%= t('compliance.sub') %></p></div>
   <div class="page-actions">
     <a class="btn btn-secondary" href="/app/compliance?format=csv"><%- icon('download') %><%= t('reports.export_csv') %></a>
+    <a class="btn btn-secondary" href="/app/compliance?print=1" target="_blank" rel="noopener"><%- icon('file-text') %><%= t('billing.print') %></a>
     <% if (can('compliance.manage')) { %><a class="btn btn-secondary" href="/app/compliance/settings"><%- icon('settings') %><%= t('compliance.settings') %></a><% } %>
   </div></div>
 

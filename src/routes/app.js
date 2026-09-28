@@ -13,6 +13,8 @@ router.use((req, res, next) => {
   return next();
 });
 
+const brandingWeb = require('../modules/branding/web');
+router.use(brandingWeb.appLocals);
 const aiWeb = require('../modules/ai/web');
 router.use(aiWeb.locals);
 router.use('/ai', aiWeb.actions);
@@ -42,6 +44,7 @@ router.use('/settings/calendar', integrationsWeb.calendarRouter);
 router.use('/settings/ai', aiWeb.settings);
 router.use('/settings/sso', require('../modules/sso/web').settings);
 router.use('/settings/workflows', require('../modules/workflows/web'));
+router.use('/settings/branding', brandingWeb.settings);
 router.use('/settings', require('../modules/settings/web'));
 router.use('/billing', require('../modules/billing/web'));
 

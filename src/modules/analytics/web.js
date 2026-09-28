@@ -130,7 +130,7 @@ router.get('/', wrap(async (req, res) => {
     res.setHeader('Content-Disposition', `attachment; filename="analytics-${key}.csv"`);
     return csv.send(res, `analytics-${key}.csv`, [req.t(`analytics.s_${key}`), `${result.filters.from} → ${result.filters.to}`], rows);
   }
-  return res.page('pages/analytics/index', { title: req.t('analytics.title'), inPlan, sections, key, view, departments, filters: result.filters, PERIODS: analytics.PERIODS });
+  return res.page('pages/analytics/index', { printable: true, title: req.t('analytics.title'), inPlan, sections, key, view, departments, filters: result.filters, PERIODS: analytics.PERIODS });
 }));
 
 module.exports = router;

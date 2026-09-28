@@ -4,7 +4,10 @@
 <body class="print-page">
 <main class="print-sheet">
   <div class="print-actions no-print"><button class="btn btn-dark btn-sm" type="button" data-print><%- icon('download', 'icon-sm') %><%= t('payroll.print_now') %></button></div>
+  <% var _pb = typeof brand !== 'undefined' && brand ? brand : null; %>
+  <% if (_pb && typeof letterhead !== 'undefined' && letterhead) { %><header class="print-letterhead"><% if (_pb.logoUrl) { %><img class="print-logo" src="<%= _pb.logoUrl %>" alt="<%= organization.name %>"><% } %><div><strong><%= organization.name %></strong><div class="muted small"><%= fmt.date(new Date(), { dateStyle: 'long' }) %></div></div></header><% } %>
   <%- body %>
+  <% if (!(_pb && _pb.whiteLabel)) { %><footer class="print-footer muted tiny"><%= t('branding.generated_with') %></footer><% } %>
 </main>
 <script src="/js/app.js?v=<%= assetV %>" defer></script>
 </body>

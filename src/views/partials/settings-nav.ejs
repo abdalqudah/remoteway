@@ -1,5 +1,6 @@
 <nav class="tabs mb-6" aria-label="<%= t('nav.settings') %>">
   <% if (can('organization.manage')) { %><a href="/app/settings/company" class="<%= section === 'company' ? 'active' : '' %>"><%= t('settings.company') %></a><% } %>
+  <% if (can('organization.manage')) { %><a href="/app/settings/branding" class="<%= section === 'branding' ? 'active' : '' %>"><%= t('branding.title') %></a><% } %>
   <% if (can('users.view')) { %><a href="/app/settings/users" class="<%= section === 'users' ? 'active' : '' %>"><%= t('settings.users') %></a><% } %>
   <% if (can('roles.manage')) { %><a href="/app/settings/roles" class="<%= section === 'roles' ? 'active' : '' %>"><%= t('settings.roles') %></a><% } %>
   <% if (can('integrations.manage')) { %><a href="/app/settings/integrations" class="<%= section === 'integrations' ? 'active' : '' %>"><%= t('integrations.title') %></a><% } %>

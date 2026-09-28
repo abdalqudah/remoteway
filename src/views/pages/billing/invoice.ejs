@@ -37,7 +37,7 @@
 <section class="panel" style="max-width:860px">
   <div class="panel-body stack-lg">
     <div class="row between wrap" style="align-items:flex-start">
-      <div><span class="invoice-logo"><%- include('../../partials/logo') %></span><div class="muted small mt-3">remoteway.com · Info@remoteway.com</div></div>
+      <div><span class="invoice-logo"><%- include('../../partials/logo', { platform: true }) %></span><div class="muted small mt-3">remoteway.com · Info@remoteway.com</div></div>
       <div class="text-end"><span class="badge badge-dot <%= i.status === 'paid' ? 'badge-success' : 'badge-warning' %>"><%= t('billing.invoice_' + i.status) %></span><div class="small mt-2"><%= t('billing.date') %>: <%= fmt.date(i.issue_date) %></div><div class="small"><%= t('billing.due') %>: <%= fmt.date(i.due_date) %></div></div>
     </div>
     <div><div class="label"><%= t('billing.bill_to') %></div><div style="font-weight:700"><%= organization.name %></div><div class="muted small"><%= organization.address || '' %> <%= locale === 'ar' ? organization.country_name_ar : organization.country_name %></div></div>

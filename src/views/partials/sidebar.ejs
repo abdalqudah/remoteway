@@ -6,7 +6,7 @@
 <div class="sidebar-brand"><a href="/app" aria-label="RemoteWay"><%- include('logo') %></a></div>
 <details class="dropdown org-switch">
   <summary>
-    <span class="org-mark"><%= initials(organization.name) %></span>
+    <% if (typeof brand !== 'undefined' && brand && brand.logoUrl && !brand.whiteLabel) { %><span class="org-mark org-mark-logo"><img src="<%= brand.logoUrl %>" alt=""></span><% } else { %><span class="org-mark"><%= initials(organization.name) %></span><% } %>
     <span class="grow"><span class="org-name truncate" style="display:block"><%= organization.name %></span><span class="org-plan"><%= entitlements.plan ? entitlements.plan.name : '' %> · <%= t('billing.status_' + entitlements.status) %></span></span>
     <%- icon('chevrons-up-down', 'icon-sm muted') %>
   </summary>

@@ -13,10 +13,18 @@ const updater = require('./updater.service');
 
 const router = express.Router();
 
+const access = require('./access');
+const team = require('./team.service');
+
 router.use((req, res, next) => {
   req.ctx = { userId: req.user.id, organizationId: null, permissions: new Set(), ip: req.ip, userAgent: req.get('user-agent') };
-  res.locals.adminSection = req.path.split('/')[1] || 'overview';
-  next();
+  const section = req.path.split('/')[1] || 'overview';
+  res.locals.adminSection = section;
+  res.locals.adminCan = (s, write = false) => access.can(req.user, s, write);
+  res.locals.platformRole = access.roleOf(req.user);
+  // Each platform role opens only its sections; changing things may need a narrower role.
+  if (!access.can(req.user, section, !['GET', 'HEAD'].includes(req.method))) return next(E.forbidden(`platform.${section}`));
+  return next();
 });
 
 router.get('/', wrap(async (req, res) => {
@@ -28,8 +36,9 @@ router.get('/organizations', wrap(async (req, res) => {
 }));
 
 const renderOrg = async (req, res, extra = {}) => {
-  const [org, plans] = await Promise.all([admin.getOrganization(Number(req.params.id)), knex('plans').orderBy('sort_order')]);
-  res.page('pages/admin/organization', { layout: 'admin', title: org.name, org, plans, limitKeys: LIMIT_KEYS, ...extra });
+  const [org, plans, addons, features] = await Promise.all([admin.getOrganization(Number(req.params.id)), knex('plans').orderBy('sort_order'),
+    knex('addons').where({ is_active: true }).orderBy('sort_order'), knex('features').orderBy('sort_order')]);
+  res.page('pages/admin/organization', { layout: 'admin', title: org.name, org, plans, addons, features, limitKeys: LIMIT_KEYS, ...extra });
 };
 router.get('/organizations/:id', wrap((req, res) => renderOrg(req, res)));
 router.post('/organizations/:id/status', wrap(async (req, res) => {
@@ -43,6 +52,8 @@ router.post('/organizations/:id/subscription', form(async (req, res) => {
     plan_id: z.coerce.number().int().positive(),
     status: z.enum(['trial', 'active', 'past_due', 'suspended', 'cancelled']),
     trial_ends_at: z.preprocess(emptyToUndefined, z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional()),
+    current_period_end: z.preprocess(emptyToUndefined, z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional()),
+    billing_cycle: z.enum(['monthly', 'yearly']).default('monthly'),
     custom: z.object(Object.fromEntries(LIMIT_KEYS.map((k) => [k, limitValue]))).partial().default({}),
     custom_unlimited: z.preprocess((v) => (Array.isArray(v) ? v : v ? [v] : []), z.array(z.enum(LIMIT_KEYS))),
   }), req.body);
@@ -53,9 +64,28 @@ router.post('/organizations/:id/subscription', form(async (req, res) => {
   }
   await admin.updateSubscription(req.ctx, Number(req.params.id), {
     plan_id: data.plan_id, status: data.status, trial_ends_at: data.trial_ends_at ?? null, custom_limits: Object.keys(custom).length ? custom : null,
+    billing_cycle: data.billing_cycle, current_period_end: data.current_period_end ?? null,
   });
   flash(req, 'success', req.t('common.saved'));
   res.redirect(`/admin/organizations/${req.params.id}`);
+}, renderOrg));
+
+router.post('/organizations/:id/addons', form(async (req, res) => {
+  await admin.setAddons(req.ctx, Number(req.params.id), req.body.addons && typeof req.body.addons === 'object' ? req.body.addons : {});
+  flash(req, 'success', req.t('common.saved'));
+  res.redirect(`/admin/organizations/${req.params.id}#addons`);
+}, renderOrg));
+router.post('/organizations/:id/features', form(async (req, res) => {
+  const keys = Array.isArray(req.body.features) ? req.body.features : req.body.features ? [req.body.features] : [];
+  await admin.setCustomFeatures(req.ctx, Number(req.params.id), keys);
+  flash(req, 'success', req.t('common.saved'));
+  res.redirect(`/admin/organizations/${req.params.id}#features`);
+}, renderOrg));
+router.post('/organizations/:id/invoice', form(async (req, res) => {
+  const id = await admin.issueInvoice(req.ctx, Number(req.params.id), { amount: req.body.amount, description: req.body.description });
+  flash(req, 'success', req.t('admin.invoice_issued'));
+  res.redirect(`/admin/organizations/${req.params.id}#invoices`);
+  return id;
 }, renderOrg));
 
 // ---------- Plans ----------
@@ -90,6 +120,15 @@ router.post('/invoices/:id/paid', form(async (req, res) => {
   await subscriptions.markInvoicePaid(req.ctx, Number(req.params.id), String(req.body.reference || '').slice(0, 120));
   flash(req, 'success', req.t('admin.invoice_paid'));
   res.redirect('/admin/invoices');
+}, async (req, res, extra) => {
+  flash(req, 'error', extra.formError.message);
+  res.redirect('/admin/invoices');
+}));
+
+router.post('/invoices/:id/void', form(async (req, res) => {
+  await admin.voidInvoice(req.ctx, Number(req.params.id));
+  flash(req, 'success', req.t('admin.invoice_voided'));
+  res.redirect(req.body.back === 'org' ? `/admin/organizations/${Number(req.body.org)}#invoices` : '/admin/invoices');
 }, async (req, res, extra) => {
   flash(req, 'error', extra.formError.message);
   res.redirect('/admin/invoices');
@@ -245,6 +284,27 @@ router.post('/ai/test', form(async (req, res) => {
   }
   res.redirect('/admin/ai');
 }, renderAi));
+
+// ---------- Platform team ----------
+const renderTeam = async (req, res, extra = {}) => res.page('pages/admin/team', {
+  layout: 'admin', title: req.t('admin.team'), members: await team.list(), roles: access.ROLES, sections: access.SECTIONS, ...extra,
+});
+router.get('/team', wrap((req, res) => renderTeam(req, res)));
+router.post('/team', form(async (req, res) => {
+  await team.add(req.ctx, { name: req.body.name, email: req.body.email, role: req.body.role, password: req.body.password });
+  flash(req, 'success', req.t('admin.team_added'));
+  res.redirect('/admin/team');
+}, renderTeam));
+router.post('/team/:id/role', form(async (req, res) => {
+  await team.setRole(req.ctx, Number(req.params.id), String(req.body.role || ''));
+  flash(req, 'success', req.t('common.saved'));
+  res.redirect('/admin/team');
+}, renderTeam));
+router.post('/team/:id/remove', form(async (req, res) => {
+  await team.remove(req.ctx, Number(req.params.id));
+  flash(req, 'success', req.t('admin.team_removed'));
+  res.redirect('/admin/team');
+}, renderTeam));
 
 // ---------- Online payments (Saudi gateways) ----------
 const payments = require('../payments/payments.service');

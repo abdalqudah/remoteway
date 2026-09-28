@@ -4,7 +4,7 @@
 <body class="site">
 <header class="site-nav">
   <div class="inner">
-    <a href="/careers/<%= org.slug %>" class="row-sm" style="font-weight:700"><span class="org-mark"><%= initials(org.name) %></span><%= org.name %></a>
+    <a href="/careers/<%= org.slug %>" class="row-sm" style="font-weight:700"><% if (typeof brand !== 'undefined' && brand && brand.logoUrl) { %><img class="careers-logo" src="<%= brand.logoUrl %>" alt="<%= org.name %>"><% } else { %><span class="org-mark"><%= initials(org.name) %></span><%= org.name %><% } %></a>
     <div class="right">
       <a class="btn btn-ghost btn-sm" href="<%= langUrl(locale === 'ar' ? 'en' : 'ar') %>"><%- icon('languages') %><%= locale === 'ar' ? 'English' : 'العربية' %></a>
       <button class="btn btn-ghost btn-icon" type="button" data-theme-toggle aria-label="<%= t('common.toggle_theme') %>"><%- icon('moon', 'theme-moon') %><%- icon('sun', 'theme-sun hidden') %></button>
@@ -15,12 +15,12 @@
   <% if (flash && flash.length) { %><div class="container mt-4"><%- include('../partials/flash') %></div><% } %>
   <%- body %>
 </main>
-<footer class="footer">
+<% if (!(typeof brand !== 'undefined' && brand && brand.whiteLabel)) { %><footer class="footer">
   <div class="container inner">
     <span class="small muted"><%= t('careers.powered_by') %></span>
     <a href="/" aria-label="RemoteWay" class="row"><%- include('../partials/logo') %></a>
   </div>
-</footer>
+</footer><% } %>
 <script src="/js/app.js?v=<%= assetV %>" defer></script>
 </body>
 </html>

@@ -20,7 +20,7 @@
 <% } %>
 <article class="payslip panel">
   <header class="payslip-head">
-    <div><div class="org-mark"><%= initials(organization.name) %></div></div>
+    <div><% if (typeof brand !== 'undefined' && brand && brand.logoUrl) { %><img class="print-logo" src="<%= brand.logoUrl %>" alt="<%= organization.name %>"><% } else { %><div class="org-mark"><%= initials(organization.name) %></div><% } %></div>
     <div class="grow"><strong style="font-size:17px"><%= organization.name %></strong><div class="muted small"><%= t('payroll.payslip_for', { period: fmt.date(s.period + '-01', { month: 'long', year: 'numeric' }) }) %></div></div>
     <div class="text-end small"><div class="muted"><%= t('payroll.payment_date') %></div><strong><%= s.payment_date ? fmt.date(s.payment_date) : '—' %></strong></div>
   </header>

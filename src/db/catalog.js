@@ -125,12 +125,13 @@ const FEATURES = [
   ['ai_learning', 'AI Learning', 'ai', 'available'],
   ['ai_analytics', 'AI Analytics', 'ai', 'available'],
   ['client_success', 'Client Success Portal', 'client_success', 'available'],
+  ['white_label', 'White Label', 'branding', 'available'],
 ];
 
 const STARTER = ['employees', 'departments', 'attendance', 'leave', 'documents', 'tasks', 'basic_reports'];
 const BUSINESS = [...STARTER, 'recruitment', 'onboarding', 'payroll', 'performance', 'advanced_reports', 'projects', 'learning', 'integrations', 'compliance'];
 const PROFESSIONAL = [...BUSINESS, 'analytics', 'ai_recruitment', 'ai_documents', 'ai_performance', 'ai_learning', 'ai_analytics', 'api', 'advanced_permissions', 'automation'];
-const ENTERPRISE = [...PROFESSIONAL, 'sso', 'custom_roles', 'custom_workflows', 'enterprise_reporting', 'client_success'];
+const ENTERPRISE = [...PROFESSIONAL, 'sso', 'custom_roles', 'custom_workflows', 'enterprise_reporting', 'client_success', 'white_label'];
 
 const LIMIT_KEYS = ['employees', 'users', 'storage_mb', 'api_calls_monthly', 'ai_requests_monthly', 'active_jobs'];
 
@@ -172,6 +173,7 @@ const ADDONS = [
   { key: 'api_access', name: 'API Access', price_monthly: 299, feature: 'api', limit_key: 'api_calls_monthly', limit_increment: 50000 },
   { key: 'sso', name: 'SSO', price_monthly: 499, feature: 'sso' },
   { key: 'extra_employees', name: 'Extra 10 Employees', price_monthly: 150, limit_key: 'employees', limit_increment: 10 },
+  { key: 'white_label', name: 'White Label', price_monthly: 999, feature: 'white_label' },
   { key: 'extra_storage', name: 'Extra 10 GB Storage', price_monthly: 49, limit_key: 'storage_mb', limit_increment: 10240 },
 ];
 

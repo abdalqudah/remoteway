@@ -1,6 +1,6 @@
 <% var icons = { workforce: 'users', retention: 'history', absence: 'plane', attendance: 'calendar-check', hiring: 'briefcase', cost: 'wallet' }; %>
 <div class="page-head"><div><h1><%= t('analytics.title') %></h1><p><%= t('analytics.sub') %></p></div>
-  <% if (view) { %><div class="page-actions"><a class="btn btn-secondary" href="?<%= new URLSearchParams({ section: key, months: filters.months, department_id: filters.department_id || '', format: 'csv' }).toString() %>"><%- icon('download') %><%= t('reports.export_csv') %></a></div><% } %></div>
+  <% if (view) { %><div class="page-actions"><a class="btn btn-secondary" href="?<%= new URLSearchParams({ section: key, months: filters.months, department_id: filters.department_id || '', format: 'csv' }).toString() %>"><%- icon('download') %><%= t('reports.export_csv') %></a><a class="btn btn-secondary" target="_blank" rel="noopener" href="?<%= new URLSearchParams({ section: key, months: filters.months, department_id: filters.department_id || '', print: '1' }).toString() %>"><%- icon('file-text') %><%= t('billing.print') %></a></div><% } %></div>
 
 <% if (!inPlan) { %>
 <section class="panel"><div class="empty"><span class="empty-icon"><%- icon('chart-column') %></span><p><strong><%= t('analytics.not_in_plan') %></strong></p><p class="muted small"><%= t('analytics.not_in_plan_text') %></p>

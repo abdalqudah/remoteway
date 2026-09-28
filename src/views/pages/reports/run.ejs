@@ -34,6 +34,7 @@
     <% if (template) { %><p><%= t('reports.tpl_' + template.key + '_text') %></p><% } %></div>
   <div class="page-actions">
     <a class="btn btn-secondary" href="?<%= qs({ format: 'csv' }) %>"><%- icon('download') %><%= t('reports.export_csv') %></a>
+    <a class="btn btn-secondary" href="?<%= qs({ print: '1' }) %>" target="_blank" rel="noopener"><%- icon('file-text') %><%= t('billing.print') %></a>
     <% if (!builder && tiers.advanced && can('reports.manage')) { %><a class="btn btn-secondary" href="<%= builderLink() %>"><%- icon('pencil') %><%= report ? t('reports.edit') : t('reports.customise') %></a><% } %>
     <% if (builder && can('reports.manage')) { %><button class="btn btn-dark" type="button" data-open-dialog="save-dialog"><%- icon('check') %><%= typeof editing !== 'undefined' && editing ? t('reports.update') : t('reports.save') %></button><% } %>
     <% if (report && canEdit) { %><form method="post" action="/app/reports/saved/<%= report.id %>/delete" data-confirm="<%= t('reports.confirm_delete') %>"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><button class="btn btn-danger-ghost" type="submit"><%- icon('trash-2') %></button></form><% } %>

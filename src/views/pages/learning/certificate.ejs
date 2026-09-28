@@ -8,7 +8,7 @@
 <% } %>
 <article class="certificate">
   <div class="cert-inner">
-    <div class="cert-brand"><%- include('../../partials/logo') %></div>
+    <div class="cert-brand"><% if (typeof brand !== 'undefined' && brand && brand.logoUrl) { %><img class="print-logo" src="<%= brand.logoUrl %>" alt="<%= organization.name %>"><% } else { %><%- include('../../partials/logo') %><% } %></div>
     <div class="cert-kicker"><%= t('learning.cert_kicker') %></div>
     <div class="cert-name" dir="auto"><%= c.employee_name %></div>
     <div class="cert-text"><%= t('learning.cert_text') %></div>

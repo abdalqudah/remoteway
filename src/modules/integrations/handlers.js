@@ -7,9 +7,9 @@ const messaging = require('./messaging.service');
 jobs.register('webhook.deliver', webhooks.deliver);
 jobs.register('sms.notify', messaging.handleSmsNotify);
 jobs.register('chat.post', messaging.handleChatPost);
-jobs.register('email.notification', async ({ userId, type, data, link }) => {
+jobs.register('email.notification', async ({ userId, type, data, link, organizationId }) => {
   if (!mailer.enabled()) return; // email switched off since the job was queued
-  await mailer.sendNotificationEmail(userId, type, data, link);
+  await mailer.sendNotificationEmail(userId, type, data, link, organizationId);
 });
 jobs.register('maintenance.prune', async () => {
   await jobs.prune(30);

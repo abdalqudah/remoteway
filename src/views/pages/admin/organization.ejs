@@ -1,8 +1,8 @@
-<% var e = org.entitlements; var sub = e.subscription; var custom = sub && sub.custom_limits ? (typeof sub.custom_limits === 'string' ? JSON.parse(sub.custom_limits) : sub.custom_limits) : {}; %>
+<% var canEdit = adminCan('organizations', true); var e = org.entitlements; var sub = e.subscription; var custom = sub && sub.custom_limits ? (typeof sub.custom_limits === 'string' ? JSON.parse(sub.custom_limits) : sub.custom_limits) : {}; %>
 <div class="page-head">
   <div><div class="eyebrow"><a href="/admin/organizations"><%= t('admin.organizations') %></a><%- icon('chevron-right', 'icon-sm flip-rtl') %>#<%= org.id %></div><h1><%= org.name %></h1><p><%= org.owner_name %> · <%= org.owner_email %></p></div>
-  <form method="post" action="/admin/organizations/<%= org.id %>/status" data-confirm="<%= org.status === 'active' ? t('admin.confirm_suspend') : t('admin.confirm_activate') %>"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><input type="hidden" name="status" value="<%= org.status === 'active' ? 'suspended' : 'active' %>">
-    <button class="btn <%= org.status === 'active' ? 'btn-danger' : 'btn-dark' %>" type="submit"><%= org.status === 'active' ? t('admin.suspend') : t('admin.reactivate') %></button></form>
+  <% if (canEdit) { %><form method="post" action="/admin/organizations/<%= org.id %>/status" data-confirm="<%= org.status === 'active' ? t('admin.confirm_suspend') : t('admin.confirm_activate') %>"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><input type="hidden" name="status" value="<%= org.status === 'active' ? 'suspended' : 'active' %>">
+    <button class="btn <%= org.status === 'active' ? 'btn-danger' : 'btn-dark' %>" type="submit"><%= org.status === 'active' ? t('admin.suspend') : t('admin.reactivate') %></button></form><% } %>
 </div>
 <div class="grid grid-3">
   <section class="panel">
@@ -18,17 +18,72 @@
       <div class="form-grid">
         <%- include('../../partials/field', { name: 'plan_id', label: t('fields.plan'), type: 'select', value: sub.plan_id, options: plans.map(function (p) { return { value: p.id, label: p.name }; }) }) %>
         <%- include('../../partials/field', { name: 'status', label: t('fields.status'), type: 'select', value: sub.status, options: ['trial','active','past_due','suspended','cancelled'].map(function (s) { return { value: s, label: t('billing.status_' + s) }; }) }) %>
+        <%- include('../../partials/field', { name: 'billing_cycle', label: t('billing.billing_cycle'), type: 'select', value: sub.billing_cycle, options: ['monthly','yearly'].map(function (c) { return { value: c, label: t('billing.' + c) }; }) }) %>
         <%- include('../../partials/field', { name: 'trial_ends_at', label: t('billing.trial_ends'), type: 'date', value: fmt.dateInput(sub.trial_ends_at) }) %>
+        <%- include('../../partials/field', { name: 'current_period_end', label: t('admin.period_end'), type: 'date', value: fmt.dateInput(sub.current_period_end), help: t('admin.period_end_help') }) %>
       </div>
       <div class="fieldset-title"><%= t('admin.custom_limits') %></div>
       <div class="table-wrap"><table class="table"><thead><tr><th><%= t('admin.limit') %></th><th><%= t('admin.override') %></th><th><%= t('admin.unlimited') %></th></tr></thead><tbody>
         <% limitKeys.forEach(function (k) { %><tr><td><%= t('limits.' + k) %></td><td><input class="input" type="number" min="0" name="custom[<%= k %>]" value="<%= custom[k] !== undefined && custom[k] !== null ? custom[k] : '' %>" placeholder="<%= t('admin.plan_default') %>" style="max-width:180px"></td><td><input type="checkbox" name="custom_unlimited" value="<%= k %>"<%= custom[k] === null ? ' checked' : '' %> aria-label="<%= t('admin.unlimited') %>"></td></tr><% }) %>
       </tbody></table></div>
     </div>
-    <div class="panel-foot"><button class="btn btn-dark" type="submit"><%= t('common.save_changes') %></button></div>
+    <% if (canEdit) { %><div class="panel-foot"><button class="btn btn-dark" type="submit"><%= t('common.save_changes') %></button></div><% } %>
   </form>
 </div>
-<section class="panel mt-6">
+<div class="grid grid-2 mt-6">
+  <form class="panel" id="addons" method="post" action="/admin/organizations/<%= org.id %>/addons">
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+    <div class="panel-head"><div><h2><%= t('billing.addons') %></h2><div class="panel-sub"><%= t('admin.addons_sub') %></div></div></div>
+    <div class="table-wrap"><table class="table">
+      <thead><tr><th><%= t('billing.addon') %></th><th><%= t('billing.price') %></th><th class="text-end"><%= t('admin.quantity') %></th></tr></thead>
+      <tbody><% addons.forEach(function (a) { var q = org.addonQty[a.key] || 0; %><tr>
+        <td><%= t('addons.' + a.key) %></td>
+        <td class="num small"><%= Number(a.price_monthly) > 0 ? t('billing.per_month', { price: fmt.money(a.price_monthly, a.currency) }) : t('billing.included') %></td>
+        <td class="text-end"><% if (a.limit_key) { %><input class="input input-sm" type="number" min="0" max="100" name="addons[<%= a.key %>]" value="<%= q %>" style="max-width:90px" aria-label="<%= t('addons.' + a.key) %>"><% } else { %><input type="hidden" name="addons[<%= a.key %>]" value="0"><label class="check" style="justify-content:flex-end"><input type="checkbox" name="addons[<%= a.key %>]" value="1"<%= q ? ' checked' : '' %> aria-label="<%= t('addons.' + a.key) %>"></label><% } %></td>
+      </tr><% }) %></tbody>
+    </table></div>
+    <% if (canEdit) { %><div class="panel-foot"><button class="btn btn-dark btn-sm" type="submit"><%= t('common.save_changes') %></button></div><% } %>
+  </form>
+  <form class="panel" id="features" method="post" action="/admin/organizations/<%= org.id %>/features">
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+    <div class="panel-head"><div><h2><%= t('admin.extra_features') %></h2><div class="panel-sub"><%= t('admin.extra_features_sub') %></div></div></div>
+    <div class="panel-body"><div class="check-grid">
+      <% features.forEach(function (f) { var inPlan = org.planFeatures.indexOf(f.key) !== -1; %>
+        <label class="check"><input type="checkbox" name="features" value="<%= f.key %>"<%= inPlan || org.customFeatures.indexOf(f.key) !== -1 ? ' checked' : '' %><%= inPlan ? ' disabled' : '' %>><span><%= t('features.' + f.key) %><% if (inPlan) { %> <span class="muted tiny">(<%= t('admin.in_plan') %>)</span><% } %></span></label>
+      <% }) %>
+    </div></div>
+    <% if (canEdit) { %><div class="panel-foot"><button class="btn btn-dark btn-sm" type="submit"><%= t('common.save_changes') %></button></div><% } %>
+  </form>
+</div>
+
+<div class="grid grid-2 mt-6">
+  <% if (adminCan('invoices', true)) { %>
+  <form class="panel" method="post" action="/admin/organizations/<%= org.id %>/invoice" novalidate>
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+    <div class="panel-head"><div><h2><%= t('admin.issue_invoice') %></h2><div class="panel-sub"><%= t('admin.issue_invoice_sub') %></div></div></div>
+    <div class="panel-body stack">
+      <% if (formError && formError.code === 'OPEN_INVOICE_EXISTS') { %><div class="alert alert-warning"><%- icon('triangle-alert') %><div class="grow small"><%= formError.message %></div></div><% } %>
+      <div class="form-grid">
+        <%- include('../../partials/field', { name: 'amount', label: t('admin.invoice_amount'), type: 'number', attrs: 'min="0" step="0.01"', help: t('admin.invoice_amount_help') }) %>
+        <%- include('../../partials/field', { name: 'description', label: t('fields.description'), placeholder: t('admin.invoice_desc_ph') }) %>
+      </div>
+    </div>
+    <div class="panel-foot"><button class="btn btn-dark btn-sm" type="submit"><%- icon('receipt') %><%= t('admin.issue_invoice') %></button></div>
+  </form>
+  <% } %>
+  <section class="panel">
+    <div class="panel-head"><h2><%= t('admin.company_profile') %></h2></div>
+    <div class="panel-body"><dl class="dl">
+      <dt><%= t('admin.members') %></dt><dd class="num"><%= fmt.number(org.members) %></dd>
+      <dt><%= t('admin.created') %></dt><dd><%= fmt.date(org.created_at) %></dd>
+      <dt><%= t('admin.country') %></dt><dd><%= org.country_code %> · <%= org.currency %></dd>
+      <dt><%= t('admin.brand_logo') %></dt><dd><% if (org.branding && org.branding.logo_sha) { %><img class="brand-thumb" src="/org-brand/<%= org.id %>/logo/<%= org.branding.logo_sha %>" alt="<%= org.name %>"><% } else { %>—<% } %></dd>
+      <dt><%= t('features.white_label') %></dt><dd><% if (org.branding && org.branding.white_label && e.features.has('white_label')) { %><span class="badge badge-success"><%= t('admin.wl_on') %></span> <%= org.branding.brand_name || '' %><% if (org.branding.custom_domain) { %> · <span dir="ltr"><%= org.branding.custom_domain %></span><% } %><% } else { %><span class="muted"><%= e.features.has('white_label') ? t('admin.wl_available') : t('admin.wl_not_in_plan') %></span><% } %></dd>
+    </dl></div>
+  </section>
+</div>
+
+<section class="panel mt-6" id="invoices">
   <div class="panel-head"><h2><%= t('billing.invoices') %></h2></div>
   <%- include('_invoice-table', { invoices: org.invoices, showOrg: false }) %>
 </section>

@@ -1,0 +1,38 @@
+<% var o = old || {}; %>
+<div class="page-head"><div><h1><%= t('admin.team') %></h1><p><%= t('admin.team_sub') %></p></div></div>
+<div class="grid grid-3">
+  <section class="panel span-2">
+    <div class="panel-head"><h2><%= t('admin.team_members') %></h2><span class="badge"><%= fmt.number(members.length) %></span></div>
+    <div class="table-wrap"><table class="table">
+      <thead><tr><th><%= t('fields.name') %></th><th><%= t('admin.team_role') %></th><th><%= t('admin.team_last_login') %></th><th class="actions"></th></tr></thead>
+      <tbody><% members.forEach(function (m) { var me = m.id === currentUser.id; %><tr>
+        <td><div style="font-weight:600"><%= m.name %><% if (me) { %> <span class="badge"><%= t('admin.team_you') %></span><% } %></div><div class="muted small" dir="ltr"><%= m.email %></div></td>
+        <td><% if (me) { %><%= t('admin.role_' + (m.platform_role || 'owner')) %><% } else { %>
+          <form method="post" action="/admin/team/<%= m.id %>/role" class="row-sm"><input type="hidden" name="_csrf" value="<%= csrfToken %>">
+            <select class="select select-sm" name="role" aria-label="<%= t('admin.team_role') %>"><% roles.forEach(function (r) { %><option value="<%= r %>"<%= (m.platform_role || 'owner') === r ? ' selected' : '' %>><%= t('admin.role_' + r) %></option><% }) %></select>
+            <button class="btn btn-secondary btn-sm" type="submit"><%= t('common.save') %></button></form><% } %></td>
+        <td class="nowrap small muted"><%= m.last_login_at ? fmt.date(m.last_login_at, { dateStyle: 'medium', timeStyle: 'short' }) : '—' %></td>
+        <td class="actions"><% if (!me) { %><form method="post" action="/admin/team/<%= m.id %>/remove" data-confirm="<%= t('admin.team_remove_confirm', { name: m.name }) %>"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><button class="btn btn-danger-ghost btn-sm" type="submit"><%= t('admin.team_remove') %></button></form><% } %></td>
+      </tr><% }) %></tbody>
+    </table></div>
+  </section>
+  <form class="panel" method="post" action="/admin/team" novalidate autocomplete="off">
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+    <div class="panel-head"><div><h2><%= t('admin.team_add') %></h2><div class="panel-sub"><%= t('admin.team_add_sub') %></div></div></div>
+    <div class="panel-body stack">
+      <%- include('../../partials/field', { name: 'name', label: t('fields.name') }) %>
+      <%- include('../../partials/field', { name: 'email', label: t('fields.email'), type: 'email', attrs: 'dir="ltr"' }) %>
+      <%- include('../../partials/field', { name: 'role', label: t('admin.team_role'), type: 'select', value: o.role || 'support', options: roles.map(function (r) { return { value: r, label: t('admin.role_' + r) }; }) }) %>
+      <%- include('../../partials/field', { name: 'password', label: t('admin.team_password'), type: 'password', autocomplete: 'new-password', help: t('admin.team_password_help') }) %>
+    </div>
+    <div class="panel-foot"><button class="btn btn-dark" type="submit"><%- icon('user-plus') %><%= t('admin.team_add') %></button></div>
+  </form>
+</div>
+<section class="panel mt-6">
+  <div class="panel-head"><h2><%= t('admin.team_roles') %></h2></div>
+  <div class="table-wrap"><table class="table">
+    <thead><tr><th><%= t('admin.team_section') %></th><% roles.forEach(function (r) { %><th class="text-center"><%= t('admin.role_' + r) %></th><% }) %></tr></thead>
+    <tbody><% Object.keys(sections).forEach(function (s) { %><tr><td><%= t('admin.' + (s === 'overview' ? 'overview' : s)) %></td><% roles.forEach(function (r) { %><td class="text-center"><%- sections[s].indexOf(r) !== -1 ? icon('check', 'icon-sm') : '<span class="muted">—</span>' %></td><% }) %></tr><% }) %></tbody>
+  </table></div>
+  <div class="panel-body small text-2"><%= t('admin.team_roles_note') %></div>
+</section>

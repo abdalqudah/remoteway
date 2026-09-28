@@ -937,3 +937,21 @@ fieldset.field > legend { padding: 0; margin-bottom: 6px; }
 .auto-preview { border-inline-start: 3px solid var(--rw-green-deep); padding: 6px 12px; }
 .st-button { border: 0; cursor: pointer; font: inherit; font-size: 11px; font-weight: 600; }
 .invoice-logo img { height: 34px; width: auto; }
+.brand-thumb { max-height: 40px; max-width: 180px; width: auto; display: block; }
+/* Company branding */
+.brand-logo { height: 30px; width: auto; max-width: 200px; object-fit: contain; }
+.brand-wordmark { font-weight: 800; font-size: 20px; letter-spacing: -.01em; color: var(--text); }
+.org-mark-logo { background: var(--surface); border: 1px solid var(--border); padding: 2px; overflow: hidden; }
+.org-mark-logo img { width: 100%; height: 100%; object-fit: contain; }
+.print-logo { max-height: 48px; max-width: 200px; width: auto; object-fit: contain; display: block; }
+.print-letterhead { display: flex; align-items: center; gap: 16px; padding-bottom: 14px; margin-bottom: 18px; border-bottom: 1px solid var(--border); }
+.print-footer { margin-top: 24px; text-align: center; }
+.careers-logo { max-height: 36px; max-width: 180px; width: auto; object-fit: contain; }
+.auth-brand-logo { max-height: 48px; max-width: 240px; width: auto; object-fit: contain; }
+.auth-side .brand-wordmark { color: inherit; }
+.logo-preview { display: flex; align-items: center; justify-content: center; min-height: 88px; border: 1px dashed var(--border-strong); border-radius: var(--radius); padding: 12px; }
+.logo-preview.on-dark { background: #121212; }
+.logo-preview img { max-height: 64px; max-width: 100%; object-fit: contain; }
+.swatch { width: 40px; height: 40px; border-radius: 10px; border: 1px solid var(--border); flex: none; }
+.sidebar-brand .brand-logo { height: 32px; }
+.print-page .page-actions, .print-page form, .print-page dialog, .print-page .an-tabs, .print-page .ai-panel { display: none !important; }

@@ -15,6 +15,13 @@
 
 ## What works today
 
+**Platform team, company management and branding:**
+
+- **Platform team** (Super Admin → Platform team): add people with a role — Owner, Administrator, Finance or Support — each seeing only its sections; at least one owner always remains.
+- **Companies** (Super Admin → Organizations): plan, status, billing cycle, paid-until date, custom limits, add-ons (quantities), extra features beyond the plan, issue an invoice (list price or an agreed amount), void open invoices.
+- **Company logo** (Settings → Branding, every plan): stored in the database; shown on payslips, certificates, printed reports / analytics / compliance (Print / PDF, on the company letterhead) and the careers page. The app keeps the RemoteWay identity.
+- **White Label** (Enterprise or add-on): the company's name, logo and colour replace RemoteWay in the app, emails and printouts, and its team can sign in on the company's own domain (after DNS and adding the domain on the server). CSV exports are data only and carry no logo.
+
 **Online payments** (Super Admin → Payments):
 
 - **Saudi gateways:** Moyasar (hosted invoice), Tap Payments (hosted charge), HyperPay COPYandPAY (widget; separate mada and Visa/Mastercard entities) and PayTabs (hosted page, any region). Keys are stored encrypted, each gateway has a connection test, and the platform switches between test and live mode.

@@ -73,7 +73,7 @@ router.post('/users/invite', can('users.manage'), form(async (req, res) => {
   let emailed = false;
   if (mailer.enabled()) {
     const role = await rbac.getRole(req.ctx.organizationId, data.role_id);
-    emailed = await mailer.sendInvitation({ email: data.email, link, organizationName: req.organization.name, roleName: role.name, locale: req.locale })
+    emailed = await mailer.sendInvitation({ email: data.email, link, organizationName: req.organization.name, roleName: role.name, locale: req.locale, organizationId: req.ctx.organizationId })
       .catch((e) => { console.error('[mail] invitation failed:', e.message); return false; });
   }
   if (!emailed) req.session.lastInviteLink = link;

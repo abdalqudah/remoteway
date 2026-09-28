@@ -1,0 +1,70 @@
+<%
+  var s = saved || {}; var o = old || {}; var posted = o._csrf !== undefined && o.brand_name !== undefined;
+  var v = function (k) { return posted ? o[k] : (s[k] || ''); };
+  var wlOn = posted ? o.white_label === 'on' : Boolean(s.white_label);
+  var active = brand && brand.whiteLabel;
+%>
+<div class="page-head"><div><h1><%= t('nav.settings') %></h1><p><%= t('branding.sub') %></p></div></div>
+<%- include('../../partials/settings-nav') %>
+
+<div class="grid grid-2">
+  <section class="panel" id="logo">
+    <div class="panel-head"><div><h2><%= t('branding.logo') %></h2><div class="panel-sub"><%= t('branding.logo_sub') %></div></div></div>
+    <div class="panel-body stack">
+      <% if (formError && (errors.file || errors.kind)) { %><div class="alert alert-error"><%- icon('circle-alert') %><div class="grow small"><%= errors.file || errors.kind %></div></div><% } %>
+      <% [['logo', false], ['logo_dark', true]].forEach(function (k) { var sha = s[k[0] + '_sha']; %>
+        <div class="stack-sm">
+          <div class="row between"><strong class="small"><%= t('branding.' + k[0]) %></strong>
+            <% if (sha) { %><form method="post" action="/app/settings/branding/logo/remove"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><input type="hidden" name="kind" value="<%= k[0] %>"><button class="btn btn-danger-ghost btn-sm" type="submit"><%= t('branding.remove') %></button></form><% } %></div>
+          <div class="logo-preview<%= k[1] ? ' on-dark' : '' %>"><% if (sha) { %><img src="/org-brand/<%= organization.id %>/<%= k[0] %>/<%= sha %>" alt="<%= organization.name %>"><% } else { %><span class="muted small"><%= k[1] ? t('branding.dark_fallback') : t('branding.no_logo') %></span><% } %></div>
+          <form class="row-sm wrap" method="post" action="/app/settings/branding/logo" enctype="multipart/form-data">
+            <input type="hidden" name="_csrf" value="<%= csrfToken %>"><input type="hidden" name="kind" value="<%= k[0] %>">
+            <input class="input" type="file" name="file" accept="image/png,image/jpeg,image/webp" required aria-label="<%= t('branding.' + k[0]) %>" style="max-width:320px">
+            <button class="btn btn-secondary btn-sm" type="submit"><%- icon('upload', 'icon-sm') %><%= t('branding.upload') %></button>
+          </form>
+        </div>
+      <% }) %>
+      <p class="help"><%= t('branding.logo_help') %></p>
+    </div>
+  </section>
+
+  <section class="panel">
+    <div class="panel-head"><h2><%= t('branding.where') %></h2></div>
+    <div class="panel-body small text-2 stack-sm">
+      <p><%- icon('check', 'icon-sm') %> <%= t('branding.where_print') %></p>
+      <p><%- icon('check', 'icon-sm') %> <%= t('branding.where_careers') %></p>
+      <p><%- icon('check', 'icon-sm') %> <%= t('branding.where_app') %></p>
+      <p><%- icon('info', 'icon-sm') %> <%= t('branding.where_platform') %></p>
+      <p><%- icon('info', 'icon-sm') %> <%= t('branding.where_csv') %></p>
+    </div>
+  </section>
+</div>
+
+<form class="panel mt-6" id="white-label" method="post" action="/app/settings/branding/white-label" novalidate>
+  <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+  <div class="panel-head"><div><h2><%= t('features.white_label') %></h2><div class="panel-sub"><%= t('branding.wl_sub') %></div></div>
+    <span class="badge badge-dot <%= active ? 'badge-success' : '' %>"><%= active ? t('branding.wl_active') : hasWhiteLabel ? t('branding.wl_off') : t('branding.wl_not_in_plan') %></span></div>
+  <div class="panel-body stack">
+    <% if (!hasWhiteLabel) { %>
+      <div class="alert alert-info"><%- icon('info') %><div class="grow"><div class="alert-title"><%= t('branding.wl_upgrade_title') %></div><div class="small text-2"><%= t('branding.wl_upgrade_text') %></div></div><% if (can('billing.view')) { %><a class="btn btn-dark btn-sm" href="/app/billing#addons"><%= t('billing.addons') %></a><% } %></div>
+    <% } else { %>
+      <% if (formError && !errors.file) { %><div class="alert alert-error"><%- icon('circle-alert') %><div class="grow small"><%= Object.values(errors)[0] || formError.message %></div></div><% } %>
+      <label class="check"><input type="checkbox" name="white_label"<%= wlOn ? ' checked' : '' %>><%= t('branding.wl_enable') %></label>
+      <div class="form-grid">
+        <%- include('../../partials/field', { name: 'brand_name', label: t('branding.brand_name'), value: v('brand_name'), placeholder: organization.name, help: t('branding.brand_name_help') }) %>
+        <div class="field"><label class="label" for="f-brand_color"><%= t('branding.brand_color') %></label>
+          <div class="row-sm"><span class="swatch" style="background:<%= /^#[0-9A-Fa-f]{6}$/.test(v('brand_color')) ? v('brand_color') : '#1ACC6C' %>"></span>
+          <input class="input<%= errors.brand_color ? ' is-invalid' : '' %>" id="f-brand_color" name="brand_color" value="<%= v('brand_color') %>" placeholder="#1A73E8" dir="ltr" maxlength="7" pattern="#[0-9A-Fa-f]{6}"></div>
+          <% if (errors.brand_color) { %><span class="field-error"><%= errors.brand_color %></span><% } else { %><span class="help"><%= t('branding.brand_color_help') %></span><% } %></div>
+        <%- include('../../partials/field', { name: 'email_sender_name', label: t('branding.email_sender'), value: v('email_sender_name'), help: t('branding.email_sender_help') }) %>
+        <%- include('../../partials/field', { name: 'custom_domain', label: t('branding.domain'), value: v('custom_domain'), placeholder: 'hr.yourcompany.com', attrs: 'dir="ltr"', help: t('branding.domain_help') }) %>
+      </div>
+      <% if (s.custom_domain) { %>
+      <div class="alert alert-info"><%- icon('globe') %><div class="grow small"><div class="alert-title"><%= t('branding.dns_title') %></div>
+        <div class="text-2"><%= t('branding.dns_text') %></div>
+        <div class="mono mt-2" dir="ltr"><%= s.custom_domain %>  CNAME  <%= platformHost %></div></div></div>
+      <% } %>
+    <% } %>
+  </div>
+  <% if (hasWhiteLabel) { %><div class="panel-foot"><button class="btn btn-dark" type="submit"><%= t('common.save_changes') %></button></div><% } %>
+</form>

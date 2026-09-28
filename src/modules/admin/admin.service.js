@@ -40,6 +40,12 @@ async function getOrganization(id) {
   org.entitlements = await ent.getEntitlements(id);
   org.usage = await ent.getUsage(id);
   org.invoices = await knex('invoices').where({ organization_id: id }).orderBy('id', 'desc');
+  const sub = org.entitlements.subscription;
+  org.planFeatures = sub ? await knex('plan_features as pf').join('features as f', 'f.id', 'pf.feature_id').where('pf.plan_id', sub.plan_id).pluck('f.key') : [];
+  org.customFeatures = sub ? ((typeof sub.custom_features === 'string' ? JSON.parse(sub.custom_features) : sub.custom_features) || []) : [];
+  org.addonQty = Object.fromEntries((org.entitlements.addons || []).map((a) => [a.key, a.quantity]));
+  org.members = Number((await knex('memberships').where({ organization_id: id, status: 'active' }).count({ n: '*' }))[0].n);
+  org.branding = await knex('organization_branding').where({ organization_id: id }).first('white_label', 'brand_name', 'custom_domain', 'logo_sha');
   return org;
 }
 
@@ -51,18 +57,103 @@ async function setOrganizationStatus(ctx, id, status) {
   ent.invalidate(id);
 }
 
-async function updateSubscription(ctx, organizationId, { plan_id: planId, status, trial_ends_at: trialEndsAt, custom_limits: customLimits }) {
+async function updateSubscription(ctx, organizationId, {
+  plan_id: planId, status, trial_ends_at: trialEndsAt, custom_limits: customLimits, billing_cycle: cycle, current_period_end: periodEnd,
+}) {
   const sub = await knex('subscriptions').where({ organization_id: organizationId }).first();
   if (!sub) throw E.notFound('Subscription');
   const patch = {};
-  if (planId) patch.plan_id = planId;
+  if (planId) {
+    if (!(await knex('plans').where({ id: planId }).first('id'))) throw E.validation({ plan_id: 'Choose a valid plan.' });
+    patch.plan_id = planId;
+  }
   if (status) patch.status = status;
+  if (cycle) patch.billing_cycle = cycle;
   if (trialEndsAt !== undefined) patch.trial_ends_at = trialEndsAt ? new Date(`${trialEndsAt}T23:59:59Z`) : null;
+  if (periodEnd !== undefined) patch.current_period_end = periodEnd ? new Date(`${periodEnd}T23:59:59Z`) : null;
+  if (status === 'active' && periodEnd && !sub.current_period_start) patch.current_period_start = new Date();
+  if (status && status !== 'past_due') patch.grace_ends_at = null;
   if (customLimits !== undefined) patch.custom_limits = customLimits ? JSON.stringify(customLimits) : null;
   const d = audit.diff(sub, patch);
   await knex('subscriptions').where({ id: sub.id }).update(patch);
   await audit.record({ ...ctx, organizationId }, 'platform.subscription_updated', { entityType: 'subscription', entityId: sub.id, oldValues: d.oldValues, newValues: d.newValues });
   ent.invalidate(organizationId);
+}
+
+/** Sets the company's add-ons (quantities; 0 removes). The platform may go below current usage. */
+async function setAddons(ctx, organizationId, quantities) {
+  await knex.transaction(async (trx) => {
+    const sub = await trx('subscriptions').where({ organization_id: organizationId }).forUpdate().first();
+    if (!sub) throw E.notFound('Subscription');
+    const addons = await trx('addons');
+    const before = {}; const after = {};
+    for (const a of addons) {
+      if (!(a.key in quantities)) continue; // eslint-disable-line no-continue
+      const given = Array.isArray(quantities[a.key]) ? quantities[a.key][quantities[a.key].length - 1] : quantities[a.key]; // checkbox after its hidden 0
+      const raw = Number(given);
+      if (!Number.isInteger(raw) || raw < 0 || raw > 100) throw E.validation({ [`addons.${a.key}`]: 'Use a whole number between 0 and 100.' });
+      const qty = a.limit_key ? raw : Math.min(raw, 1);
+      const existing = await trx('subscription_addons').where({ subscription_id: sub.id, addon_id: a.id }).first();
+      before[a.key] = existing ? existing.quantity : 0;
+      after[a.key] = qty;
+      if (qty === 0) { if (existing) await trx('subscription_addons').where({ id: existing.id }).del(); } else if (existing) await trx('subscription_addons').where({ id: existing.id }).update({ quantity: qty });
+      else await trx('subscription_addons').insert({ subscription_id: sub.id, addon_id: a.id, quantity: qty });
+    }
+    const d = audit.diff(before, after);
+    if (d.changed) await audit.record({ ...ctx, organizationId }, 'platform.addons_updated', { entityType: 'subscription', entityId: sub.id, oldValues: d.oldValues, newValues: d.newValues }, trx);
+  });
+  ent.invalidate(organizationId);
+}
+
+/** Features granted on top of the plan (e.g. White Label for one company). */
+async function setCustomFeatures(ctx, organizationId, keys) {
+  const sub = await knex('subscriptions').where({ organization_id: organizationId }).first();
+  if (!sub) throw E.notFound('Subscription');
+  const valid = new Set(await knex('features').pluck('key'));
+  const planKeys = new Set(await knex('plan_features as pf').join('features as f', 'f.id', 'pf.feature_id').where('pf.plan_id', sub.plan_id).pluck('f.key'));
+  const list = [...new Set((keys || []).map(String))].filter((k) => valid.has(k) && !planKeys.has(k)).sort();
+  const old = (typeof sub.custom_features === 'string' ? JSON.parse(sub.custom_features) : sub.custom_features) || [];
+  await knex('subscriptions').where({ id: sub.id }).update({ custom_features: list.length ? JSON.stringify(list) : null });
+  await audit.record({ ...ctx, organizationId }, 'platform.features_granted', { entityType: 'subscription', entityId: sub.id, oldValues: { features: old.join(', ') }, newValues: { features: list.join(', ') } });
+  ent.invalidate(organizationId);
+  return list;
+}
+
+/** Issues an invoice now: the plan and add-ons at list price, or one line with an agreed amount (custom plans). */
+async function issueInvoice(ctx, organizationId, { amount, description }) {
+  const subscriptions = require('../billing/subscription.service'); // eslint-disable-line global-require
+  return knex.transaction(async (trx) => {
+    const sub = await trx('subscriptions').where({ organization_id: organizationId }).forUpdate().first();
+    if (!sub) throw E.notFound('Subscription');
+    if (await trx('invoices').where({ subscription_id: sub.id, status: 'issued' }).first()) throw E.conflict('OPEN_INVOICE_EXISTS', 'This company already has an open invoice. Void it first or wait for it to be paid.');
+    const plan = await trx('plans').where({ id: sub.plan_id }).first();
+    let items;
+    if (amount !== undefined && amount !== null && amount !== '') {
+      const value = Math.round(Number(amount) * 100) / 100;
+      if (!(value > 0) || value > 10_000_000) throw E.validation({ amount: 'Enter an amount greater than zero.' });
+      const desc = String(description || '').trim().slice(0, 200) || `${plan.name} plan (${sub.billing_cycle})`;
+      items = [{ description: desc, quantity: 1, unit_price: value, currency: plan.currency }];
+    } else {
+      if (plan.price_monthly === null) throw E.validation({ amount: 'This plan has no list price. Enter the agreed amount.' });
+      items = await subscriptions.buildLineItems(trx, sub, plan, sub.billing_cycle);
+    }
+    const periodStart = sub.current_period_end && new Date(sub.current_period_end) > new Date() && sub.status === 'active' ? new Date(sub.current_period_end) : new Date();
+    const id = await subscriptions.issueInvoice(trx, { organizationId, subscriptionId: sub.id, cycle: sub.billing_cycle, items, periodStart });
+    await audit.record({ ...ctx, organizationId }, 'invoice.issued', { entityType: 'invoice', entityId: id, newValues: { by: 'platform' } }, trx);
+    const notifications = require('../notifications/notification.service'); // eslint-disable-line global-require
+    const inv = await trx('invoices').where({ id }).first('number');
+    await notifications.notify(organizationId, await notifications.usersWithPermission(organizationId, 'billing.manage', trx), 'invoice_issued', { number: inv.number }, `/app/billing/invoices/${id}`, trx);
+    return id;
+  });
+}
+
+async function voidInvoice(ctx, invoiceId) {
+  const inv = await knex('invoices').where({ id: invoiceId }).first();
+  if (!inv) throw E.notFound('Invoice');
+  if (inv.status !== 'issued') throw E.conflict('INVOICE_NOT_PAYABLE', 'Only open invoices can be voided.');
+  await knex('invoices').where({ id: invoiceId, status: 'issued' }).update({ status: 'void' });
+  await knex('payments').where({ invoice_id: invoiceId, status: 'initiated' }).update({ status: 'cancelled', failure_reason: 'invoice_void' });
+  await audit.record({ ...ctx, organizationId: inv.organization_id }, 'invoice.voided', { entityType: 'invoice', entityId: invoiceId });
 }
 
 async function listPlans() {
@@ -105,4 +196,5 @@ async function listInvoices(status) {
   return q;
 }
 
-module.exports = { overview, listOrganizations, getOrganization, setOrganizationStatus, updateSubscription, listPlans, updatePlan, listInvoices };
+module.exports = {
+  setAddons, setCustomFeatures, issueInvoice, voidInvoice, overview, listOrganizations, getOrganization, setOrganizationStatus, updateSubscription, listPlans, updatePlan, listInvoices };

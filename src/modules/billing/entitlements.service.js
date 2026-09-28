@@ -33,6 +33,9 @@ async function loadEntitlements(organizationId) {
       limits[a.limit_key] = (limits[a.limit_key] || 0) + Number(a.limit_increment || 0) * a.quantity;
     }
   }
+  // Features the platform granted this company on top of its plan (Super Admin → company → extra features).
+  const extra = typeof sub.custom_features === 'string' ? JSON.parse(sub.custom_features) : sub.custom_features;
+  if (Array.isArray(extra)) for (const k of extra) features.add(k);
   const custom = typeof sub.custom_limits === 'string' ? JSON.parse(sub.custom_limits) : sub.custom_limits;
   if (custom) for (const [k, v] of Object.entries(custom)) limits[k] = v === null ? null : Number(v);
 

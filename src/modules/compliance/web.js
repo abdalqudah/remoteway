@@ -37,7 +37,7 @@ router.get('/', wrap(async (req, res) => {
   const order = { fail: 0, warn: 1, pass: 2, na: 3, off: 4 };
   const checks = [...result.checks].sort((a, b) => order[a.status] - order[b.status] || (compliance.WEIGHT[b.severity] || 0) - (compliance.WEIGHT[a.severity] || 0))
     .map((ch) => ({ ...ch, lines: ch.items.slice(0, 100).map((it) => ({ ...it, text: describe(req, it) })) }));
-  return res.page('pages/compliance/index', { title: req.t('compliance.title'), result, checks, trend, upcoming, hist });
+  return res.page('pages/compliance/index', { printable: true, title: req.t('compliance.title'), result, checks, trend, upcoming, hist });
 }));
 
 const renderSettings = async (req, res, extra = {}) => res.page('pages/compliance/settings', {

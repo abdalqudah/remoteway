@@ -38,7 +38,7 @@ router.get('/templates/:key', wrap(async (req, res) => {
   const exporting = req.query.format === 'csv';
   const result = await reports.run(req.ctx, tpl.dataset, tpl.config, { limit: exporting ? reports.MAX_EXPORT : reports.MAX_ROWS });
   if (exporting) return sendCsv(req, res, result, req.t(`reports.tpl_${tpl.key}`));
-  return res.page('pages/reports/run', { title: req.t(`reports.tpl_${tpl.key}`), ...c, result, template: tpl, report: null, schedules: [], builder: false });
+  return res.page('pages/reports/run', { printable: true, title: req.t(`reports.tpl_${tpl.key}`), ...c, result, template: tpl, report: null, schedules: [], builder: false });
 }));
 
 // ---------- Builder (GET so every result has a shareable URL) ----------
@@ -55,7 +55,7 @@ router.get('/builder', wrap(async (req, res) => {
     editing = await reports.getSaved(req.ctx, Number(req.query.report)).catch(() => null);
     if (editing && !reports.canEditSaved(req.ctx, editing)) editing = null;
   }
-  return res.page('pages/reports/run', { title: editing ? editing.name : req.t('reports.builder'), ...c, result, template: null, report: null, editing, schedules: [], builder: true });
+  return res.page('pages/reports/run', { printable: true, title: editing ? editing.name : req.t('reports.builder'), ...c, result, template: null, report: null, editing, schedules: [], builder: true });
 }));
 
 router.post('/saved', form(async (req, res) => {
@@ -77,7 +77,7 @@ const renderSaved = async (req, res, extra = {}) => {
     reports.listSchedules(req.ctx, report.id),
     knex('memberships as m').join('users as u', 'u.id', 'm.user_id').where({ 'm.organization_id': req.ctx.organizationId, 'm.status': 'active' }).orderBy('u.name').select('u.id', 'u.name', 'u.email'),
   ]);
-  return res.page('pages/reports/run', {
+  return res.page('pages/reports/run', { printable: true,
     title: report.name, ...c, result, template: null, report, schedules, members, builder: false, canEdit: reports.canEditSaved(req.ctx, report), ...extra,
   });
 };

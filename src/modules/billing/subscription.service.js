@@ -283,5 +283,5 @@ async function getInvoice(organizationId, invoiceId) {
 }
 
 module.exports = {
-  listPublicPlans, listAddons, startTrial, changePlan, setAddon, requestActivation, markInvoicePaid, markInvoicePaidTrx, renewalSweep, cancel, listInvoices, getInvoice,
+  listPublicPlans, listAddons, startTrial, changePlan, setAddon, requestActivation, markInvoicePaid, markInvoicePaidTrx, renewalSweep, cancel, issueInvoice, buildLineItems, addPeriod, listInvoices, getInvoice,
 };

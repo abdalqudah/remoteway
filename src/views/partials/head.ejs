@@ -1,6 +1,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title><%= typeof title !== 'undefined' && title ? title + ' · ' : '' %>RemoteWay</title>
+<% var _brand = typeof brand !== 'undefined' && brand ? brand : null; %>
+<title><%= typeof title !== 'undefined' && title ? title + ' · ' : '' %><%= _brand && _brand.whiteLabel ? _brand.appName : 'RemoteWay' %></title>
 <meta name="description" content="<%= t('site.meta_description') %>">
 <meta name="theme-color" content="#1ACC6C">
 <link rel="icon" type="image/png" href="/brand/favicon.png">
@@ -8,5 +9,6 @@
 <link rel="preload" href="/fonts/montserrat-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="/fonts/montserrat-latin-700-normal.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/css/app.css?v=<%= assetV %>">
+<% if (_brand && _brand.themeUrl) { %><link rel="stylesheet" href="<%= _brand.themeUrl %>"><% } %>
 <% if (arabicFont) { %><link rel="stylesheet" href="/css/arabic-font.css"><% } %>
 <meta name="csrf-token" content="<%= csrfToken %>">

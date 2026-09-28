@@ -4,6 +4,11 @@
 <body>
 <div class="auth">
   <div class="auth-side">
+    <% var _hb = typeof hostBrand !== 'undefined' && hostBrand && typeof brand !== 'undefined' && brand ? brand : null; %>
+    <% if (_hb) { %><a href="/login" aria-label="<%= _hb.appName %>"><% if (_hb.logoUrl) { %><img class="auth-brand-logo" src="<%= _hb.logoDarkUrl || _hb.logoUrl %>" alt="<%= _hb.appName %>"><% } else { %><span class="brand-wordmark"><%= _hb.appName %></span><% } %></a>
+    <div><h2><%= _hb.appName %></h2><p><%= t('branding.auth_text') %></p></div>
+    <div></div>
+    <% } else { %>
     <a href="/" aria-label="RemoteWay"><img src="/brand/logo-white.png" alt="RemoteWay" width="1753" height="248"></a>
     <div>
       <h2><%= t('auth.side_title_1') %><br><%= t('auth.side_title_2') %></h2>
@@ -15,6 +20,7 @@
       </ul>
     </div>
     <div class="small" style="font-weight:600">#REMOTE WAY</div>
+    <% } %>
   </div>
   <div class="auth-main" style="position:relative">
     <div class="auth-top">
@@ -22,7 +28,7 @@
       <button class="btn btn-ghost btn-icon" type="button" data-theme-toggle aria-label="<%= t('common.toggle_theme') %>"><%- icon('moon', 'theme-moon') %><%- icon('sun', 'theme-sun hidden') %></button>
     </div>
     <div class="auth-card<%= typeof wide !== 'undefined' && wide ? ' wide' : '' %>">
-      <a class="auth-mobile-logo" href="/"><%- include('../partials/logo') %></a>
+      <a class="auth-mobile-logo" href="<%= typeof hostBrand !== 'undefined' && hostBrand ? '/login' : '/' %>"><%- include('../partials/logo') %></a>
       <%- include('../partials/flash') %>
       <%- body %>
     </div>

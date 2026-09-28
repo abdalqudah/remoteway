@@ -58,11 +58,15 @@ function escapeHtml(s) {
   return String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 }
 
-function layout({ locale, title, body, cta, href }) {
+/** brand (white label): { name, color, logoUrl } replaces the RemoteWay header. */
+function layout({ locale, title, body, cta, href, brand }) {
   const dir = locale === 'ar' ? 'rtl' : 'ltr';
+  const header = brand
+    ? `<div style="background:${/^#[0-9A-Fa-f]{6}$/.test(brand.color || '') ? brand.color : '#ffffff'};padding:16px 24px;border-bottom:1px solid #e2e2e2">${brand.logoUrl ? `<img src="${escapeHtml(brand.logoUrl)}" alt="${escapeHtml(brand.name)}" style="max-height:40px;max-width:220px;background:#fff;border-radius:6px;padding:4px">` : `<span style="font-weight:800;font-size:18px">${escapeHtml(brand.name)}</span>`}</div>`
+    : '<div style="background:#1acc6c;padding:18px 24px;font-weight:800;font-size:18px">Remote<span style="color:#fff">WAY</span></div>';
   return `<!doctype html><html dir="${dir}"><body style="margin:0;background:#f7f7f7;font-family:Tahoma,Arial,sans-serif;color:#0a0a0a">
 <div style="max-width:560px;margin:24px auto;background:#fff;border:1px solid #e2e2e2;border-radius:14px;overflow:hidden">
-<div style="background:#1acc6c;padding:18px 24px;font-weight:800;font-size:18px">Remote<span style="color:#fff">WAY</span></div>
+${header}
 <div style="padding:24px"><h2 style="margin:0 0 12px;font-size:18px">${escapeHtml(title)}</h2><p style="line-height:1.7;margin:0 0 20px">${escapeHtml(body)}</p>
 ${href ? `<a href="${escapeHtml(href)}" style="display:inline-block;background:#000;color:#fff;text-decoration:none;padding:10px 18px;border-radius:999px;font-weight:700">${escapeHtml(cta)}</a>` : ''}
 </div></div></body></html>`;
@@ -70,33 +74,47 @@ ${href ? `<a href="${escapeHtml(href)}" style="display:inline-block;background:#
 
 const testOutbox = []; // messages "sent" while running tests
 
-async function send({ to, subject, html, attachments }) {
-  if (config.isTest) { testOutbox.push({ to, subject, html, attachments }); return false; }
+/** fromName (white label) changes only the display name; the platform's address keeps deliverability. */
+function fromWithName(fromName) {
+  const f = from();
+  if (!fromName) return f;
+  const addr = (f.match(/<([^>]+)>/) || [null, f])[1];
+  return `"${String(fromName).replace(/["\\\r\n<>]/g, '').slice(0, 80)}" <${addr}>`;
+}
+
+async function send({ to, subject, html, attachments, fromName }) {
+  if (config.isTest) { testOutbox.push({ to, subject, html, attachments, from: fromName ? fromWithName(fromName) : undefined }); return false; }
   const t = getTransport();
   if (!t) return false;
-  await t.sendMail({ from: from(), to, subject, html, attachments });
+  await t.sendMail({ from: fromWithName(fromName), to, subject, html, attachments });
   return true;
 }
 
-async function sendInvitation({ email, link, organizationName, roleName, locale = 'en' }) {
+async function sendInvitation({ email, link, organizationName, roleName, locale = 'en', organizationId }) {
   const t = translator(locale);
+  const brand = await require('../modules/branding/branding.service').forEmail(organizationId); // eslint-disable-line global-require
+  const href = brand && brand.base && link.startsWith(config.appUrl) ? brand.base + link.slice(config.appUrl.replace(/\/+$/, '').length) : link;
   return send({
     to: email,
-    subject: t('mail.invite_subject', { org: organizationName }),
-    html: layout({ locale, title: t('mail.invite_subject', { org: organizationName }), body: t('mail.invite_body', { org: organizationName, role: roleName }), cta: t('auth.invite_join'), href: link }),
+    subject: t('mail.invite_subject', { org: organizationName, app: brand ? brand.name : 'RemoteWay' }),
+    html: layout({ locale, title: t('mail.invite_subject', { org: organizationName, app: brand ? brand.name : 'RemoteWay' }), body: t('mail.invite_body', { org: organizationName, role: roleName }), cta: t('auth.invite_join'), href, brand }),
+    fromName: brand ? brand.senderName : null,
   });
 }
 
 /** One notification email (used by the job queue, so failures are retried). */
-async function sendNotificationEmail(userId, type, data, link) {
+async function sendNotificationEmail(userId, type, data, link, organizationId) {
   const u = await knex('users').where({ id: userId, status: 'active' }).first('email', 'locale');
   if (!u) return false;
   const t = translator(u.locale);
   const text = t(`notif.${type}`, data);
+  const brand = await require('../modules/branding/branding.service').forEmail(organizationId); // eslint-disable-line global-require
+  const base = brand && brand.base ? brand.base : config.appUrl;
   return send({
     to: u.email,
-    subject: `RemoteWay — ${text}`,
-    html: layout({ locale: u.locale, title: text, body: t('mail.notification_body'), cta: t('mail.open'), href: link ? `${config.appUrl}${link}` : config.appUrl }),
+    subject: `${brand ? brand.name : 'RemoteWay'} — ${text}`,
+    html: layout({ locale: u.locale, title: text, body: t('mail.notification_body', { app: brand ? brand.name : 'RemoteWay' }), cta: t('mail.open', { app: brand ? brand.name : 'RemoteWay' }), href: link ? `${base}${link}` : base, brand }),
+    fromName: brand ? brand.senderName : null,
   });
 }
 
@@ -117,7 +135,7 @@ async function sendNotificationEmails(organizationId, userIds, type, data, link)
     await send({
       to: u.email,
       subject: `RemoteWay — ${text}`,
-      html: layout({ locale: u.locale, title: text, body: t('mail.notification_body'), cta: t('mail.open'), href: link ? `${config.appUrl}${link}` : config.appUrl }),
+      html: layout({ locale: u.locale, title: text, body: t('mail.notification_body', { app: 'RemoteWay' }), cta: t('mail.open', { app: 'RemoteWay' }), href: link ? `${config.appUrl}${link}` : config.appUrl }),
     });
   }
 }
