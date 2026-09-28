@@ -95,7 +95,7 @@ const FEATURES = [
   ['recruitment', 'Recruitment (ATS)', 'talent', 'available'],
   ['onboarding', 'Onboarding', 'talent', 'available'],
   ['payroll', 'Payroll', 'payroll', 'available'],
-  ['performance', 'Performance', 'performance', 'coming_soon'],
+  ['performance', 'Performance', 'performance', 'available'],
   ['learning', 'Learning', 'learning', 'coming_soon'],
   ['projects', 'Projects', 'remote_work', 'available'],
   ['advanced_reports', 'Advanced Reports', 'analytics', 'coming_soon'],

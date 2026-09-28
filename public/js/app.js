@@ -117,6 +117,18 @@
     });
   });
 
+  // Submit buttons that need a confirmation (e.g. "Submit review"); the clicked button's name/value is kept.
+  $$('button[data-confirm-submit]').forEach(function (btn) {
+    btn.addEventListener('click', function (e) {
+      if (btn.dataset.confirmed) return;
+      e.preventDefault();
+      confirmBox(btn.getAttribute('data-confirm-submit'), function () {
+        btn.dataset.confirmed = '1';
+        if (btn.form.requestSubmit) btn.form.requestSubmit(btn); else btn.click();
+      });
+    });
+  });
+
   /* ---------- Auto-submit filter forms ---------- */
   $$('form[data-autosubmit]').forEach(function (form) {
     var timer;
@@ -307,6 +319,13 @@
 
   /* ---------- Print buttons (payslips) ---------- */
   $$('[data-print]').forEach(function (b) { b.addEventListener('click', function () { window.print(); }); });
+
+  /* ---------- Goal level: show the matching owner field ---------- */
+  $$('[data-toggle-scope]').forEach(function (sel) {
+    var sync = function () { $$('[data-scope-show]').forEach(function (el) { el.hidden = el.getAttribute('data-scope-show') !== sel.value; }); };
+    sel.addEventListener('change', sync); sync();
+  });
+  $$('[data-autoopen]').forEach(function (b) { b.click(); });
 
   // Keep csrf available for fetch-based features.
   window.RemoteWay = { csrf: csrf };

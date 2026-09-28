@@ -1,0 +1,10 @@
+<div class="page-head">
+  <div><h1><%= t('nav.performance') %></h1><p><%= t('performance.feedback_page_sub') %></p></div>
+  <div class="page-actions"><button class="btn btn-dark" type="button" data-open-dialog="feedback-dialog"<%= query.give === '1' ? ' data-autoopen' : '' %>><%- icon('message-square') %><%= t('performance.give_feedback') %></button></div>
+</div>
+<%- include('_nav') %>
+<section class="panel">
+  <% if (!rows.length) { %><div class="empty"><span class="empty-icon"><%- icon('message-square') %></span><h3><%= t('performance.no_feedback') %></h3><p><%= t('performance.no_feedback_text') %></p></div><% } else { %>
+  <ul class="feed"><% rows.forEach(function (f) { %><%- include('../../partials/feedback-item', { f: f }) %><% }) %></ul><% } %>
+</section>
+<%- include('../../partials/feedback-dialog', { people: people }) %>

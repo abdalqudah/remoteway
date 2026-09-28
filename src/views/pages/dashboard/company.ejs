@@ -43,7 +43,7 @@
   </div>
 </section>
 
-<% if ((today.onboardingTasks && today.onboardingTasks.length) || (today.interviews && today.interviews.length)) { %><div class="mt-6"><%- include('../../partials/my-work') %></div><% } %>
+<% if ((today.onboardingTasks && today.onboardingTasks.length) || (today.interviews && today.interviews.length) || (today.reviews && (today.reviews.mine.length || today.reviews.toWrite.length))) { %><div class="mt-6"><%- include('../../partials/my-work') %></div><% } %>
 
 <% if (clock || today.attendance) { %>
 <div class="grid grid-3 mt-6">

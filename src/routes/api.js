@@ -24,6 +24,8 @@ const notifications = require('../modules/notifications/notification.service');
 const recruitment = require('../modules/recruitment/recruitment.service');
 const onboarding = require('../modules/onboarding/onboarding.service');
 const payroll = require('../modules/payroll/payroll.service');
+const perfGoals = require('../modules/performance/goals.service');
+const perfReviews = require('../modules/performance/reviews.service');
 
 const router = express.Router();
 const ok = (res, data, meta, status = 200) => res.status(status).json({ success: true, data, ...(meta ? { meta } : {}) });
@@ -240,6 +242,18 @@ router.post('/payroll/runs/:id/:action(submit|reopen|approve|pay|cancel)', featu
 }));
 router.get('/payroll/payslips/mine', feature('payroll'), wrap(async (req, res) => ok(res, await payroll.myPayslips(req.ctx))));
 router.get('/payroll/payslips/:id', feature('payroll'), wrap(async (req, res) => ok(res, await payroll.getPayslip(req.ctx, Number(req.params.id)))));
+
+// Performance
+router.get('/performance/goals', feature('performance'), wrap(async (req, res) => ok(res, await perfGoals.list(req.ctx, { ...req.query, mine: req.query.mine === '1' }))));
+router.post('/performance/goals', feature('performance'), wrap(async (req, res) => ok(res, await perfGoals.get(req.ctx, await perfGoals.save(req.ctx, null, req.body)), undefined, 201)));
+router.get('/performance/goals/:id', feature('performance'), wrap(async (req, res) => ok(res, await perfGoals.get(req.ctx, Number(req.params.id)))));
+router.post('/performance/goals/:id/checkins', feature('performance'), wrap(async (req, res) => {
+  await perfGoals.checkIn(req.ctx, Number(req.params.id), req.body);
+  ok(res, await perfGoals.get(req.ctx, Number(req.params.id)), undefined, 201);
+}));
+router.get('/performance/reviews/:id', feature('performance'), wrap(async (req, res) => ok(res, await perfReviews.getReview(req.ctx, Number(req.params.id)))));
+router.get('/performance/feedback', feature('performance'), wrap(async (req, res) => ok(res, await perfReviews.listFeedback(req.ctx))));
+router.post('/performance/feedback', feature('performance'), wrap(async (req, res) => ok(res, { id: await perfReviews.giveFeedback(req.ctx, req.body) }, undefined, 201)));
 
 // Notifications
 router.get('/notifications', wrap(async (req, res) => ok(res, await notifications.list(req.ctx, { unreadOnly: req.query.unread === '1' }), { unread: await notifications.unreadCount(req.ctx) })));

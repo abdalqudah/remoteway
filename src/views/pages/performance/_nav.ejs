@@ -1,0 +1,6 @@
+<nav class="tabs mb-6" aria-label="<%= t('nav.performance') %>">
+  <a href="/app/performance" class="<%= perfSection === 'overview' || perfSection === '' ? 'active' : '' %>"><%= t('performance.overview') %></a>
+  <a href="/app/performance/goals" class="<%= perfSection === 'goals' ? 'active' : '' %>"><%= t('performance.goals') %></a>
+  <% if (perfAdmin || can('performance.view')) { %><a href="/app/performance/cycles" class="<%= perfSection === 'cycles' ? 'active' : '' %>"><%= t('performance.reviews') %></a><% } %>
+  <a href="/app/performance/feedback" class="<%= perfSection === 'feedback' ? 'active' : '' %>"><%= t('performance.feedback') %></a>
+</nav>

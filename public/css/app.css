@@ -692,3 +692,28 @@ tr.row-error td { background: var(--danger-soft); }
   .payslip-net { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   @page { margin: 14mm; }
 }
+
+/* ---------- Performance ---------- */
+.st-on_track { background: var(--success-soft); color: var(--success); }
+.st-at_risk { background: var(--warning-soft); color: var(--warning); }
+.st-off_track { background: var(--danger-soft); color: var(--danger); }
+.goal-row { display: flex; gap: 14px; align-items: center; padding: 14px 20px; border-bottom: 1px solid var(--border); color: inherit; }
+.goal-row:last-child { border-bottom: 0; }
+.goal-row:hover { background: var(--surface-2); }
+.goal-title { font-weight: 600; font-size: 14px; display: block; }
+.goal-scope { width: 32px; height: 32px; border-radius: 8px; display: inline-flex; align-items: center; justify-content: center; flex: none; background: var(--surface-sunken); color: var(--text-2); }
+.goal-scope-company { background: var(--inverse); color: var(--inverse-ink); }
+.goal-scope-department { background: var(--info-soft); color: var(--info); }
+.goal-scope-individual { background: var(--accent-soft); color: var(--text); }
+.goal-progress { display: flex; align-items: center; gap: 8px; width: 170px; flex: none; }
+.goal-progress .progress { flex: 1; }
+@media (max-width: 640px) { .goal-progress { width: 90px; } }
+.kr-row { display: grid; grid-template-columns: minmax(0, 3fr) 90px 90px 70px 36px; gap: 8px; align-items: center; }
+.kr-row > input[type=hidden] { display: none; }
+.kr-row.tiny { grid-template-columns: 0 minmax(0, 3fr) 90px 90px 70px 36px; }
+@media (max-width: 720px) { .kr-row { grid-template-columns: 1fr 1fr 1fr 36px; } .kr-row > input[name=kr_title] { grid-column: 1 / -1; } }
+.check-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 6px 16px; }
+.review-table td { vertical-align: top; }
+.dist { display: flex; align-items: flex-end; gap: 10px; height: 140px; }
+.dist-col { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; gap: 4px; height: 100%; }
+.dist-bar { width: 100%; max-width: 36px; min-height: 2px; background: var(--accent); border-radius: 6px 6px 0 0; }

@@ -1,0 +1,17 @@
+<% var fbPeople = typeof people !== 'undefined' && people ? people : null; var fixed = typeof fixedEmployee !== 'undefined' ? fixedEmployee : null; %>
+<dialog class="dialog" id="feedback-dialog"<%= openDialog === 'feedback' ? ' data-open-on-load' : '' %>>
+  <form method="post" action="/app/performance/feedback" novalidate>
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+    <div class="dialog-head"><div><h2><%= t('performance.give_feedback') %></h2><p class="muted small mt-1"><%= t('performance.feedback_sub') %></p></div><button class="btn btn-ghost btn-icon btn-sm" type="button" data-close-dialog aria-label="<%= t('common.close') %>"><%- icon('x') %></button></div>
+    <div class="dialog-body stack">
+      <% if (openDialog === 'feedback' && formError) { %><div class="alert alert-error"><%= Object.values(errors)[0] || formError.message %></div><% } %>
+      <% if (fixed) { %><input type="hidden" name="employee_id" value="<%= fixed.id %>"><p><strong><%= fixed.name %></strong></p>
+      <% } else { %><%- include('field', { name: 'employee_id', label: t('performance.to'), type: 'select', required: true, placeholder: t('onboarding_plans.choose_employee'), options: (fbPeople || []).map(function (p) { return { value: p.id, label: p.first_name + ' ' + p.last_name }; }) }) %><% } %>
+      <div class="field"><span class="label"><%= t('performance.feedback_kind') %></span>
+        <div class="row-sm wrap"><label class="check"><input type="radio" name="kind" value="praise" checked><%= t('performance.kind_praise') %></label><label class="check"><input type="radio" name="kind" value="suggestion"><%= t('performance.kind_suggestion') %></label></div></div>
+      <%- include('field', { name: 'body', label: t('performance.message'), type: 'textarea', required: true }) %>
+      <label class="check"><input type="checkbox" name="public"><span><%= t('performance.make_public') %><span class="help" style="display:block"><%= t('performance.make_public_help') %></span></span></label>
+    </div>
+    <div class="dialog-foot"><button class="btn btn-ghost" type="button" data-close-dialog><%= t('common.cancel') %></button><button class="btn btn-dark" type="submit"><%- icon('send') %><%= t('performance.send') %></button></div>
+  </form>
+</dialog>

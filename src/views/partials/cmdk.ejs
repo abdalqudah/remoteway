@@ -18,6 +18,8 @@
     hasFeature('recruitment') && can('recruitment.manage') ? { title: t('recruitment.new_job'), href: '/app/recruitment/jobs/new', icon: 'plus' } : null,
     hasFeature('recruitment') ? { title: t('recruitment.interviews'), href: '/app/recruitment/interviews', icon: 'calendar-days' } : null,
     hasFeature('onboarding') ? { title: t('nav.onboarding_module'), href: '/app/employee-onboarding', icon: 'user-check' } : null,
+    hasFeature('performance') ? { title: t('nav.performance'), href: '/app/performance', icon: 'target' } : null,
+    hasFeature('performance') ? { title: t('performance.new_goal'), href: '/app/performance/goals/new', icon: 'plus' } : null,
     hasFeature('payroll') && can('payroll.view') ? { title: t('nav.payroll'), href: '/app/payroll', icon: 'wallet' } : null,
     hasFeature('payroll') ? { title: t('payroll.my_payslips'), href: '/app/payroll/my', icon: 'receipt' } : null,
     can('employees.create') ? { title: t('import.title'), href: '/app/employees/import', icon: 'upload' } : null,

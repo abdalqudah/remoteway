@@ -1,0 +1,63 @@
+<%
+  var g = goal || {};
+  var ov = function (k, d) { return old && old[k] !== undefined ? old[k] : (g[k] !== undefined && g[k] !== null ? g[k] : d); };
+  var scopeNow = goal ? goal.scope : (old.scope || presetScope || 'individual');
+  var krs = goal ? goal.key_results : [{}, {}];
+  var krRow = function (k) {
+    k = k || {};
+    return '<div class="kr-row" data-row>' + (k.id ? '<input type="hidden" name="kr_id" value="' + k.id + '">' : '<input type="hidden" name="kr_id" value="">') +
+      '<input class="input" name="kr_title" maxlength="200" value="' + escapeHtml(k.title || '') + '" placeholder="' + escapeHtml(t('performance.kr_ph')) + '" aria-label="' + escapeHtml(t('performance.key_result')) + '">' +
+      '<input class="input num" type="number" step="any" name="kr_start" value="' + (k.start_value != null ? Number(k.start_value) : 0) + '" aria-label="' + escapeHtml(t('performance.kr_start')) + '" title="' + escapeHtml(t('performance.kr_start')) + '">' +
+      '<input class="input num" type="number" step="any" name="kr_target" value="' + (k.target_value != null ? Number(k.target_value) : '') + '" aria-label="' + escapeHtml(t('performance.kr_target')) + '" title="' + escapeHtml(t('performance.kr_target')) + '">' +
+      '<input class="input" name="kr_unit" maxlength="20" value="' + escapeHtml(k.unit || '') + '" placeholder="%" aria-label="' + escapeHtml(t('performance.kr_unit')) + '">' +
+      '<button class="btn btn-ghost btn-icon btn-sm" type="button" data-remove-row aria-label="' + escapeHtml(t('common.delete')) + '">' + icon('x', 'icon-sm') + '</button></div>';
+  };
+%>
+<div class="page-head">
+  <div><div class="eyebrow"><a href="/app/performance/goals"><%= t('performance.goals') %></a></div><h1><%= goal ? t('performance.edit_goal') : t('performance.new_goal') %></h1></div>
+</div>
+<% if (formError) { %><div class="alert alert-error mb-4"><%= Object.values(errors)[0] || formError.message %></div><% } %>
+<form method="post" action="<%= goal ? '/app/performance/goals/' + goal.id : '/app/performance/goals' %>" novalidate>
+  <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+  <div class="grid grid-3">
+    <div class="span-2 stack-lg">
+      <section class="panel"><div class="panel-body stack">
+        <%- include('../../partials/field', { name: 'title', label: t('performance.objective'), required: true, value: g.title, placeholder: t('performance.objective_ph') }) %>
+        <%- include('../../partials/field', { name: 'description', label: t('fields.description'), type: 'textarea', value: g.description }) %>
+      </div></section>
+      <section class="panel" data-repeater>
+        <div class="panel-head"><div><h2><%= t('performance.key_results') %></h2><div class="panel-sub"><%= t('performance.key_results_sub') %></div></div></div>
+        <div class="panel-body stack">
+          <div class="kr-row tiny muted hide-sm"><span></span><span><%= t('performance.key_result') %></span><span><%= t('performance.kr_start') %></span><span><%= t('performance.kr_target') %></span><span><%= t('performance.kr_unit') %></span><span></span></div>
+          <div class="stack-sm" data-rows><% krs.forEach(function (k) { %><%- krRow(k) %><% }) %></div>
+          <template data-row-template><%- krRow({}) %></template>
+          <div><button class="btn btn-ghost btn-sm" type="button" data-add-row><%- icon('plus', 'icon-sm') %><%= t('performance.add_kr') %></button></div>
+          <% if (errors.key_results) { %><span class="field-error"><%= errors.key_results %></span><% } %>
+          <p class="help"><%= t('performance.kr_help') %></p>
+        </div>
+      </section>
+    </div>
+    <div class="stack-lg">
+      <section class="panel"><div class="panel-body stack">
+        <% if (!goal) { %>
+          <div class="field"><label class="label" for="f-scope"><%= t('performance.level') %></label>
+            <select class="select" id="f-scope" name="scope" data-toggle-scope>
+              <option value="individual"<%= scopeNow === 'individual' ? ' selected' : '' %>><%= t('performance.scope_individual') %></option>
+              <% if (perfAdmin) { %><option value="department"<%= scopeNow === 'department' ? ' selected' : '' %>><%= t('performance.scope_department') %></option><option value="company"<%= scopeNow === 'company' ? ' selected' : '' %>><%= t('performance.scope_company') %></option><% } %>
+            </select></div>
+          <div data-scope-show="individual"><%- include('../../partials/field', { name: 'employee_id', label: t('performance.owner'), type: 'select', value: ov('employee_id', presetEmployee || me), options: people.map(function (p) { return { value: p.id, label: p.first_name + ' ' + p.last_name + (p.id === me ? ' (' + t('performance.me') + ')' : '') }; }) }) %></div>
+          <% if (perfAdmin) { %><div data-scope-show="department"><%- include('../../partials/field', { name: 'department_id', label: t('fields.department'), type: 'select', placeholder: t('common.select'), value: ov('department_id', ''), options: departments.map(function (d) { return { value: d.id, label: d.name }; }) }) %></div><% } %>
+        <% } else { %>
+          <div><div class="label"><%= t('performance.level') %></div><div><%= t('performance.scope_' + goal.scope) %><%= goal.first_name ? ' · ' + goal.first_name + ' ' + goal.last_name : goal.department_name ? ' · ' + goal.department_name : '' %></div></div>
+          <% if (goal.scope === 'department') { %><%- include('../../partials/field', { name: 'department_id', label: t('fields.department'), type: 'select', value: g.department_id, options: departments.map(function (d) { return { value: d.id, label: d.name }; }) }) %><% } %>
+        <% } %>
+        <%- include('../../partials/field', { name: 'parent_id', label: t('performance.aligned_to'), type: 'select', placeholder: t('common.none'), value: ov('parent_id', ''), options: parents.map(function (p) { return { value: p.id, label: p.title }; }), help: t('performance.aligned_help') }) %>
+        <div class="form-grid">
+          <%- include('../../partials/field', { name: 'start_date', label: t('performance.start'), type: 'date', value: fmt.dateInput(g.start_date) }) %>
+          <%- include('../../partials/field', { name: 'due_date', label: t('performance.due'), type: 'date', value: fmt.dateInput(g.due_date) }) %>
+        </div>
+      </div>
+      <div class="panel-foot"><a class="btn btn-ghost" href="<%= goal ? '/app/performance/goals/' + goal.id : '/app/performance/goals' %>"><%= t('common.cancel') %></a><button class="btn btn-dark" type="submit"><%= goal ? t('common.save_changes') : t('performance.create_goal') %></button></div></section>
+    </div>
+  </div>
+</form>

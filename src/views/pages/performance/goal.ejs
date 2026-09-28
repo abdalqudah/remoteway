@@ -1,0 +1,79 @@
+<%
+  var g = goal;
+  var who = g.scope === 'company' ? t('performance.scope_company') : g.scope === 'department' ? (g.department_name || t('performance.scope_department')) : g.first_name + ' ' + g.last_name;
+  var n = function (v) { return fmt.number(Number(v)); };
+%>
+<div class="page-head">
+  <div>
+    <div class="eyebrow"><a href="/app/performance/goals"><%= t('performance.goals') %></a></div>
+    <h1><%= g.title %></h1>
+    <div class="row-sm wrap mt-2 small muted">
+      <span class="st st-<%= g.status === 'active' ? g.health : g.status %>"><%= g.status === 'active' ? t('performance.health_' + g.health) : t('performance.status_' + g.status) %></span>
+      <span><%= t('performance.scope_' + g.scope) %><%= g.scope === 'company' ? '' : ' · ' + who %></span>
+      <% if (g.due_date) { %><span><%- icon('calendar-days', 'icon-sm') %> <%= fmt.date(g.due_date) %></span><% } %>
+      <% if (g.parent_title) { %><span><%- icon('arrow-up-down', 'icon-sm') %> <a class="link" href="/app/performance/goals/<%= g.parent_id %>"><%= g.parent_title %></a></span><% } %>
+    </div>
+  </div>
+  <% if (g.canEdit) { %><div class="page-actions">
+    <a class="btn btn-secondary" href="/app/performance/goals/<%= g.id %>/edit"><%- icon('pencil') %><%= t('common.edit') %></a>
+    <form method="post" action="/app/performance/goals/<%= g.id %>/status"><input type="hidden" name="_csrf" value="<%= csrfToken %>">
+      <% if (g.status === 'active') { %><button class="btn btn-secondary" type="submit" name="status" value="done"><%- icon('check') %><%= t('performance.mark_done') %></button><% } else { %><button class="btn btn-secondary" type="submit" name="status" value="active"><%= t('performance.reopen') %></button><% } %>
+    </form>
+    <% if (g.status === 'active') { %><button class="btn btn-dark" type="button" data-open-dialog="checkin-dialog"><%- icon('history') %><%= t('performance.check_in') %></button><% } %>
+  </div><% } %>
+</div>
+
+<section class="panel mb-6"><div class="panel-body">
+  <div class="row between mb-2"><strong><%= t('performance.progress') %></strong><strong><%= Math.round(g.progress) %>%</strong></div>
+  <div class="progress" style="height:10px"><span style="width:<%= g.progress %>%"></span></div>
+  <% if (g.description) { %><p class="prose mt-4" dir="auto"><%= g.description %></p><% } %>
+</div></section>
+
+<div class="grid grid-3">
+  <div class="span-2 stack-lg">
+    <section class="panel">
+      <div class="panel-head"><h2><%= t('performance.key_results') %></h2></div>
+      <% if (!g.key_results.length) { %><div class="empty" style="padding:24px"><p><%= t('performance.no_krs') %></p></div><% } else { %>
+      <ul class="checklist"><% g.key_results.forEach(function (k) { %>
+        <li><div class="grow"><div class="row between"><strong class="small" dir="auto"><%= k.title %></strong><span class="small"><%= n(k.current_value) %> / <%= n(k.target_value) %> <%= k.unit || '' %></span></div>
+          <div class="progress mt-2"><span style="width:<%= k.progress %>%"></span></div>
+          <div class="tiny muted mt-1"><%= t('performance.kr_from', { start: n(k.start_value) + ' ' + (k.unit || '') }) %> · <%= Math.round(k.progress) %>%</div></div></li>
+      <% }) %></ul><% } %>
+    </section>
+    <% if (g.children.length) { %>
+    <section class="panel">
+      <div class="panel-head"><h2><%= t('performance.aligned_goals') %></h2></div>
+      <ul class="action-list"><% g.children.forEach(function (c) { %><li><a href="/app/performance/goals/<%= c.id %>"><span class="grow small"><%= c.title %></span><span class="progress" style="width:120px"><span style="width:<%= Number(c.progress) %>%"></span></span><strong class="small"><%= Math.round(Number(c.progress)) %>%</strong></a></li><% }) %></ul>
+    </section>
+    <% } %>
+  </div>
+  <section class="panel">
+    <div class="panel-head"><h2><%= t('performance.checkins') %></h2></div>
+    <% if (!g.checkins.length) { %><div class="empty" style="padding:24px"><p><%= t('performance.no_checkins') %></p></div><% } else { %>
+    <ul class="feed"><% g.checkins.forEach(function (c) { %>
+      <li><span class="dot" style="background:var(--<%= c.health === 'on_track' ? 'success' : c.health === 'at_risk' ? 'warning' : 'danger' %>)"></span><div class="grow">
+        <div class="what"><strong><%= Math.round(Number(c.progress)) %>%</strong> · <%= t('performance.health_' + c.health) %></div>
+        <% if (c.note) { %><div class="small mt-1" style="white-space:pre-wrap" dir="auto"><%= c.note %></div><% } %>
+        <div class="when"><%= c.user_name || '—' %> · <%= fmt.date(c.created_at, { dateStyle: 'medium' }) %></div></div></li>
+    <% }) %></ul><% } %>
+  </section>
+</div>
+
+<% if (g.canEdit && g.status === 'active') { %>
+<dialog class="dialog" id="checkin-dialog">
+  <form method="post" action="/app/performance/goals/<%= g.id %>/checkin" novalidate>
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+    <div class="dialog-head"><div><h2><%= t('performance.check_in') %></h2><p class="muted small mt-1"><%= t('performance.checkin_sub') %></p></div><button class="btn btn-ghost btn-icon btn-sm" type="button" data-close-dialog aria-label="<%= t('common.close') %>"><%- icon('x') %></button></div>
+    <div class="dialog-body stack">
+      <% if (g.key_results.length) { g.key_results.forEach(function (k) { %>
+        <div class="field"><label class="label" for="kr-<%= k.id %>"><%= k.title %> <span class="muted">(<%= n(k.start_value) %> → <%= n(k.target_value) %> <%= k.unit || '' %>)</span></label><input class="input num" id="kr-<%= k.id %>" type="number" step="any" name="kr_<%= k.id %>" value="<%= Number(k.current_value) %>"></div>
+      <% }); } else { %>
+        <div class="field"><label class="label" for="ci-progress"><%= t('performance.progress') %> (%)</label><input class="input num" id="ci-progress" type="number" min="0" max="100" step="1" name="progress" value="<%= Math.round(g.progress) %>"></div>
+      <% } %>
+      <div class="field"><span class="label"><%= t('performance.health') %></span><div class="row-sm wrap"><% ['on_track', 'at_risk', 'off_track'].forEach(function (h) { %><label class="check"><input type="radio" name="health" value="<%= h %>"<%= g.health === h ? ' checked' : '' %>><%= t('performance.health_' + h) %></label><% }) %></div></div>
+      <div class="field"><label class="label" for="ci-note"><%= t('performance.checkin_note') %></label><textarea class="textarea" id="ci-note" name="note" maxlength="2000"></textarea></div>
+    </div>
+    <div class="dialog-foot"><button class="btn btn-ghost" type="button" data-close-dialog><%= t('common.cancel') %></button><button class="btn btn-dark" type="submit"><%= t('common.save') %></button></div>
+  </form>
+</dialog>
+<% } %>

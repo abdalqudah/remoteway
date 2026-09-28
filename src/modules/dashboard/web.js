@@ -11,6 +11,7 @@ const tasks = require('../tasks/task.service');
 const recruitment = require('../recruitment/recruitment.service');
 const onboarding = require('../onboarding/onboarding.service');
 const payroll = require('../payroll/payroll.service');
+const perfReviews = require('../performance/reviews.service');
 const { todayIn } = require('../../core/workdays');
 
 const router = express.Router();
@@ -19,7 +20,7 @@ const router = express.Router();
 async function todayData(req) {
   const { ctx } = req;
   const has = (f) => req.entitlements.features.has(f);
-  const out = { attendance: null, onLeave: null, approvals: null, docs: null, myTasks: null, recruitment: null, onboardingTasks: [], interviews: [], payroll: null };
+  const out = { attendance: null, onLeave: null, approvals: null, docs: null, myTasks: null, recruitment: null, onboardingTasks: [], interviews: [], payroll: null, reviews: { mine: [], toWrite: [] } };
   if (has('attendance')) out.attendance = await attendance.todaySummary(ctx.organizationId);
   if (has('leave')) {
     out.onLeave = (await leave.onLeaveOn(ctx.organizationId, todayIn(req.organization.timezone))).length;
@@ -30,6 +31,7 @@ async function todayData(req) {
   if (has('recruitment') && ctx.permissions.has('recruitment.view')) out.recruitment = await recruitment.summary(ctx.organizationId);
   if (has('recruitment')) out.interviews = (await recruitment.listInterviews(ctx, { mine: true })).slice(0, 5);
   if (has('onboarding')) out.onboardingTasks = await onboarding.myOpenTasks(ctx);
+  if (has('performance')) out.reviews = await perfReviews.myQueue(ctx);
   if (has('payroll') && ctx.permissions.has('payroll.view')) out.payroll = await payroll.summary(ctx.organizationId);
   return out;
 }

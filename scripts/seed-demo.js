@@ -236,6 +236,62 @@ async function seedPhase4(ctx, empIds) {
   await payroll.createRun(ctx, current);
 }
 
+/** Goals with key results and check-ins, a launched review cycle with reviews at every stage, and feedback. */
+async function seedPhase5(ctx, empIds, userIds) {
+  const goals = require('../src/modules/performance/goals.service');
+  const reviews = require('../src/modules/performance/reviews.service');
+  const { todayIn, addDays } = require('../src/core/workdays');
+  const rbacCtx = async (uid) => ({ organizationId: ctx.organizationId, userId: uid, permissions: await rbac.getUserPermissions(ctx.organizationId, uid) });
+  const today = todayIn('Asia/Riyadh');
+  const year = today.slice(0, 4);
+  const dept = async (name) => (await knex('departments').where({ organization_id: ctx.organizationId, name }).first('id')).id;
+  const company = await goals.save(ctx, null, { scope: 'company', title: 'Grow recurring revenue to SAR 12M', description: 'Our north star for the year.', start_date: `${year}-01-01`, due_date: `${year}-12-31`,
+    kr_title: ['Annual recurring revenue (SAR M)', 'Net revenue retention (%)'], kr_start: [7, 96], kr_target: [12, 110], kr_unit: ['M', '%'] });
+  const support = await goals.save(ctx, null, { scope: 'department', department_id: await dept('Customer Support'), parent_id: company, title: 'World-class customer support', due_date: `${year}-12-31`,
+    kr_title: ['First response time (hours)', 'CSAT (%)'], kr_start: [10, 82], kr_target: [2, 95], kr_unit: ['h', '%'] });
+  const eng = await goals.save(ctx, null, { scope: 'department', department_id: await dept('Engineering'), parent_id: company, title: 'Ship the self-service portal', due_date: addDays(today, 60),
+    kr_title: ['Portal features shipped', 'Uptime (%)'], kr_start: [0, 99], kr_target: [12, 99.9], kr_unit: ['', '%'] });
+  const mgr = await rbacCtx(userIds.manager);
+  const sara = await rbacCtx(userIds.employee);
+  const saraGoal = await goals.save(sara, null, { title: 'Deliver the billing module of the portal', parent_id: eng, start_date: `${year}-07-01`, due_date: addDays(today, 45),
+    kr_title: ['Billing screens released', 'Automated test coverage (%)'], kr_start: [0, 40], kr_target: [6, 80], kr_unit: ['', '%'] });
+  const g2 = await goals.save(mgr, null, { employee_id: empIds[6], title: 'Improve API performance', parent_id: eng, due_date: addDays(today, 30), kr_title: ['p95 latency (ms)'], kr_start: [800], kr_target: [300], kr_unit: ['ms'] });
+  await goals.save(ctx, null, { employee_id: empIds[4], title: 'Build the support knowledge base', parent_id: support, due_date: addDays(today, 50), kr_title: ['Articles published'], kr_start: [0], kr_target: [40] });
+  const kr = async (goalId) => knex('goal_key_results').where({ goal_id: goalId }).orderBy('sort_order');
+  const [arr, nrr] = await kr(company);
+  await goals.checkIn(ctx, company, { [`kr_${arr.id}`]: 9.4, [`kr_${nrr.id}`]: 104, health: 'on_track', note: 'Strong Q3 renewals.' });
+  const [frt, csat] = await kr(support);
+  await goals.checkIn(ctx, support, { [`kr_${frt.id}`]: 5, [`kr_${csat.id}`]: 88, health: 'at_risk', note: 'Response time improving, CSAT behind plan.' });
+  const [feat, up] = await kr(eng);
+  await goals.checkIn(mgr, eng, { [`kr_${feat.id}`]: 7, [`kr_${up.id}`]: 99.95, health: 'on_track' });
+  const [screens, cov] = await kr(saraGoal);
+  await goals.checkIn(sara, saraGoal, { [`kr_${screens.id}`]: 4, [`kr_${cov.id}`]: 65, health: 'on_track', note: 'Invoices and payments screens are live.' });
+  const [lat] = await kr(g2);
+  await goals.checkIn(mgr, g2, { [`kr_${lat.id}`]: 650, health: 'off_track', note: 'Blocked on the database upgrade.' });
+
+  // Mid-year review for Engineering, launched; Sara has done her self review; one review completed.
+  const comps = await reviews.listCompetencies(ctx.organizationId);
+  const cycleId = await reviews.saveCycle(ctx, null, { name: `H2 ${year} review`, kind: 'semi_annual', period_start: `${year}-07-01`, period_end: `${year}-12-31`,
+    self_due: addDays(today, 7), manager_due: addDays(today, 21), include_self: 'on', goals_weight: 60, competency_ids: comps.slice(0, 5).map((c) => c.id), department_ids: [await dept('Engineering')] });
+  await reviews.launchCycle(ctx, cycleId);
+  const saraReview = await knex('reviews').where({ cycle_id: cycleId, employee_id: empIds[5] }).first();
+  const items = await knex('review_items').where({ review_id: saraReview.id });
+  const selfInput = { self_summary: 'Shipped most of the billing module and improved our test coverage.' };
+  for (const it of items) { selfInput[`self_rating_${it.id}`] = it.item_type === 'goal' ? 4 : 4; selfInput[`self_comment_${it.id}`] = ''; }
+  await reviews.saveSelf(sara, saraReview.id, selfInput, true);
+  const lamaReview = await knex('reviews').where({ cycle_id: cycleId, employee_id: empIds[7] }).first();
+  const lamaItems = await knex('review_items').where({ review_id: lamaReview.id });
+  const mgrInput = { manager_summary: 'Lama raised the quality bar of our product design.', strengths: 'Craft, user research', improvements: 'Share work earlier with engineering' };
+  for (const [i, it] of lamaItems.entries()) mgrInput[`manager_rating_${it.id}`] = [5, 4, 4, 5, 4][i % 5];
+  await knex('reviews').where({ id: lamaReview.id }).update({ status: 'manager_review', self_submitted_at: new Date() });
+  await reviews.saveManager(mgr, lamaReview.id, mgrInput, true);
+
+  // Feedback.
+  await reviews.giveFeedback(ctx, { employee_id: empIds[4], kind: 'praise', public: 'on', body: 'Thank you Reem for turning around the enterprise escalation this week — the customer renewed.' });
+  await reviews.giveFeedback(mgr, { employee_id: empIds[5], kind: 'praise', public: 'on', body: 'Great demo of the billing screens to the leadership team!' });
+  await reviews.giveFeedback(mgr, { employee_id: empIds[6], kind: 'suggestion', body: 'Please share a short weekly update on the latency work so we can unblock you earlier.' });
+}
+
 function monthsAgo(n) {
   const d = new Date();
   d.setUTCMonth(d.getUTCMonth() - n);
@@ -309,6 +365,7 @@ function monthsAgo(n) {
     await seedPhase2(ctx, empIds);
     await seedPhase3(ctx, empIds, userIds);
     await seedPhase4(ctx, empIds);
+    await seedPhase5(ctx, empIds, userIds);
 
     console.log('\nRemoteWay Demo Company is ready.');
     console.log(`Password for all demo users: ${PASSWORD}\n`);

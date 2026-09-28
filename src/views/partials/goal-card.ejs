@@ -1,0 +1,14 @@
+<%
+  // Param: g (goal with key_results, progress, health, scope)
+  var who = g.scope === 'company' ? t('performance.scope_company') : g.scope === 'department' ? (g.department_name || t('performance.scope_department')) : (g.first_name ? g.first_name + ' ' + g.last_name : '');
+  var due = g.due_date ? (g.due_date instanceof Date ? g.due_date.toISOString().slice(0, 10) : String(g.due_date).slice(0, 10)) : null;
+%>
+<a class="goal-row" href="/app/performance/goals/<%= g.id %>">
+  <span class="goal-scope goal-scope-<%= g.scope %>"><%- icon(g.scope === 'company' ? 'building-2' : g.scope === 'department' ? 'users' : 'target', 'icon-sm') %></span>
+  <span class="grow" style="min-width:0">
+    <span class="goal-title"><%= g.title %></span>
+    <span class="tiny muted" style="display:block"><%= who %><%= g.key_results && g.key_results.length ? ' · ' + t('performance.kr_n', { n: g.key_results.length }) : '' %><%= due ? ' · ' + fmt.date(due, { day: 'numeric', month: 'short', year: 'numeric' }) : '' %></span>
+  </span>
+  <% if (g.status === 'active') { %><span class="st st-<%= g.health %> hide-sm"><%= t('performance.health_' + g.health) %></span><% } else { %><span class="st st-<%= g.status %> hide-sm"><%= t('performance.status_' + g.status) %></span><% } %>
+  <span class="goal-progress"><span class="progress"><span style="width:<%= g.progress %>%"></span></span><strong class="small"><%= Math.round(g.progress) %>%</strong></span>
+</a>

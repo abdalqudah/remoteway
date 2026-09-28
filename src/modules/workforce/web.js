@@ -83,6 +83,14 @@ router.get('/employees/:id', canAny('employees.view', 'team.view'), wrap(async (
     extra.comp = perms.has('employees.view_salary') ? await payroll.getCompensation(req.ctx, employee.id) : null;
     extra.payslips = perms.has('payroll.view') ? await payroll.payslipsForEmployee(req.ctx, employee.id, { paidOnly: false }) : [];
   }
+  if (tab === 'performance' && has('performance')) {
+    const perfGoals = require('../performance/goals.service');
+    const perfReviews = require('../performance/reviews.service');
+    const [goalRows, reviewRows, feedbackRows] = await Promise.all([
+      perfGoals.list(req.ctx, { employee_id: employee.id, status: 'all' }), perfReviews.reviewsForEmployee(req.ctx, employee.id), perfReviews.listFeedback(req.ctx, { employeeId: employee.id }),
+    ]);
+    Object.assign(extra, { perfGoals: goalRows, perfReviews: reviewRows, perfFeedback: feedbackRows });
+  }
   res.page('pages/employees/show', { title: employee.full_name, employee, tab, ...extra });
 }));
 

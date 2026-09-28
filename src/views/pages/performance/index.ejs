@@ -1,0 +1,52 @@
+<%
+  var dueLabel = function (d) { return d ? fmt.date(d, { day: 'numeric', month: 'short' }) : ''; };
+%>
+<div class="page-head">
+  <div><h1><%= t('nav.performance') %></h1><p><%= t('performance.subtitle') %></p></div>
+  <div class="page-actions">
+    <button class="btn btn-secondary" type="button" data-open-dialog="feedback-dialog"><%- icon('message-square') %><%= t('performance.give_feedback') %></button>
+    <a class="btn btn-dark" href="/app/performance/goals/new"><%- icon('plus') %><%= t('performance.new_goal') %></a>
+  </div>
+</div>
+<%- include('_nav') %>
+
+<% if (queue.mine.length || queue.toWrite.length) { %>
+<section class="panel mb-6">
+  <div class="panel-head"><div><h2><%= t('performance.todo') %></h2><div class="panel-sub"><%= t('performance.todo_sub') %></div></div></div>
+  <ul class="action-list">
+    <% queue.mine.forEach(function (r) { %><li><a href="/app/performance/reviews/<%= r.id %>"><span class="action-icon warning"><%- icon('pencil', 'icon-sm') %></span><span class="grow small"><strong><%= t('performance.todo_self', { cycle: r.cycle_name }) %></strong><% if (r.self_due) { %><span class="muted" style="display:block"><%= t('performance.due_on', { date: dueLabel(r.self_due) }) %></span><% } %></span><%- icon('chevron-right', 'icon-sm muted flip-rtl') %></a></li><% }) %>
+    <% queue.toWrite.forEach(function (r) { %><li><a href="/app/performance/reviews/<%= r.id %>"><span class="action-icon info"><%- icon('user-check', 'icon-sm') %></span><span class="grow small"><strong><%= t('performance.todo_manager', { name: r.first_name + ' ' + r.last_name }) %></strong><span class="muted" style="display:block"><%= r.cycle_name %><%= r.manager_due ? ' · ' + t('performance.due_on', { date: dueLabel(r.manager_due) }) : '' %></span></span><%- icon('chevron-right', 'icon-sm muted flip-rtl') %></a></li><% }) %>
+  </ul>
+</section>
+<% } %>
+
+<div class="kpis mb-6">
+  <div class="kpi"><div class="kpi-label"><%= t('performance.kpi_goals') %></div><div class="kpi-value"><%= fmt.number(goalSummary.total) %></div><div class="kpi-meta"><%= t('performance.kpi_avg_progress', { n: goalSummary.avgProgress }) %></div></div>
+  <div class="kpi"><div class="kpi-label"><%= t('performance.health_on_track') %></div><div class="kpi-value" style="color:var(--success)"><%= fmt.number(goalSummary.on_track) %></div></div>
+  <div class="kpi"><div class="kpi-label"><%= t('performance.health_at_risk') %></div><div class="kpi-value" style="color:var(--warning)"><%= fmt.number(goalSummary.at_risk) %></div></div>
+  <div class="kpi"><div class="kpi-label"><%= t('performance.health_off_track') %></div><div class="kpi-value" style="color:var(--danger)"><%= fmt.number(goalSummary.off_track) %></div></div>
+</div>
+
+<div class="grid grid-3">
+  <div class="span-2 stack-lg">
+    <section class="panel">
+      <div class="panel-head"><h2><%= t('performance.my_goals') %></h2><a class="btn btn-ghost btn-sm" href="/app/performance/goals"><%= t('common.view_all') %></a></div>
+      <% if (!myGoals.length) { %><div class="empty" style="padding:28px"><span class="empty-icon"><%- icon('target') %></span><p><%= t('performance.no_my_goals') %></p><a class="btn btn-secondary btn-sm mt-2" href="/app/performance/goals/new"><%- icon('plus', 'icon-sm') %><%= t('performance.new_goal') %></a></div><% } else { %>
+      <div><% myGoals.forEach(function (g) { %><%- include('../../partials/goal-card', { g: g }) %><% }) %></div><% } %>
+    </section>
+    <% if (cycles.length) { %>
+    <section class="panel">
+      <div class="panel-head"><h2><%= t('performance.active_cycles') %></h2><a class="btn btn-ghost btn-sm" href="/app/performance/cycles"><%= t('common.view_all') %></a></div>
+      <ul class="action-list"><% cycles.forEach(function (c) { %>
+        <li><a href="/app/performance/cycles/<%= c.id %>"><span class="grow small"><strong><%= c.name %></strong><span class="muted" style="display:block"><%= t('performance.completed_of', { done: c.counts.completed || 0, total: c.total }) %></span></span><span class="progress" style="width:140px"><span style="width:<%= c.completedPct %>%"></span></span><strong class="small"><%= c.completedPct %>%</strong></a></li>
+      <% }) %></ul>
+    </section>
+    <% } %>
+  </div>
+  <section class="panel">
+    <div class="panel-head"><h2><%= t('performance.recent_feedback') %></h2><a class="btn btn-ghost btn-sm" href="/app/performance/feedback"><%= t('common.view_all') %></a></div>
+    <% if (!feedback.length) { %><div class="empty" style="padding:28px"><p><%= t('performance.no_feedback') %></p></div><% } else { %>
+    <ul class="feed"><% feedback.forEach(function (f) { %><%- include('../../partials/feedback-item', { f: f }) %><% }) %></ul><% } %>
+  </section>
+</div>
+<%- include('../../partials/feedback-dialog', { people: people }) %>

@@ -9,11 +9,18 @@
 | Runtime | Node.js ≥ 20 (Express 4, server-rendered EJS, no build step) |
 | Database | MySQL 8 / MariaDB ≥ 10.3 (all data, including sessions, lives in the database) |
 | Hosting | Any cPanel host with **Setup Node.js App** (e.g. Orange Host), or any VPS |
-| Status | **Phases 1–4** (SaaS Core, Workforce, Talent, Payroll) complete and tested (see `docs/ARCHITECTURE.md`) |
+| Status | **Phases 1–5** (SaaS Core, Workforce, Talent, Payroll, Performance) complete and tested (see `docs/ARCHITECTURE.md`) |
 
 ---
 
-## What works today (Phases 1–4)
+## What works today (Phases 1–5)
+
+**Phase 5 — Performance:**
+- **Goals & OKRs:** company, department and individual goals, aligned in a hierarchy, with measurable key results (rising or falling targets), automatic progress, health (on track / at risk / off track) and a check-in history.
+- **Review cycles:** annual, semi-annual, quarterly or probation; competency library (Arabic/English); goals vs competencies weighting; participants by department; draft → launch → close.
+- **Reviews:** self review, then manager review with ratings, comments, strengths and areas to develop; weighted score and final rating (manager override); results hidden from the employee until HR closes the cycle; employee acknowledgement.
+- **Feedback:** praise (optionally public) and private suggestions, with notifications.
+- Rating distribution per cycle, "waiting for you" on the dashboard, Performance tab on employee profiles, API endpoints.
 
 **Phase 4 — Payroll:**
 - **Compensation per employee:** basic salary, recurring allowances/deductions (fixed or % of basic), bank details with IBAN validation (ISO 13616), GOSI registration.
@@ -52,7 +59,7 @@
 - **UI:** RemoteWay brand identity (your logos, the `#1ACC6C / #13AA54 / #000 / #E2E2E2` palette, Montserrat), RTL/LTR, real dark mode, responsive.
 - **REST API v1** with standard `{ success, data | error: { code, message } }` responses.
 
-Modules that are not built yet (performance, learning, PayWay, AI…) appear as **Soon / Setup required** with their phase number. Nothing is faked.
+Modules that are not built yet (learning, PayWay, AI…) appear as **Soon / Setup required** with their phase number. Nothing is faked.
 
 ---
 

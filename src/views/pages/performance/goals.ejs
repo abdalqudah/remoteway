@@ -1,0 +1,16 @@
+<% var q = query; %>
+<div class="page-head">
+  <div><h1><%= t('nav.performance') %></h1><p><%= t('performance.goals_sub') %></p></div>
+  <div class="page-actions"><a class="btn btn-dark" href="/app/performance/goals/new"><%- icon('plus') %><%= t('performance.new_goal') %></a></div>
+</div>
+<%- include('_nav') %>
+<section class="panel">
+  <form class="table-toolbar" method="get" data-autosubmit>
+    <div class="input-group"><%- icon('search', 'icon-sm') %><input class="input" type="search" name="q" value="<%= q.q || '' %>" placeholder="<%= t('performance.search_ph') %>" aria-label="<%= t('common.search') %>"></div>
+    <select class="select" name="scope" aria-label="<%= t('performance.scope') %>"><option value=""><%= t('performance.all_levels') %></option><% ['company', 'department', 'individual'].forEach(function (s) { %><option value="<%= s %>"<%= scope === s ? ' selected' : '' %>><%= t('performance.scope_' + s) %></option><% }) %></select>
+    <select class="select" name="status" aria-label="<%= t('fields.status') %>"><% ['active', 'done', 'cancelled'].forEach(function (s) { %><option value="<%= s %>"<%= status === s ? ' selected' : '' %>><%= t('performance.status_' + s) %></option><% }) %></select>
+    <label class="check"><input type="checkbox" name="mine" value="1"<%= q.mine === '1' ? ' checked' : '' %>><%= t('performance.only_mine') %></label>
+  </form>
+  <% if (!rows.length) { %><div class="empty"><span class="empty-icon"><%- icon('target') %></span><h3><%= t('performance.no_goals_title') %></h3><p><%= t('performance.no_goals_text') %></p></div><% } else { %>
+  <div><% rows.forEach(function (g) { %><%- include('../../partials/goal-card', { g: g }) %><% }) %></div><% } %>
+</section>

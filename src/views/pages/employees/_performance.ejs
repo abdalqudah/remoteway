@@ -1,0 +1,22 @@
+<div class="grid grid-3">
+  <div class="span-2 stack-lg">
+    <section class="panel">
+      <div class="panel-head"><h2><%= t('performance.goals') %></h2><a class="btn btn-secondary btn-sm" href="/app/performance/goals/new?employee_id=<%= e.id %>"><%- icon('plus', 'icon-sm') %><%= t('performance.new_goal') %></a></div>
+      <% if (!perfGoals.length) { %><div class="empty" style="padding:28px"><p><%= t('performance.no_goals_title') %></p></div><% } else { %>
+      <div><% perfGoals.forEach(function (g) { %><%- include('../../partials/goal-card', { g: g }) %><% }) %></div><% } %>
+    </section>
+    <section class="panel">
+      <div class="panel-head"><h2><%= t('performance.feedback') %></h2><button class="btn btn-secondary btn-sm" type="button" data-open-dialog="feedback-dialog"><%- icon('message-square', 'icon-sm') %><%= t('performance.give_feedback') %></button></div>
+      <% if (!perfFeedback.length) { %><div class="empty" style="padding:28px"><p><%= t('performance.no_feedback') %></p></div><% } else { %>
+      <ul class="feed"><% perfFeedback.forEach(function (f) { %><%- include('../../partials/feedback-item', { f: f }) %><% }) %></ul><% } %>
+    </section>
+  </div>
+  <section class="panel">
+    <div class="panel-head"><h2><%= t('performance.review_history') %></h2></div>
+    <% if (!perfReviews.length) { %><div class="empty" style="padding:28px"><p><%= t('performance.no_reviews') %></p></div><% } else { %>
+    <ul class="action-list"><% perfReviews.forEach(function (r) { %>
+      <li><a href="/app/performance/reviews/<%= r.id %>"><span class="grow small"><strong><%= r.cycle_name %></strong><span class="muted" style="display:block"><%= t('performance.status_' + r.status) %></span></span><% if (r.final_rating) { %><span class="stars"><% for (var s = 1; s <= 5; s++) { %><span class="<%= s <= r.final_rating ? '' : 'off' %>">★</span><% } %></span><% } %></a></li>
+    <% }) %></ul><% } %>
+  </section>
+</div>
+<% if (!currentUser || !e.user_id || e.user_id !== currentUser.id) { %><%- include('../../partials/feedback-dialog', { fixedEmployee: { id: e.id, name: e.full_name } }) %><% } %>

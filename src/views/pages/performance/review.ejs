@@ -1,0 +1,102 @@
+<%
+  var r = review; var ar = locale === 'ar';
+  var itemTitle = function (it) { return ar && it.title_ar ? it.title_ar : it.title; };
+  var stars = function (n) { if (!n) return '<span class="muted">—</span>'; var s = ''; for (var i = 1; i <= 5; i++) s += '<span class="' + (i <= n ? '' : 'off') + '">★</span>'; return '<span class="stars" title="' + escapeHtml(t('performance.rating_' + n)) + '">' + s + '</span> <span class="tiny muted">' + escapeHtml(t('performance.rating_' + n)) + '</span>'; };
+  var ratingSelect = function (name, value) {
+    var o = '<select class="select" name="' + name + '" aria-label="' + escapeHtml(t('performance.rating')) + '" style="min-width:170px"><option value="">—</option>';
+    for (var i = 5; i >= 1; i--) o += '<option value="' + i + '"' + (Number(value) === i ? ' selected' : '') + '>' + i + ' · ' + escapeHtml(t('performance.rating_' + i)) + '</option>';
+    return o + '</select>';
+  };
+  var groups = [['goal', t('performance.goals')], ['competency', t('performance.competencies')]];
+  var steps = r.include_self ? ['self_review', 'manager_review', 'completed'] : ['manager_review', 'completed'];
+  var at = steps.indexOf(r.status);
+  var mgrDone = !!r.manager_submitted_at;
+%>
+<div class="page-head">
+  <div class="row">
+    <span class="avatar avatar-lg"><%= initials(r.first_name + ' ' + r.last_name) %></span>
+    <div>
+      <div class="eyebrow"><% if (perfAdmin || can('performance.view')) { %><a href="/app/performance/cycles/<%= r.cycle_id %>"><%= r.cycle_name %></a><% } else { %><%= r.cycle_name %><% } %></div>
+      <h1><%= r.first_name %> <%= r.last_name %></h1>
+      <div class="row-sm wrap mt-2 small muted"><span><%= r.job_title || '' %><%= r.department_name ? ' · ' + r.department_name : '' %></span><span><%= t('performance.reviewer') %>: <%= r.reviewer_name || '—' %></span><span><%= fmt.date(r.period_start) %> – <%= fmt.date(r.period_end) %></span></div>
+    </div>
+  </div>
+</div>
+
+<ol class="workflow mb-6" style="grid-template-columns:repeat(<%= steps.length %>,minmax(0,1fr))">
+  <% steps.forEach(function (s, i) { %><li class="<%= i < at ? 'done' : i === at ? 'current' : '' %>"><span class="n"><%= i < at ? '✓' : i + 1 %></span><span><strong><%= t('performance.status_' + s) %></strong><% if (s === 'self_review' && r.self_due) { %><span class="tiny muted" style="display:block"><%= t('performance.due_on', { date: fmt.date(r.self_due) }) %></span><% } %><% if (s === 'manager_review' && r.manager_due) { %><span class="tiny muted" style="display:block"><%= t('performance.due_on', { date: fmt.date(r.manager_due) }) %></span><% } %></span></li><% }) %>
+</ol>
+
+<% if (formError) { %><div class="alert alert-error mb-4"><%= Object.values(errors)[0] || formError.message %></div><% } %>
+<% if (r.role.self && !r.showManager && r.status !== 'self_review') { %><div class="alert alert-info mb-4"><%- icon('info') %><div><%= t('performance.results_after_close') %></div></div><% } %>
+
+<% if (r.showManager && r.final_rating) { %>
+<div class="kpis mb-6">
+  <div class="kpi"><div class="kpi-label"><%= t('performance.final_rating') %></div><div class="kpi-value"><%= r.final_rating %> <span class="stars" style="font-size:18px"><% for (var s = 1; s <= 5; s++) { %><span class="<%= s <= r.final_rating ? '' : 'off' %>">★</span><% } %></span></div><div class="kpi-meta"><%= t('performance.rating_' + r.final_rating) %></div></div>
+  <div class="kpi"><div class="kpi-label"><%= t('performance.goals_score') %> (<%= r.goals_weight %>%)</div><div class="kpi-value"><%= r.goals_score != null ? Number(r.goals_score).toFixed(2) : '—' %></div></div>
+  <div class="kpi"><div class="kpi-label"><%= t('performance.competency_score') %> (<%= 100 - r.goals_weight %>%)</div><div class="kpi-value"><%= r.competency_score != null ? Number(r.competency_score).toFixed(2) : '—' %></div></div>
+  <div class="kpi"><div class="kpi-label"><%= t('performance.weighted_score') %></div><div class="kpi-value"><%= r.final_score != null ? Number(r.final_score).toFixed(2) : '—' %></div><div class="kpi-meta"><%= t('performance.out_of_5') %></div></div>
+</div>
+<% } %>
+
+<% var mode = r.canSelf ? 'self' : r.canManage ? 'manager' : 'read'; %>
+<form method="post" action="/app/performance/reviews/<%= r.id %>/<%= mode === 'self' ? 'self' : 'manager' %>" novalidate>
+  <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+  <% groups.forEach(function (gp) { var items = r.items.filter(function (it) { return it.item_type === gp[0]; }); if (!items.length) return; %>
+  <section class="panel mb-6">
+    <div class="panel-head"><h2><%= gp[1] %></h2></div>
+    <div class="table-wrap"><table class="table review-table">
+      <thead><tr><th style="width:30%"><%= t('performance.item') %></th><th><%= t('performance.self_assessment') %></th><% if (r.showManager) { %><th><%= t('performance.manager_assessment') %></th><% } %></tr></thead>
+      <tbody><% items.forEach(function (it) { %>
+        <tr>
+          <td><strong class="small" dir="auto"><%= itemTitle(it) %></strong><% if (it.goal_id) { %><a class="tiny link" style="display:block" href="/app/performance/goals/<%= it.goal_id %>"><%= t('performance.open_goal') %></a><% } %></td>
+          <td><% if (mode === 'self') { %><div class="stack-sm"><%- ratingSelect('self_rating_' + it.id, old['self_rating_' + it.id] || it.self_rating) %><textarea class="textarea" name="self_comment_<%= it.id %>" maxlength="2000" rows="2" placeholder="<%= t('performance.comment_ph') %>" aria-label="<%= t('performance.comment') %>"><%= old['self_comment_' + it.id] || it.self_comment || '' %></textarea></div>
+            <% } else { %><%- stars(it.self_rating) %><% if (it.self_comment) { %><div class="small mt-1" style="white-space:pre-wrap" dir="auto"><%= it.self_comment %></div><% } %><% } %></td>
+          <% if (r.showManager) { %><td><% if (mode === 'manager') { %><div class="stack-sm"><%- ratingSelect('manager_rating_' + it.id, old['manager_rating_' + it.id] || it.manager_rating) %><textarea class="textarea" name="manager_comment_<%= it.id %>" maxlength="2000" rows="2" placeholder="<%= t('performance.comment_ph') %>" aria-label="<%= t('performance.comment') %>"><%= old['manager_comment_' + it.id] || it.manager_comment || '' %></textarea></div>
+            <% } else { %><%- stars(it.manager_rating) %><% if (it.manager_comment) { %><div class="small mt-1" style="white-space:pre-wrap" dir="auto"><%= it.manager_comment %></div><% } %><% } %></td><% } %>
+        </tr>
+      <% }) %></tbody>
+    </table></div>
+  </section>
+  <% }) %>
+  <% if (!r.items.length) { %><section class="panel mb-6"><div class="empty"><p><%= t('performance.no_items') %></p></div></section><% } %>
+
+  <div class="grid <%= r.showManager ? 'grid-2' : '' %> mb-6">
+    <section class="panel"><div class="panel-head"><h2><%= t('performance.self_summary') %></h2></div><div class="panel-body">
+      <% if (mode === 'self') { %><textarea class="textarea" name="self_summary" maxlength="5000" rows="5" placeholder="<%= t('performance.self_summary_ph') %>" aria-label="<%= t('performance.self_summary') %>"><%= old.self_summary || r.self_summary || '' %></textarea>
+      <% } else { %><p class="prose <%= r.self_summary ? '' : 'muted' %>" dir="auto"><%= r.self_summary || (r.include_self ? t('performance.not_submitted') : t('performance.no_self_review')) %></p><% } %>
+    </div></section>
+    <% if (r.showManager) { %>
+    <section class="panel"><div class="panel-head"><h2><%= t('performance.manager_summary') %></h2></div><div class="panel-body stack">
+      <% if (mode === 'manager') { %>
+        <textarea class="textarea" name="manager_summary" maxlength="5000" rows="3" placeholder="<%= t('performance.manager_summary_ph') %>" aria-label="<%= t('performance.manager_summary') %>"><%= old.manager_summary || r.manager_summary || '' %></textarea>
+        <div class="field"><label class="label" for="rv-str"><%= t('performance.strengths') %></label><textarea class="textarea" id="rv-str" name="strengths" rows="2" maxlength="5000"><%= old.strengths || r.strengths || '' %></textarea></div>
+        <div class="field"><label class="label" for="rv-imp"><%= t('performance.improvements') %></label><textarea class="textarea" id="rv-imp" name="improvements" rows="2" maxlength="5000"><%= old.improvements || r.improvements || '' %></textarea></div>
+        <div class="field"><label class="label" for="rv-final"><%= t('performance.final_rating') %></label><select class="select" id="rv-final" name="final_rating"><option value=""><%= t('performance.auto_rating') %></option><% for (var i = 5; i >= 1; i--) { %><option value="<%= i %>"<%= mgrDone && Number(r.final_rating) === i ? ' selected' : '' %>><%= i %> · <%= t('performance.rating_' + i) %></option><% } %></select><span class="help"><%= t('performance.auto_rating_help') %></span></div>
+      <% } else if (mgrDone) { %>
+        <p class="prose" dir="auto"><%= r.manager_summary || '—' %></p>
+        <% if (r.strengths) { %><div><div class="label"><%= t('performance.strengths') %></div><p class="prose small" dir="auto"><%= r.strengths %></p></div><% } %>
+        <% if (r.improvements) { %><div><div class="label"><%= t('performance.improvements') %></div><p class="prose small" dir="auto"><%= r.improvements %></p></div><% } %>
+      <% } else { %><p class="muted"><%= t('performance.not_submitted') %></p><% } %>
+    </div></section>
+    <% } %>
+  </div>
+  <% if (mode !== 'read') { %>
+  <div class="form-actions mb-6">
+    <button class="btn btn-secondary" type="submit" name="action" value="save"><%= t('performance.save_draft') %></button>
+    <button class="btn btn-dark" type="submit" name="action" value="submit" data-confirm-submit="<%= t(mode === 'self' ? 'performance.confirm_submit_self' : 'performance.confirm_submit_manager') %>"><%- icon('send') %><%= t(mode === 'self' ? 'performance.submit_self' : 'performance.submit_manager') %></button>
+  </div>
+  <% } %>
+</form>
+
+<% if (r.canAcknowledge) { %>
+<section class="panel">
+  <div class="panel-head"><div><h2><%= t('performance.acknowledge') %></h2><div class="panel-sub"><%= t('performance.acknowledge_sub') %></div></div></div>
+  <form method="post" action="/app/performance/reviews/<%= r.id %>/acknowledge"><input type="hidden" name="_csrf" value="<%= csrfToken %>">
+    <div class="panel-body"><textarea class="textarea" name="comment" maxlength="5000" rows="3" placeholder="<%= t('performance.employee_comment_ph') %>" aria-label="<%= t('performance.employee_comment') %>"></textarea></div>
+    <div class="panel-foot"><button class="btn btn-dark btn-sm" type="submit"><%- icon('check', 'icon-sm') %><%= t('performance.acknowledge') %></button></div>
+  </form>
+</section>
+<% } else if (r.acknowledged_at) { %>
+<section class="panel"><div class="panel-body"><div class="row-sm"><span class="st st-approved"><%= t('performance.acknowledged_on', { date: fmt.date(r.acknowledged_at) }) %></span></div><% if (r.employee_comment) { %><p class="prose mt-2" dir="auto"><%= r.employee_comment %></p><% } %></div></section>
+<% } %>

@@ -1,0 +1,23 @@
+<%
+  // Params: c (cycle or {}), competencies, departments. Inside a form.
+  var cv = function (k, d) { return old && old[k] !== undefined ? old[k] : (c[k] !== undefined && c[k] !== null ? c[k] : d); };
+  var selComps = [].concat(old && old.competency_ids !== undefined ? old.competency_ids : (c.competency_ids || competencies.filter(function (x) { return x.is_active; }).map(function (x) { return x.id; }))).map(String);
+  var selDepts = [].concat(old && old.department_ids !== undefined ? old.department_ids : (c.department_ids || [])).map(String);
+%>
+<%- include('field', { name: 'name', label: t('performance.cycle_name'), required: true, value: c.name, placeholder: t('performance.cycle_name_ph') }) %>
+<div class="form-grid">
+  <%- include('field', { name: 'kind', label: t('performance.cycle_kind'), type: 'select', value: c.kind || 'annual', options: ['annual', 'semi_annual', 'quarterly', 'probation', 'other'].map(function (k) { return { value: k, label: t('performance.kind_cycle_' + k) }; }) }) %>
+  <%- include('field', { name: 'goals_weight', label: t('performance.goals_weight'), type: 'number', value: cv('goals_weight', 50), attrs: 'min="0" max="100" step="5"', help: t('performance.goals_weight_help') }) %>
+  <%- include('field', { name: 'period_start', label: t('performance.period_start'), type: 'date', required: true, value: fmt.dateInput(c.period_start) }) %>
+  <%- include('field', { name: 'period_end', label: t('performance.period_end'), type: 'date', required: true, value: fmt.dateInput(c.period_end) }) %>
+  <%- include('field', { name: 'self_due', label: t('performance.self_due'), type: 'date', value: fmt.dateInput(c.self_due) }) %>
+  <%- include('field', { name: 'manager_due', label: t('performance.manager_due'), type: 'date', value: fmt.dateInput(c.manager_due) }) %>
+</div>
+<label class="check"><input type="checkbox" name="include_self"<%= c.id ? (c.include_self ? ' checked' : '') : ' checked' %>><%= t('performance.include_self') %></label>
+<div class="field"><span class="label"><%= t('performance.competencies') %></span>
+  <div class="check-grid"><% competencies.filter(function (x) { return x.is_active; }).forEach(function (x) { %><label class="check"><input type="checkbox" name="competency_ids" value="<%= x.id %>"<%= selComps.indexOf(String(x.id)) !== -1 ? ' checked' : '' %>><%= locale === 'ar' && x.name_ar ? x.name_ar : x.name %></label><% }) %></div>
+  <% if (errors.competency_ids) { %><span class="field-error"><%= errors.competency_ids %></span><% } %></div>
+<% if (departments.length) { %>
+<div class="field"><span class="label"><%= t('performance.participants') %></span><span class="help"><%= t('performance.participants_help') %></span>
+  <div class="check-grid"><% departments.forEach(function (d) { %><label class="check"><input type="checkbox" name="department_ids" value="<%= d.id %>"<%= selDepts.indexOf(String(d.id)) !== -1 ? ' checked' : '' %>><%= d.name %></label><% }) %></div></div>
+<% } %>
