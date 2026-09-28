@@ -152,6 +152,17 @@ router.get('/security', requireAuth, wrap(async (req, res) => {
   if (/^\/(app|admin|me)(\/[\w\-/]*)?$/.test(back)) req.session.securityBack = back;
   return renderSecurity(req, res);
 }));
+router.post('/security/password', requireAuth, loginLimiter, form(async (req, res) => {
+  const data = validate(z.object({
+    current_password: z.string().min(1, 'Enter your current password.'),
+    new_password: password(),
+    new_password_confirm: z.string(),
+  }).refine((d) => d.new_password === d.new_password_confirm, { path: ['new_password_confirm'], message: 'The passwords do not match.' })
+    .refine((d) => !['Admin@12345', 'Demo@12345', 'Password#123'].includes(d.new_password), { path: ['new_password'], message: 'Choose a password that is not a known default.' }), req.body);
+  await authService.changePassword({ userId: req.user.id, ip: req.ip, sessionId: req.sessionID }, { currentPassword: data.current_password, newPassword: data.new_password });
+  flash(req, 'success', req.t('settings.password_changed'));
+  return res.redirect('/security');
+}, (req, res, extra) => renderSecurity(req, res, { ...extra, passwordErrors: extra.errors })));
 router.post('/security/2fa/start', requireAuth, wrap(async (req, res) => {
   req.session.twofaSetup = security.generateSecret();
   req.session.save(() => res.redirect('/security#setup'));

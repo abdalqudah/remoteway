@@ -1,6 +1,6 @@
 <%
   var FIX = { node_env: '/admin/system', app_url: null, session_secret: null, app_key: null, node_version: null, storage: null, innodb: '/admin/system',
-    my_2fa: '/security', team_2fa: '/admin/team', default_passwords: '/admin/team', demo_data: null,
+    my_2fa: '/security', team_2fa: '/admin/team', default_passwords: '/security#password', demo_data: '#demo',
     email: '/admin/email', backup_recent: '/admin/backups', backup_schedule: '/admin/backups', errors: '/admin/errors', jobs: '/admin/jobs',
     payments: '/admin/payments', legal: '/admin/legal', plans: '/admin/plans', ai: '/admin/ai' };
   var ICON = { ok: 'circle-check', warn: 'triangle-alert', fail: 'circle-x' };
@@ -30,4 +30,21 @@
   </section>
 <% }) %>
 </div>
+<% if (demo.users) { %>
+<section class="panel panel-danger mt-6" id="demo">
+  <div class="panel-head"><div><h2><%- icon('trash-2') %> <%= t('launch.demo_title') %></h2><div class="panel-sub"><%= t('launch.demo_sub', { users: demo.users, companies: demo.orgs.map(function (o) { return o.name; }).join('، ') || '—' }) %></div></div></div>
+  <div class="panel-body stack">
+    <% if (typeof formError !== 'undefined' && formError) { %><div class="alert alert-error" role="alert"><%- icon('circle-alert') %><div><%= formError.message %></div></div><% } %>
+    <% if (demo.kept.length) { %><div class="alert alert-warning"><%- icon('triangle-alert') %><div><%= t('launch.demo_kept', { names: demo.kept.map(function (o) { return o.name; }).join('، ') }) %></div></div><% } %>
+    <p class="text-2 small"><%= t('launch.demo_warn') %></p>
+    <% if (adminCan('launch', true)) { %>
+    <form method="post" action="/admin/launch/remove-demo" class="stack" novalidate data-confirm="<%= t('launch.demo_confirm') %>" style="max-width:420px">
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+      <%- include('../../partials/field', { name: 'password', label: t('admin.confirm_password'), type: 'password', required: true, autocomplete: 'current-password' }) %>
+      <div><button class="btn btn-danger" type="submit" data-busy-label="<%= t('launch.demo_removing') %>"><%= t('launch.demo_go') %></button></div>
+    </form>
+    <% } else { %><p class="small muted"><%= t('launch.owner_only') %></p><% } %>
+  </div>
+</section>
+<% } %>
 <p class="small muted mt-6"><%= t('launch.note') %></p>

@@ -306,6 +306,7 @@ router.use('/crm', require('../crm/web'));
 // ---------- Database backups ----------
 const backups = require('./backup.service');
 const errorLog = require('./errors.service');
+const demo = require('./demo.service');
 const renderBackups = async (req, res, extra = {}) => res.page('pages/admin/backups', {
   layout: 'admin', title: req.t('admin.backups'), list: backups.list(), settings: await backups.settings(), backupDir: backups.DIR, inlineFormError: true, ...extra,
 });
@@ -370,9 +371,15 @@ router.post('/users/:id/reset-link', wrap(async (req, res) => {
 }));
 
 // ---------- Launch readiness ----------
-router.get('/launch', wrap(async (req, res) => {
-  res.page('pages/admin/launch', { layout: 'admin', title: req.t('admin.launch'), result: await require('./launch.service').run(req.user) }); // eslint-disable-line global-require
-}));
+const renderLaunch = async (req, res, extra = {}) => res.page('pages/admin/launch', {
+  layout: 'admin', title: req.t('admin.launch'), result: await require('./launch.service').run(req.user), demo: await demo.preview(), inlineFormError: true, ...extra, // eslint-disable-line global-require
+});
+router.get('/launch', wrap((req, res) => renderLaunch(req, res)));
+router.post('/launch/remove-demo', form(async (req, res) => {
+  const r = await demo.remove(req.ctx, req.body.password);
+  flash(req, 'success', req.t('launch.demo_removed', { companies: r.companies, users: r.users, backup: r.safety }));
+  res.redirect('/admin/launch');
+}, (req, res, extra) => renderLaunch(req, res, { ...extra, demoOpen: true })));
 
 // ---------- Privacy policy & terms ----------
 const legal = require('../site/legal.service');

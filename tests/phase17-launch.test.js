@@ -523,3 +523,39 @@ describe('password reset links without email', () => {
     assert.equal((await sup.get(`/admin/organizations/${co.organizationId}`)).status, 200);
   });
 });
+
+describe('launch tools', () => {
+  test('anyone, including the platform owner, changes their password from Account security', async () => {
+    const owner = await superAdmin('owner');
+    await h.knex('users').where({ id: owner.id }).update({ password_hash: await bcrypt.hash('Admin@12345', 4) });
+    const o = await h.login(owner.email, 'Admin@12345');
+    assert.equal((await o.form('/security/password', { current_password: 'Admin@12345', new_password: 'Admin@12345', new_password_confirm: 'Admin@12345' })).status, 422, 'known default refused');
+    assert.equal((await o.form('/security/password', { current_password: 'wrong', new_password: 'Strong#Pass2026', new_password_confirm: 'Strong#Pass2026' })).status, 422);
+    assert.equal((await o.form('/security/password', { current_password: 'Admin@12345', new_password: 'Strong#Pass2026', new_password_confirm: 'nope' })).status, 422);
+    assert.equal((await o.form('/security/password', { current_password: 'Admin@12345', new_password: 'Strong#Pass2026', new_password_confirm: 'Strong#Pass2026' })).status, 302);
+    await h.login(owner.email, 'Strong#Pass2026');
+  });
+
+  test('the platform owner removes demo data (safety backup first); others cannot', async () => {
+    // A small demo company with a demo employee and a demo individual
+    const co = await h.createCompany({ name: 'Demo Co' });
+    await h.knex('users').where({ id: co.userId }).update({ email: 'owner@demo.remoteway.local' });
+    const emp = await h.addMember(co.organizationId, 'employee', { email: 'employee@demo.remoteway.local' });
+    const [indId] = await h.knex('users').insert({ name: 'Talent', email: 'x@talent.demo.remoteway.local', password_hash: 'x' });
+    const real = await h.createCompany({ name: 'Real Co' });
+    const adminUser = await superAdmin('admin');
+    const a = await h.login(adminUser.email, 'Password#123');
+    assert.match((await a.get('/admin/launch')).text, /id="demo"/);
+    assert.equal((await a.form('/admin/launch/remove-demo', { password: 'Password#123' })).status, 403, 'admins cannot');
+    const owner = await superAdmin('owner');
+    const o = await h.login(owner.email, 'Password#123');
+    assert.equal((await o.form('/admin/launch/remove-demo', { password: 'wrong' })).status, 422);
+    const r = await o.form('/admin/launch/remove-demo', { password: 'Password#123' });
+    assert.equal(r.status, 302);
+    assert.equal(await h.knex('organizations').where({ id: co.organizationId }).first(), undefined);
+    assert.equal(await h.knex('users').whereIn('id', [co.userId, emp.userId, indId]).first(), undefined);
+    assert.ok(await h.knex('organizations').where({ id: real.organizationId }).first(), 'real companies untouched');
+    assert.ok(fs.readdirSync(process.env.BACKUP_PATH).some((n) => n.includes('before-demo-removal')));
+    assert.ok(!/id="demo"/.test((await o.get('/admin/launch')).text));
+  });
+});

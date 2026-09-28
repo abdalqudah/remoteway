@@ -13,9 +13,9 @@ Super Admin → **Launch readiness** runs these checks live. Fix every red item;
 | Node.js | 20 or newer |
 
 ## 2. Security
-- Change the default super-admin password (`Admin@12345`) and every demo password.
+- Change the default super-admin password (`Admin@12345`): top bar → shield icon → Account security → Change password.
 - Turn on two-step verification for your account (top bar → shield icon), then Super Admin → Platform team → **Require two-step verification**.
-- Remove the demo company (`@demo.remoteway.local` accounts) from the production database.
+- Remove the demo data: Launch readiness → **Demo data** → Remove (platform owner only; a safety backup is taken first; only `@demo.remoteway.local` accounts and their companies are touched).
 - Keep the recovery codes of the owner account somewhere offline.
 
 ## 3. Operations

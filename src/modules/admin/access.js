@@ -30,6 +30,7 @@ const SECTIONS = {
 const WRITE = {
   organizations: ['owner', 'admin', 'finance'],
   payments: ['owner', 'admin'], // gateway keys; finance can still see payments
+  launch: ['owner'], // removing the demo data
 };
 
 const roleOf = (user) => (user && user.is_super_admin ? (ROLES.includes(user.platform_role) ? user.platform_role : 'owner') : null);

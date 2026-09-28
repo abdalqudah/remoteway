@@ -3,6 +3,19 @@
 <p class="lead"><%= t('auth.security_lead') %></p>
 <% if (required && !on) { %><div class="alert alert-warning mt-4" role="alert"><%- icon('shield-alert') %><div><%= t('auth.twofa_required') %></div></div><% } %>
 
+<form class="panel mt-6" id="password" method="post" action="/security/password" novalidate>
+  <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+  <div class="panel-head"><h2><%- icon('key-round') %> <%= t('settings.change_password') %></h2></div>
+  <div class="panel-body stack">
+    <% var pe = typeof passwordErrors !== 'undefined' && passwordErrors ? passwordErrors : {}; %>
+    <%- include('../../partials/field', { name: 'current_password', label: t('settings.current_password'), type: 'password', required: true, autocomplete: 'current-password', errors: pe }) %>
+    <%- include('../../partials/field', { name: 'new_password', label: t('settings.new_password'), type: 'password', required: true, autocomplete: 'new-password', help: t('auth.password_help'), errors: pe }) %>
+    <%- include('../../partials/field', { name: 'new_password_confirm', label: t('auth.password_confirm'), type: 'password', required: true, autocomplete: 'new-password', errors: pe }) %>
+    <p class="small muted"><%= t('auth.password_other_devices') %></p>
+  </div>
+  <div class="panel-foot"><button class="btn btn-dark" type="submit"><%= t('settings.update_password') %></button></div>
+</form>
+
 <section class="panel mt-6">
   <div class="panel-head"><h2><%- icon('shield-check') %> <%= t('auth.twofa_name') %></h2>
     <span class="badge <%= on ? 'badge-success' : 'badge-neutral' %>"><%= on ? t('auth.twofa_on') : t('auth.twofa_off') %></span></div>
