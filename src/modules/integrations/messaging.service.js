@@ -200,14 +200,15 @@ async function testChat(ctx) {
 }
 
 /** Job handler: a short message about an event, in the organization's language. */
-async function handleChatPost({ organizationId, action, userId, subject }) {
+async function handleChatPost({ organizationId, action, userId, subject, text: custom }) {
   const s = await getSetting(organizationId, 'chat');
   if (!s || !s.is_active) return;
   const org = await orgs.get(organizationId);
   const t = translator(org.locale);
   const user = userId ? await knex('users').where({ id: userId }).first('name') : null;
   const verb = t(`audit.${action}`);
-  const text = `*${user ? user.name : 'RemoteWay'}* ${verb === `audit.${action}` ? action : verb}${subject ? ` · ${subject}` : ''}`;
+  // Automations send their own message text; events describe the action.
+  const text = custom || `*${user ? user.name : 'RemoteWay'}* ${verb === `audit.${action}` ? action : verb}${subject ? ` · ${subject}` : ''}`;
   try {
     await postChat(s.provider, s.config.url, text.slice(0, 1000));
     await log(organizationId, 'chat', CHAT_PROVIDERS[s.provider].name, action, null);

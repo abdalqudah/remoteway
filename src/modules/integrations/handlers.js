@@ -20,5 +20,6 @@ jobs.register('maintenance.prune', async () => {
 // Scheduled report delivery (registers 'report.deliver').
 require('../reports/reports.service'); // eslint-disable-line import/no-unassigned-import
 require('../support/support.service'); // 'support.notify_staff'
+require('../automation/automation.service'); // 'automation.run'
 
 module.exports = jobs;

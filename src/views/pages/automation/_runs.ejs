@@ -1,0 +1,9 @@
+<div class="table-wrap"><table class="table">
+  <thead><tr><th><%= t('billing.date') %></th><th><%= t('automation.name') %></th><th><%= t('analytics.employee') %></th><th><%= t('fields.status') %></th><th><%= t('automation.result') %></th></tr></thead>
+  <tbody><% runs.forEach(function (x) { %>
+    <tr><td class="nowrap muted small"><%= fmt.date(x.created_at, { dateStyle: 'medium', timeStyle: 'short' }) %></td><td><a class="link" href="/app/automation/<%= x.rule_id %>"><%= x.rule_name %></a></td>
+      <td><%= x.first_name ? x.first_name + ' ' + x.last_name : '—' %></td>
+      <td><span class="st <%= x.status === 'done' ? 'st-approved' : x.status === 'failed' ? 'st-rejected' : 'st-off' %>"><%- icon(x.status === 'done' ? 'circle-check' : x.status === 'failed' ? 'circle-x' : 'info', 'icon-sm') %><%= t('automation.run_' + x.status) %></span></td>
+      <td class="small text-2"><% (x.detail || []).forEach(function (d) { %><div><% if (d.type) { %><strong><%= t('automation.action_' + d.type) %></strong><% } %><%= d.to && d.to.length ? ' → ' + d.to.join('، ') : '' %><%= d.note ? ' · ' + t('automation.note_' + d.note.replace(/^condition_/, 'cond_')) : '' %><%= d.error ? ' (' + d.error + ')' : '' %></div><% }) %></td></tr>
+  <% }) %></tbody>
+</table></div>

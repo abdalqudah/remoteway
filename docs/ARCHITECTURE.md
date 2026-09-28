@@ -214,7 +214,7 @@ Auth is `Authorization: Bearer rw_…` (Settings → API; requires the `api` fea
 | API Access (`api`) | available |  |  | ✓ | ✓ |
 | Advanced Permissions (`advanced_permissions`) | available |  |  | ✓ | ✓ |
 | Custom Roles (`custom_roles`) | available |  |  |  | ✓ |
-| Advanced Automation (`automation`) | coming_soon |  |  | ✓ | ✓ |
+| Advanced Automation (`automation`) | available |  |  | ✓ | ✓ |
 | Single Sign-On (`sso`) | available |  |  |  | ✓ |
 | Custom Workflows (`custom_workflows`) | available |  |  |  | ✓ |
 | Enterprise Reporting (`enterprise_reporting`) | available |  |  |  | ✓ |
@@ -283,6 +283,7 @@ Payroll / Employees ─► domain events (payroll.approved, employee.updated)
 | **9 — Enterprise** | SSO over OpenID Connect (PKCE, JWKS-verified ID tokens, domains, JIT, enforcement with owner break-glass); multi-step leave approval workflows; reports (templates, builder over 8 datasets, saved/shared, scheduled CSV email in the org time zone); support tickets with SLA targets and a Super Admin inbox. SAML is not included (all major IdPs offer OIDC) | ✅ Done — 15 more tests (token verification, SSO flows/JIT/domains/enforcement, workflow order/skip/reject/balance, report safety/tiers/schedules/time zones, tickets/SLA/internal notes/isolation) — 168 total |
 | **Advanced Analytics** | Workforce, retention, absence (incl. Bradford factor), attendance, hiring funnel and payroll-cost analytics with period/department filters, permission-scoped sections, server-rendered SVG charts with table views and CSV | ✅ Done — 9 more tests (figures against hand-counted data, funnel from stage history, approved-only costs, permissions, plan gating, rendering/CSV, chart escaping and ticks) — 177 total |
 | **Compliance** | Ten rule-based checks (documents, WPS, GOSI, Art. 109 leave, Art. 53 probation, Art. 98 hours, policies, nationality), weighted score with daily snapshots, upcoming expiries, configurable rules, annual-leave fix, policy acknowledgements per version | ✅ Done — 5 more tests (each check on crafted data, fix, rules, acknowledgements & versions, permissions/plan) — 182 total |
+| **Advanced Automation** | Event and date triggers, conditions, notify / task / course / chat actions, outbox queuing, once-per-occurrence runs, loop protection, dry-run preview, run history, templates | ✅ Done — 7 more tests (event and date rules, conditions and skip log, all actions, once-only, no loops, preview, validation/permissions/isolation) — 189 total |
 
 **Definition of done per module:** migration + service + web UI + API + validation + permissions + tenant isolation + loading/empty/error states + responsive + Arabic + English + tests.
 

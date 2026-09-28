@@ -8,6 +8,7 @@ const jobs = require('../src/modules/integrations/handlers');
 (async () => {
   try {
     await require('../src/modules/reports/reports.service').dispatchDue(); // due scheduled reports
+    await require('../src/modules/automation/automation.service').runScheduled(); // date-based automations
     let total = { done: 0, retry: 0, dead: 0 };
     for (let i = 0; i < 20; i += 1) {
       const r = await jobs.runDue({ limit: 50 });

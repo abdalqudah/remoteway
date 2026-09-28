@@ -1,0 +1,2 @@
+<div class="page-head"><div><div class="eyebrow"><a href="/app/automation"><%= t('automation.title') %></a></div><h1><%= t('automation.runs') %></h1><p><%= t('automation.runs_sub') %></p></div></div>
+<section class="panel"><% if (!runs.length) { %><div class="empty"><p class="muted small"><%= t('automation.no_runs') %></p></div><% } else { %><%- include('_runs', { runs: runs }) %><% } %></section>

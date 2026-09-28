@@ -28,6 +28,8 @@ const matches = (list, event) => list.includes('*') || list.includes(event);
 
 async function dispatch(ctx, action, details, trx) {
   if (!ctx.organizationId || !EVENT_SET.has(action)) return;
+  // Automation rules listening to this event are queued in the same transaction.
+  await require('../automation/automation.service').onEvent(ctx, action, details, trx); // eslint-disable-line global-require
   const t = await targets(ctx.organizationId);
   const endpoints = t.endpoints.filter((e) => matches(e.events, action));
   const toChat = t.chat && matches(t.chat.events, action);

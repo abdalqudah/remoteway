@@ -1,0 +1,36 @@
+<% var trig = function (k) { return t('automation.trigger_' + k.replace('.', '_')); }; %>
+<div class="page-head"><div><h1><%= t('automation.title') %></h1><p><%= t('automation.sub') %></p></div>
+  <div class="page-actions"><a class="btn btn-secondary" href="/app/automation/runs"><%- icon('history') %><%= t('automation.runs') %></a><a class="btn btn-dark" href="/app/automation/new"><%- icon('plus') %><%= t('automation.new') %></a></div></div>
+
+<% if (rules.length) { %>
+<section class="panel mb-6">
+  <div class="table-wrap"><table class="table">
+    <thead><tr><th><%= t('automation.name') %></th><th><%= t('automation.when') %></th><th><%= t('automation.then') %></th><th><%= t('automation.last_run') %></th><th><%= t('fields.status') %></th><th class="actions"></th></tr></thead>
+    <tbody><% rules.forEach(function (r) { %>
+      <tr><td><a class="link" href="/app/automation/<%= r.id %>"><strong><%= r.name %></strong></a><div class="muted tiny"><%= r.created_by_name || '' %></div></td>
+        <td class="small"><%- icon(A_SCHEDULE[r.trigger] ? 'calendar-days' : 'zap', 'icon-sm') %> <%= trig(r.trigger) %><%= r.trigger_options.days != null && A_SCHEDULE[r.trigger] && A_SCHEDULE[r.trigger].days ? ' · ' + t('automation.days_' + A_SCHEDULE[r.trigger].days + '_label', { n: r.trigger_options.days }) : '' %></td>
+        <td class="small"><%= r.actions.map(function (a) { return t('automation.action_' + a.type); }).join(' · ') %></td>
+        <td class="small muted nowrap"><%= r.last_run_at ? fmt.date(r.last_run_at, { dateStyle: 'medium', timeStyle: 'short' }) : '—' %><% if (r.run_count) { %><div class="tiny"><%= t('automation.n_runs', { n: r.run_count }) %></div><% } %></td>
+        <td><form method="post" action="/app/automation/<%= r.id %>/toggle"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><input type="hidden" name="on" value="<%= r.is_active ? '0' : '1' %>">
+          <button class="st <%= r.is_active ? 'st-active' : 'st-off' %> st-button" type="submit" title="<%= r.is_active ? t('automation.pause') : t('automation.resume') %>"><%= r.is_active ? t('automation.active') : t('automation.paused') %></button></form></td>
+        <td class="actions"><a class="btn btn-ghost btn-sm" href="/app/automation/<%= r.id %>"><%- icon('pencil', 'icon-sm') %><%= t('common.edit') %></a></td></tr>
+    <% }) %></tbody>
+  </table></div>
+</section>
+<% } %>
+
+<h2 class="section-title mb-4"><%= t('automation.templates') %></h2>
+<div class="grid grid-3 mb-6">
+  <% TEMPLATES.filter(function (tp) { return available.indexOf(tp.trigger) >= 0; }).forEach(function (tp) { %>
+  <a class="panel report-card" href="/app/automation/new?template=<%= tp.key %>"><div class="panel-body row">
+    <span class="ai-area-icon"><%- icon(A_SCHEDULE[tp.trigger] ? 'calendar-days' : 'zap') %></span>
+    <div class="grow"><strong><%= t('automation.tpl_' + tp.key) %></strong><div class="small muted"><%= t('automation.tpl_' + tp.key + '_text') %></div></div><%- icon('chevron-right', 'icon-sm flip-rtl') %></div></a>
+  <% }) %>
+</div>
+
+<% if (runs.length) { %>
+<section class="panel">
+  <div class="panel-head"><h2><%= t('automation.recent_runs') %></h2><a class="link small" href="/app/automation/runs"><%= t('automation.all_runs') %></a></div>
+  <%- include('_runs', { runs: runs }) %>
+</section>
+<% } %>

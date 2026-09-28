@@ -1,0 +1,109 @@
+<%
+  var o = old || {};
+  var d = draft || {};
+  var val = function (k, def) { return o[k] !== undefined ? o[k] : (d[k] !== undefined && d[k] !== null ? d[k] : def); };
+  var cond = o._csrf ? { department_ids: [].concat(o.department_ids || []).map(Number), employment_types: [].concat(o.employment_types || []), nationality: o.nationality || '', leave_type_ids: [].concat(o.leave_type_ids || []).map(Number), min_days: o.min_days } : (d.conditions || {});
+  var acts = o._csrf ? [].concat(o.action_type || []).map(function (tp, i) { var g = function (k) { return [].concat(o[k] || [])[i]; }; return { type: tp, to: g('action_to'), message: g('action_message'), due_days: g('action_due_days'), course_id: Number(g('action_course_id')) }; }) : (d.actions && d.actions.length ? d.actions : [{ type: 'notify', to: 'manager', message: '' }]);
+  var trigger = val('trigger', triggers[0]);
+  var trig = function (k) { return t('automation.trigger_' + k.replace('.', '_')); };
+  var sel = function (a, b) { return String(a) === String(b) ? ' selected' : ''; };
+  var toSelect = function (cur) {
+    var h = '<select class="select" name="action_to" aria-label="' + escapeHtml(t('automation.to')) + '">';
+    A.RECIPIENTS.forEach(function (r) { h += '<option value="' + r + '"' + sel(cur, r) + '>' + escapeHtml(t('automation.to_' + r)) + '</option>'; });
+    h += '<optgroup label="' + escapeHtml(t('workflows.any_with_role')) + '">' + roles.map(function (r) { return '<option value="role:' + escapeHtml(r.key) + '"' + sel(cur, 'role:' + r.key) + '>' + escapeHtml(roleName(r)) + '</option>'; }).join('') + '</optgroup>';
+    h += '<optgroup label="' + escapeHtml(t('workflows.specific_person')) + '">' + people.map(function (p) { return '<option value="user:' + p.id + '"' + sel(cur, 'user:' + p.id) + '>' + escapeHtml(p.name) + '</option>'; }).join('') + '</optgroup>';
+    return h + '</select>';
+  };
+  var row = function (a) {
+    a = a || { type: 'notify', to: 'manager' };
+    var h = '<div class="panel auto-action" data-row><div class="panel-body stack-sm">';
+    h += '<div class="row-sm wrap"><select class="select" name="action_type" aria-label="' + escapeHtml(t('automation.action')) + '" style="width:auto">' + actions.map(function (k) { return '<option value="' + k + '"' + sel(a.type, k) + '>' + escapeHtml(t('automation.action_' + k)) + '</option>'; }).join('') + '</select>';
+    h += toSelect(a.to);
+    h += '<button class="btn btn-ghost btn-icon btn-sm" type="button" data-remove-row aria-label="' + escapeHtml(t('common.delete')) + '">' + icon('x', 'icon-sm') + '</button></div>';
+    h += '<textarea class="textarea" name="action_message" rows="2" maxlength="500" placeholder="' + escapeHtml(t('automation.message_ph')) + '" aria-label="' + escapeHtml(t('automation.message')) + '">' + escapeHtml(a.message || a.title || '') + '</textarea>';
+    h += '<div class="row-sm wrap small"><label class="row-sm">' + escapeHtml(t('automation.due_in')) + ' <input class="input input-sm" type="number" name="action_due_days" min="0" max="365" value="' + escapeHtml(a.due_days != null ? a.due_days : 7) + '" style="width:80px"> ' + escapeHtml(t('automation.days')) + '</label>';
+    h += courses.length ? '<select class="select select-sm" name="action_course_id" aria-label="' + escapeHtml(t('automation.course')) + '" style="width:auto"><option value="">' + escapeHtml(t('automation.course')) + '</option>' + courses.map(function (c) { return '<option value="' + c.id + '"' + sel(a.course_id, c.id) + '>' + escapeHtml(c.title) + '</option>'; }).join('') + '</select>' : '<input type="hidden" name="action_course_id" value="">';
+    return h + '</div><div class="tiny muted">' + escapeHtml(t('automation.action_help')) + '</div></div></div>';
+  };
+%>
+<div class="page-head">
+  <div><div class="eyebrow"><a href="/app/automation"><%= t('automation.title') %></a></div><h1><%= rule ? rule.name : t('automation.new') %></h1></div>
+  <% if (rule) { %><div class="page-actions"><a class="btn btn-secondary" href="/app/automation/runs?rule=<%= rule.id %>"><%- icon('history') %><%= t('automation.runs') %></a>
+    <form method="post" action="/app/automation/<%= rule.id %>/delete" data-confirm="<%= t('automation.confirm_delete') %>"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><button class="btn btn-danger-ghost" type="submit"><%- icon('trash-2') %></button></form></div><% } %>
+</div>
+<% if (formError) { %><div class="alert alert-error mb-4"><%= Object.values(errors)[0] || formError.message %></div><% } %>
+
+<% if (preview) { %>
+<section class="panel ai-panel mb-6" id="preview">
+  <div class="panel-head"><div><h2><%- icon('eye', 'icon-sm') %> <%= t('automation.preview_title', { name: preview.employee.first_name + ' ' + preview.employee.last_name }) %></h2><div class="panel-sub"><%= t('automation.preview_sub') %></div></div></div>
+  <div class="panel-body stack-sm">
+    <% if (preview.failed) { %><div class="alert alert-warning"><%- icon('triangle-alert') %><div><%= t('automation.preview_skip', { reason: t('automation.note_cond_' + preview.failed) }) %></div></div><% } %>
+    <% preview.actions.forEach(function (a) { %><div class="auto-preview"><strong><%= t('automation.action_' + a.type) %></strong>
+      <% if (a.to) { %><span class="small"> → <%= a.to.length ? a.to.join('، ') : t('automation.note_no_recipient') %></span><% } %>
+      <% if (a.text) { %><div class="small text-2" dir="auto"><%= a.text %></div><% } %><% if (a.due) { %><div class="tiny muted"><%= t('automation.due_on', { date: fmt.date(a.due) }) %></div><% } %>
+      <% if (a.note && a.note !== 'no_recipient') { %><div class="tiny field-error"><%= t('automation.note_' + a.note) %></div><% } %></div><% }) %>
+  </div>
+</section>
+<% } %>
+
+<form method="post" action="/app/automation<%= rule ? '/' + rule.id : '' %>" novalidate>
+  <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+  <div class="grid grid-3">
+    <div class="span-2 stack-lg">
+      <section class="panel"><div class="panel-body stack">
+        <%- include('../../partials/field', { name: 'name', label: t('automation.name'), required: true, value: val('name', ''), placeholder: t('automation.name_ph') }) %>
+      </div></section>
+
+      <section class="panel"><div class="panel-head"><div><h2><span class="auto-step">1</span><%= t('automation.when') %></h2></div></div>
+        <div class="panel-body stack">
+          <select class="select" name="trigger" id="auto-trigger" data-show-source aria-label="<%= t('automation.when') %>">
+            <optgroup label="<%= t('automation.group_events') %>"><% triggers.filter(function (k) { return A.EVENT_TRIGGERS[k]; }).forEach(function (k) { %><option value="<%= k %>"<%= sel(trigger, k) %>><%= trig(k) %></option><% }) %></optgroup>
+            <optgroup label="<%= t('automation.group_dates') %>"><% triggers.filter(function (k) { return A.SCHEDULE_TRIGGERS[k]; }).forEach(function (k) { %><option value="<%= k %>"<%= sel(trigger, k) %>><%= trig(k) %></option><% }) %></optgroup>
+          </select>
+          <div class="form-grid">
+            <div class="field" data-show-for="document_expiring,certificate_expiring,probation_ending"><label class="label" for="f-days"><%= t('automation.days_before') %></label><input class="input" id="f-days" type="number" name="days" min="0" max="365" value="<%= val('days', 30) %>"></div>
+            <div class="field" data-show-for="days_after_joining"><label class="label" for="f-days2"><%= t('automation.days_after') %></label><input class="input" id="f-days2" type="number" name="days" min="0" max="365" value="<%= val('days', 30) %>" disabled></div>
+            <div class="field" data-show-for="document_expiring"><label class="label" for="f-category"><%= t('automation.doc_type') %></label><select class="select" id="f-category" name="category"><option value=""><%= t('automation.any_doc') %></option><% A.DOC_CATEGORIES.forEach(function (c) { %><option value="<%= c %>"<%= sel(val('category', ''), c) %>><%= t('documents.cat_' + c) %></option><% }) %></select></div>
+          </div>
+          <% if (errors.trigger || errors.days) { %><span class="field-error"><%= errors.trigger || errors.days %></span><% } %>
+          <p class="small muted" data-show-for="<%= Object.keys(A.SCHEDULE_TRIGGERS).join(',') %>"><%= t('automation.dates_help') %></p>
+        </div></section>
+
+      <section class="panel"><div class="panel-head"><div><h2><span class="auto-step">2</span><%= t('automation.if') %></h2><div class="panel-sub"><%= t('automation.if_sub') %></div></div></div>
+        <div class="panel-body stack">
+          <% if (departments.length) { %><fieldset class="field"><legend class="label"><%= t('fields.department') %></legend><div class="row-sm wrap"><% departments.forEach(function (dp) { %><label class="check"><input type="checkbox" name="department_ids" value="<%= dp.id %>"<%= (cond.department_ids || []).indexOf(dp.id) >= 0 ? ' checked' : '' %>><%= dp.name %></label><% }) %></div></fieldset><% } %>
+          <fieldset class="field"><legend class="label"><%= t('automation.employment_type') %></legend><div class="row-sm wrap"><% A.EMPLOYMENT_TYPES.forEach(function (k) { %><label class="check"><input type="checkbox" name="employment_types" value="<%= k %>"<%= (cond.employment_types || []).indexOf(k) >= 0 ? ' checked' : '' %>><%= t('employment_types.' + k) %></label><% }) %></div></fieldset>
+          <div class="field" style="max-width:300px"><label class="label" for="f-nat"><%= t('automation.nationality') %></label><select class="select" id="f-nat" name="nationality"><option value=""><%= t('automation.anyone') %></option><option value="saudi"<%= sel(cond.nationality, 'saudi') %>><%= t('compliance.applies_saudi') %></option><option value="non_saudi"<%= sel(cond.nationality, 'non_saudi') %>><%= t('compliance.applies_non_saudi') %></option></select></div>
+          <div class="stack-sm" data-show-for="leave.requested,leave.approved,leave.rejected">
+            <% if (leaveTypes.length) { %><fieldset class="field"><legend class="label"><%= t('leave.type') %></legend><div class="row-sm wrap"><% leaveTypes.forEach(function (lt) { %><label class="check"><input type="checkbox" name="leave_type_ids" value="<%= lt.id %>"<%= (cond.leave_type_ids || []).indexOf(lt.id) >= 0 ? ' checked' : '' %>><%= locale === 'ar' && lt.name_ar ? lt.name_ar : lt.name %></label><% }) %></div></fieldset><% } %>
+            <div class="field" style="max-width:220px"><label class="label" for="f-min"><%= t('automation.min_days') %></label><input class="input" id="f-min" type="number" name="min_days" min="0" max="365" step="0.5" value="<%= cond.min_days != null ? cond.min_days : '' %>"></div>
+          </div>
+          <% if (errors.conditions) { %><span class="field-error"><%= errors.conditions %></span><% } %>
+        </div></section>
+
+      <section class="panel" data-repeater><div class="panel-head"><div><h2><span class="auto-step">3</span><%= t('automation.then') %></h2><div class="panel-sub"><%= t('automation.then_sub') %></div></div></div>
+        <div class="panel-body stack">
+          <div class="stack" data-rows><% acts.forEach(function (a) { %><%- row(a) %><% }) %></div>
+          <template data-row-template><%- row(null) %></template>
+          <div><button class="btn btn-ghost btn-sm" type="button" data-add-row><%- icon('plus', 'icon-sm') %><%= t('automation.add_action') %></button></div>
+          <% if (errors.actions) { %><span class="field-error"><%= errors.actions %></span><% } %>
+        </div></section>
+    </div>
+
+    <div class="stack-lg">
+      <section class="panel"><div class="panel-body stack">
+        <label class="check"><input type="checkbox" name="is_active"<%= (o._csrf ? o.is_active === 'on' : (d.is_active !== false)) ? ' checked' : '' %>><%= t('automation.active') %></label>
+        <div class="field"><label class="label" for="f-prev"><%= t('automation.preview_with') %></label>
+          <select class="select" id="f-prev" name="preview_employee_id"><% employees.forEach(function (e) { %><option value="<%= e.id %>"<%= sel(o.preview_employee_id, e.id) %>><%= e.first_name %> <%= e.last_name %></option><% }) %></select></div>
+        <button class="btn btn-secondary" type="submit" name="action" value="preview"<%= employees.length ? '' : ' disabled' %>><%- icon('eye', 'icon-sm') %><%= t('automation.preview') %></button>
+        <p class="tiny muted"><%= t('automation.preview_help') %></p>
+      </div></section>
+      <section class="panel"><div class="panel-head"><h2><%= t('automation.placeholders') %></h2></div><div class="panel-body small text-2 stack-sm">
+        <p><%= t('automation.placeholders_help') %></p>
+        <p dir="ltr" class="mono tiny">{{name}} {{first_name}} {{job_title}} {{department}} {{employee_number}} {{joining_date}} {{date}} {{days}} {{years}} {{document}} {{leave_type}} {{course}} {{today}}</p>
+      </div></section>
+      <section class="panel"><div class="panel-body small text-2 stack-sm"><p><%= t('automation.rules_1') %></p><p><%= t('automation.rules_2') %></p><p><%= t('automation.rules_3') %></p></div></section>
+      <div class="form-actions"><a class="btn btn-ghost" href="/app/automation"><%= t('common.cancel') %></a><button class="btn btn-dark" type="submit" name="action" value="save"><%= t('common.save') %></button></div>
+    </div>
+  </div>
+</form>

@@ -115,6 +115,11 @@ async function start() {
   // Scheduled reports: queue deliveries that are due (each is claimed once, even with several processes).
   const reports = require('./modules/reports/reports.service');
   setInterval(() => reports.dispatchDue().catch((e) => console.error('[reports]', e.message)), 60_000).unref();
+  // Date-based automations (document expiry, anniversaries …): checked every 30 minutes.
+  const automation = require('./modules/automation/automation.service');
+  const sweep = () => automation.runScheduled().catch((e) => console.error('[automation]', e.message));
+  setTimeout(sweep, 60_000).unref();
+  setInterval(sweep, 30 * 60_000).unref();
   // Phusion Passenger / LiteSpeed (cPanel "Setup Node.js App") passes a socket path via PORT; listen() accepts both.
   const server = app.listen(PORT, () => console.log(`[remoteway] listening on ${PORT} (${config.env})`));
   const shutdown = () => server.close(() => knex.destroy().then(() => process.exit(0)));

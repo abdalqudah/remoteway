@@ -482,6 +482,19 @@
     svg.addEventListener('focusout', hide);
   });
 
+  /* ---------- Fields that depend on a select (automation trigger): hidden fields are disabled so they are not sent ---------- */
+  $$('[data-show-source]').forEach(function (src) {
+    var sync = function () {
+      $$('[data-show-for]').forEach(function (el) {
+        var on = el.getAttribute('data-show-for').split(',').indexOf(src.value) >= 0;
+        el.hidden = !on;
+        $$('input, select, textarea', el).forEach(function (i) { i.disabled = !on; });
+        if (el.matches('input, select, textarea')) el.disabled = !on;
+      });
+    };
+    src.addEventListener('change', sync); sync();
+  });
+
   // Keep csrf available for fetch-based features.
   window.RemoteWay = { csrf: csrf };
 })();

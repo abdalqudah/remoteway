@@ -9,11 +9,16 @@
 | Runtime | Node.js ≥ 20 (Express 4, server-rendered EJS, no build step) |
 | Database | MySQL 8 / MariaDB ≥ 10.3 (all data, including sessions, lives in the database) |
 | Hosting | Any cPanel host with **Setup Node.js App** (e.g. Orange Host), or any VPS |
-| Status | **Phases 1–9 + Advanced Analytics + Compliance** (SaaS Core, Workforce, Talent, Payroll, Performance, Learning, Integrations, AI, Enterprise, Analytics, Compliance) complete and tested (see `docs/ARCHITECTURE.md`) |
+| Status | **Phases 1–9 + Advanced Analytics + Compliance + Automation** (SaaS Core, Workforce, Talent, Payroll, Performance, Learning, Integrations, AI, Enterprise, Analytics, Compliance, Automation) complete and tested (see `docs/ARCHITECTURE.md`) |
 
 ---
 
 ## What works today
+
+**Advanced Automation** (Professional and Enterprise — Insights → Automation):
+- "When … only if … then …" rules. **When:** an event (employee added or leaving, onboarding completed, leave requested/approved/rejected, employee document uploaded, candidate hired, review completed, course completed) or a date (document or training certificate about to expire, probation about to end, N days after joining, work anniversary). **Only if:** department, employment type, nationality, leave type, minimum leave days. **Then (up to 5):** send a notification (employee, manager, department head, anyone with a role, a person), create a task with a due date, assign a course, post to team chat. Messages use placeholders such as {{name}}, {{date}}, {{years}}.
+- Event rules are queued in the same transaction as the action (outbox); date rules are checked every 30 minutes and by `scripts/run-jobs.js`. Each rule acts once per occurrence, actions run as the rule's author, and actions performed by automations never trigger other automations.
+- Dry-run preview for any employee (nothing is sent), run history with the outcome of every action, pause/resume, and 8 ready-made templates (welcome, Iqama renewal, probation review, 30-day check-in, anniversaries, long leave handover, certificate renewal, offboarding).
 
 **Compliance** (Business plan and above — Insights → Compliance):
 - Ten checks on live data, each with who is affected and why: expired documents, required documents per nationality (e.g. contract for everyone, national ID for Saudis, Iqama and passport for non-Saudis — editable), documents expiring soon, Wage Protection readiness (pay details / IBAN / cash pay), GOSI registration, annual leave entitlement (21 days, 30 after five years — Labor Law Art. 109), probation beyond the maximum (Art. 53), weekly hours above 48 (Art. 98), policy acknowledgements, nationality recorded. Saudi-specific checks run for Saudi companies.
