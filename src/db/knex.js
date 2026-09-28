@@ -4,8 +4,8 @@ const config = require('../config');
 const knex = knexFactory({
   client: 'mysql2',
   connection: {
-    host: config.db.host,
-    port: config.db.port,
+    // DB_SOCKET (e.g. /var/lib/mysql/mysql.sock) connects through the local socket, like PHP does on cPanel.
+    ...(process.env.DB_SOCKET ? { socketPath: process.env.DB_SOCKET } : { host: config.db.host, port: config.db.port }),
     user: config.db.user,
     password: config.db.password,
     database: config.db.database,
