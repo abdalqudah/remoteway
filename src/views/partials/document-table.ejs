@@ -1,0 +1,17 @@
+<% if (!rows.length) { %>
+  <div class="empty"><span class="empty-icon"><%- icon('file-text') %></span><h3><%= t('documents.empty_title') %></h3><p><%= t('documents.empty_text') %></p></div>
+<% } else { %>
+<div class="table-wrap"><table class="table">
+  <thead><tr><th><%= t('documents.title_label') %></th><th><%= t('documents.category') %></th><% if (typeof hideOwner === 'undefined') { %><th><%= t('documents.belongs_to') %></th><% } %><th><%= t('documents.expires_at') %></th><th class="text-end"><%= t('documents.size') %></th><th class="actions"></th></tr></thead>
+  <tbody><% rows.forEach(function (d) { %>
+    <tr>
+      <td><a class="person" href="/app/documents/<%= d.id %>"><span class="action-icon"><%- icon('file-text', 'icon-sm') %></span><span style="min-width:0"><span class="person-name truncate" style="display:block"><%= d.title %></span><span class="person-sub truncate" style="display:block"><%= d.original_name %><%= d.current_version > 1 ? ' · v' + d.current_version : '' %></span></span></a></td>
+      <td><span class="badge"><%= t('documents.cat_' + d.category) %></span></td>
+      <% if (typeof hideOwner === 'undefined') { %><td><%= d.employee_id ? d.first_name + ' ' + d.last_name : t('documents.company_wide') %></td><% } %>
+      <td class="nowrap"><% if (d.expires_at) { %><span class="st st-<%= d.expiry %>"><%= fmt.date(d.expires_at) %></span><% } else { %><span class="muted">—</span><% } %></td>
+      <td class="text-end num muted"><%= d.size_bytes ? (d.size_bytes > 1048576 ? (d.size_bytes / 1048576).toFixed(1) + ' MB' : Math.ceil(d.size_bytes / 1024) + ' KB') : '—' %></td>
+      <td class="actions"><a class="btn btn-ghost btn-sm btn-icon" href="/app/documents/<%= d.id %>/download" aria-label="<%= t('documents.download') %>" title="<%= t('documents.download') %>"><%- icon('download', 'icon-sm') %></a></td>
+    </tr>
+  <% }) %></tbody>
+</table></div>
+<% } %>

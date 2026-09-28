@@ -48,6 +48,7 @@ async function setOrganizationStatus(ctx, id, status) {
   await knex('organizations').where({ id }).update({ status });
   await audit.record({ ...ctx, organizationId: id }, `platform.organization_${status}`, { entityType: 'organization', entityId: id });
   cache.forgetPrefix(`org:${id}`);
+  ent.invalidate(id);
 }
 
 async function updateSubscription(ctx, organizationId, { plan_id: planId, status, trial_ends_at: trialEndsAt, custom_limits: customLimits }) {

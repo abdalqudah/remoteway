@@ -1,36 +1,73 @@
+<%
+  var typeName = function (x) { return locale === 'ar' ? (x.type_name_ar || x.name_ar || x.type_name || x.name) : (x.type_name || x.name); };
+  var todayStr = new Date().toISOString().slice(0, 10);
+  var dd = function (v) { return v ? (v instanceof Date ? v.toISOString().slice(0, 10) : String(v).slice(0, 10)) : null; };
+%>
 <div class="page-head">
   <div><div class="eyebrow"><%= organization.name %></div><h1><%= t('dashboard.greeting', { name: currentUser.name.split(' ')[0] }) %></h1><p><%= t('dashboard.personal_subtitle') %></p></div>
+  <div class="page-actions">
+    <% if (hasFeature('leave') && me && can('leave.request')) { %><a class="btn btn-secondary" href="/app/leave"><%- icon('plane') %><%= t('leave.request') %></a><% } %>
+    <% if (hasFeature('tasks')) { %><a class="btn btn-dark" href="/app/tasks"><%- icon('list-checks') %><%= t('nav.tasks') %></a><% } %>
+  </div>
 </div>
+
+<% if (!me) { %>
+  <section class="panel mb-6"><div class="empty"><span class="empty-icon"><%- icon('user') %></span><h3><%= t('dashboard.not_linked_title') %></h3><p><%= t('dashboard.not_linked_text') %></p></div></section>
+<% } %>
+
 <div class="grid grid-3">
-  <section class="panel span-2">
-    <div class="panel-head"><h2><%= t('dashboard.my_profile') %></h2></div>
-    <% if (!me) { %>
-      <div class="empty"><span class="empty-icon"><%- icon('user') %></span><h3><%= t('dashboard.not_linked_title') %></h3><p><%= t('dashboard.not_linked_text') %></p></div>
-    <% } else { %>
+  <div class="span-2 stack-lg">
+    <% if (clock) { %><%- include('../../partials/clock-widget', { today: clock }) %><% } %>
+
+    <% if (balances && balances.length) { %>
+    <section class="panel">
+      <div class="panel-head"><h2><%= t('leave.my_balances') %></h2><a class="btn btn-ghost btn-sm" href="/app/leave"><%= t('common.view_all') %></a></div>
+      <div class="panel-body"><div class="balances">
+        <% balances.forEach(function (b) { %><div class="balance"><div class="small" style="font-weight:600"><span class="swatch" style="background:<%= b.type.color %>"></span><%= typeName(b.type) %></div><div class="big"><%= b.available === null ? '—' : fmt.number(b.available) %></div><div class="muted tiny"><%= b.available === null ? t('leave.not_tracked') : t('leave.days_left') %></div></div><% }) %>
+      </div></div>
+    </section>
+    <% } %>
+
+    <% if (hasFeature('tasks')) { %>
+    <section class="panel">
+      <div class="panel-head"><h2><%= t('dashboard.my_tasks') %></h2><a class="btn btn-ghost btn-sm" href="/app/tasks?mine=1"><%= t('common.view_all') %></a></div>
+      <% if (!myTaskList.length) { %><div class="empty" style="padding:28px"><p><%= t('dashboard.no_tasks') %></p></div><% } else { %>
+      <ul class="action-list"><% myTaskList.forEach(function (r) { var due = dd(r.due_date); %>
+        <li><a href="/app/tasks/<%= r.id %>"><span class="prio prio-<%= r.priority %>"><%= t('tasks.prio_' + r.priority) %></span><span class="grow small"><%= r.title %></span><% if (due) { %><span class="small <%= due < todayStr ? 'overdue' : 'muted' %>"><%= fmt.date(due, { day: 'numeric', month: 'short' }) %></span><% } %><span class="st st-<%= r.status %>"><%= t('tasks.status_' + r.status) %></span></a></li>
+      <% }) %></ul><% } %>
+    </section>
+    <% } %>
+  </div>
+
+  <div class="stack-lg">
+    <% if (me) { %>
+    <section class="panel">
+      <div class="panel-head"><h2><%= t('dashboard.my_profile') %></h2></div>
       <div class="panel-body">
-        <div class="row mb-4"><span class="avatar avatar-lg"><%= initials(me.first_name + ' ' + me.last_name) %></span><div><div style="font-weight:700;font-size:16px"><%= me.first_name %> <%= me.last_name %></div><div class="muted"><%= me.job_title || '—' %></div></div></div>
-        <dl class="dl">
-          <dt><%= t('fields.employee_number') %></dt><dd class="num"><%= me.employee_number %></dd>
+        <div class="row mb-4"><span class="avatar avatar-lg"><%= initials(me.first_name + ' ' + me.last_name) %></span><div><div style="font-weight:700"><%= me.first_name %> <%= me.last_name %></div><div class="muted small"><%= me.job_title || '—' %></div></div></div>
+        <dl class="dl" style="grid-template-columns:1fr">
           <dt><%= t('fields.department') %></dt><dd><%= me.department_name || '—' %></dd>
           <dt><%= t('fields.manager') %></dt><dd><%= me.manager_name || '—' %></dd>
-          <dt><%= t('fields.location') %></dt><dd><%= me.location_name || '—' %></dd>
-          <dt><%= t('fields.joining_date') %></dt><dd><%= fmt.date(me.joining_date) %></dd>
         </dl>
+        <% if (hasFeature('documents')) { %><a class="btn btn-secondary btn-sm mt-4" href="/app/documents"><%- icon('file-text', 'icon-sm') %><%= t('dashboard.my_documents') %></a><% } %>
       </div>
+    </section>
     <% } %>
-  </section>
-  <section class="panel">
-    <div class="panel-head"><div><h2><%= t('dashboard.self_service') %></h2><div class="panel-sub"><%= t('dashboard.self_service_sub') %></div></div></div>
-    <ul class="action-list">
-      <% [['leave', 'plane'], ['attendance', 'calendar-check'], ['payroll', 'wallet'], ['documents', 'file-text'], ['learning', 'graduation-cap']].forEach(function (m) { var mod = MODULES.find(function (x) { return x.key === m[0]; }); %>
-        <li><a href="/app/modules/<%= m[0] %>"><span class="action-icon"><%- icon(m[1], 'icon-sm') %></span><span class="grow small"><%= t('nav.' + m[0]) %></span><span class="badge badge-soon"><%= t('common.phase', { n: mod.phase }) %></span></a></li>
-      <% }) %>
-    </ul>
-  </section>
+    <% if (myRequests && myRequests.length) { %>
+    <section class="panel">
+      <div class="panel-head"><h2><%= t('leave.my_requests') %></h2></div>
+      <ul class="action-list"><% myRequests.forEach(function (r) { %>
+        <li><a href="/app/leave"><span class="grow small"><%= typeName(r) %><span class="muted" style="display:block"><%= fmt.date(r.start_date, { day: 'numeric', month: 'short' }) %> → <%= fmt.date(r.end_date, { day: 'numeric', month: 'short' }) %></span></span><span class="st st-<%= r.status %>"><%= t('leave.status_' + r.status) %></span></a></li>
+      <% }) %></ul>
+    </section>
+    <% } %>
+  </div>
 </div>
+
 <% if (team) { %>
 <section class="panel mt-6">
-  <div class="panel-head"><div><h2><%= t('dashboard.my_team') %></h2><div class="panel-sub"><%= t('dashboard.team_count', { n: fmt.number(team.meta.total) }) %></div></div><a class="btn btn-ghost btn-sm" href="/app/employees"><%= t('common.view_all') %></a></div>
+  <div class="panel-head"><div><h2><%= t('dashboard.my_team') %></h2><div class="panel-sub"><%= t('dashboard.team_count', { n: fmt.number(team.meta.total) }) %></div></div>
+    <div class="row-sm"><% if (today.approvals) { %><a class="btn btn-primary btn-sm" href="/app/leave?tab=approvals"><%= t('dashboard.approvals_waiting', { n: today.approvals }) %></a><% } %><a class="btn btn-ghost btn-sm" href="/app/employees"><%= t('common.view_all') %></a></div></div>
   <% if (!team.data.length) { %><div class="empty"><p><%= t('dashboard.no_reports') %></p></div><% } else { %>
   <div class="table-wrap"><table class="table"><tbody>
     <% team.data.forEach(function (e) { %><tr><td><a class="person" href="/app/employees/<%= e.id %>"><span class="avatar"><%= initials(e.full_name) %></span><span><span class="person-name"><%= e.full_name %></span><span class="person-sub" style="display:block"><%= e.job_title || '—' %></span></span></a></td><td class="muted"><%= e.department_name || '—' %></td><td><%- include('../../partials/status-badge', { status: e.status }) %></td></tr><% }) %>

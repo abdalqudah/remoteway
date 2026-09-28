@@ -1,0 +1,21 @@
+<% var q = query; %>
+<div class="page-head">
+  <div><h1><%= t('nav.documents') %></h1><p><%= can('documents.view') || can('documents.manage') ? t('documents.subtitle') : t('documents.subtitle_self') %></p></div>
+  <% if (can('documents.manage')) { %><div class="page-actions"><button class="btn btn-dark" type="button" data-open-dialog="upload-dialog"><%- icon('upload') %><%= t('documents.upload') %></button></div><% } %>
+</div>
+<nav class="tabs mb-4">
+  <a href="/app/documents" class="<%= !q.expiry && !q.company ? 'active' : '' %>"><%= t('common.all') %></a>
+  <a href="?company=1" class="<%= q.company ? 'active' : '' %>"><%= t('documents.company_wide') %></a>
+  <a href="?expiry=expiring" class="<%= q.expiry === 'expiring' ? 'active' : '' %>"><%= t('documents.expiring') %></a>
+  <a href="?expiry=expired" class="<%= q.expiry === 'expired' ? 'active' : '' %>"><%= t('documents.expired') %></a>
+</nav>
+<section class="panel">
+  <form class="table-toolbar" method="get" data-autosubmit>
+    <% if (q.expiry) { %><input type="hidden" name="expiry" value="<%= q.expiry %>"><% } %><% if (q.company) { %><input type="hidden" name="company" value="1"><% } %>
+    <div class="input-group"><%- icon('search', 'icon-sm') %><input class="input" type="search" name="q" value="<%= q.q || '' %>" placeholder="<%= t('documents.search_ph') %>" aria-label="<%= t('common.search') %>"></div>
+    <select class="select" name="category" aria-label="<%= t('documents.category') %>"><option value=""><%= t('documents.all_categories') %></option><% categories.forEach(function (c) { %><option value="<%= c %>"<%= q.category === c ? ' selected' : '' %>><%= t('documents.cat_' + c) %></option><% }) %></select>
+    <% if (people.length) { %><select class="select" name="employee_id" aria-label="<%= t('documents.belongs_to') %>"><option value=""><%= t('documents.all_people') %></option><% people.forEach(function (p) { %><option value="<%= p.id %>"<%= String(q.employee_id) === String(p.id) ? ' selected' : '' %>><%= p.first_name %> <%= p.last_name %></option><% }) %></select><% } %>
+  </form>
+  <%- include('../../partials/document-table', { rows: rows }) %>
+</section>
+<% if (can('documents.manage')) { %><%- include('../../partials/document-upload') %><% } %>

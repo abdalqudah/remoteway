@@ -8,6 +8,7 @@ const authService = require('../modules/auth/auth.service');
 const orgs = require('../modules/organizations/organization.service');
 const rbac = require('../modules/rbac/rbac.service');
 const ent = require('../modules/billing/entitlements.service');
+const notifications = require('../modules/notifications/notification.service');
 
 const isApi = (req) => req.originalUrl.startsWith('/api/');
 
@@ -65,9 +66,6 @@ async function resolveTenant(req, res, next) {
       rbac.getUserPermissions(organizationId, req.user.id),
       ent.getEntitlements(organizationId),
     ]);
-    if (organization.status === 'suspended' && !isApi(req) && !req.path.startsWith('/billing')) {
-      entitlements.canWrite = false;
-    }
     req.ctx = {
       organizationId,
       userId: req.user.id,
@@ -85,6 +83,7 @@ async function resolveTenant(req, res, next) {
       res.locals.organizations = await orgs.listForUser(req.user.id);
       const [{ n }] = await knex('employees').where({ organization_id: organizationId }).whereNot('status', 'terminated').count({ n: '*' });
       res.locals.seatUsage = Number(n);
+      res.locals.unreadNotifications = await notifications.unreadCount(req.ctx);
     }
 
     // Any successful mutation refreshes the tenant's cached dashboard metrics.

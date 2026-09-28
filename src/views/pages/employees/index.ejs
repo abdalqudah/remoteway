@@ -16,7 +16,7 @@
   <div><h1><%= can('employees.view') ? t('nav.employees') : t('nav.my_team') %></h1><p><%= t('employees.subtitle', { n: fmt.number(result.meta.total) }) %><% if (max !== null && max !== undefined) { %> · <%= t('billing.employees_of', { used: fmt.number(usage.employees), max: fmt.number(max) }) %><% } %></p></div>
   <div class="page-actions">
     <% if (can('employees.view')) { %><a class="btn btn-secondary" href="/app/employees/export.csv?<%= exportQs %>"><%- icon('download') %><%= t('common.export_csv') %></a><% } %>
-    <% if (can('employees.create')) { %><button class="btn btn-secondary is-disabled" type="button" disabled title="<%= t('employees.import_soon') %>"><%- icon('upload') %><%= t('common.import') %><span class="badge badge-soon"><%= t('common.soon') %></span></button><% } %>
+    <% if (can('employees.create')) { %><a class="btn btn-secondary" href="/app/employees/import"><%- icon('upload') %><%= t('common.import') %></a><% } %>
     <% if (can('employees.create')) { %>
       <% if (atLimit) { %><a class="btn btn-dark" href="#limit" data-open-dialog="limit-dialog"><%- icon('user-plus') %><%= t('employees.add') %></a>
       <% } else { %><a class="btn btn-dark" href="/app/employees/new"><%- icon('user-plus') %><%= t('employees.add') %></a><% } %>

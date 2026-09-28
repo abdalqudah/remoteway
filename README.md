@@ -6,14 +6,24 @@
 
 | | |
 |---|---|
-| Runtime | Node.js ≥ 18.18 (Express 4, server-rendered EJS, no build step) |
+| Runtime | Node.js ≥ 20 (Express 4, server-rendered EJS, no build step) |
 | Database | MySQL 8 / MariaDB ≥ 10.3 (all data, including sessions, lives in the database) |
 | Hosting | Any cPanel host with **Setup Node.js App** (e.g. Orange Host), or any VPS |
-| Status | **Phase 1 — SaaS Core** complete and tested (see `docs/ARCHITECTURE.md`) |
+| Status | **Phase 1 — SaaS Core** and **Phase 2 — Workforce** complete and tested (see `docs/ARCHITECTURE.md`) |
 
 ---
 
-## What works today (Phase 1)
+## What works today (Phases 1–2)
+
+**Phase 2 — Workforce:**
+- **Attendance:** clock in/out with breaks, late detection (company hours + grace), daily sheet for HR/managers, monthly timesheets with overtime, audited manual corrections.
+- **Leave:** configurable leave types (defaults: annual 21, sick 30, emergency, maternity, unpaid), yearly balances, working-day counting from the company week, overlap/balance checks, manager + HR approvals, cancellations that restore balance, team calendar.
+- **Documents:** private storage outside the web root, versions, expiry tracking (30-day alerts), permission-checked downloads, content-based file-type checks, storage limits per plan.
+- **Tasks & projects:** board (drag & drop) and list, priorities, due dates, comments, projects with progress (Business+).
+- **Notifications:** in-app bell + optional email (SMTP) for leave requests/decisions and task events; invitation emails.
+- **CSV import wizard:** upload → map columns (English/Arabic headers) → validate → import, respecting seat limits.
+
+**Phase 1 — SaaS core:**
 
 - **Multi-tenancy:** every record carries `organization_id`; the tenant comes from a verified membership on the server, never from the request.
 - **Auth:** sign-up wizard (account → company → plan), login, sessions stored in MySQL, invitations, API tokens (hashed).
@@ -56,7 +66,7 @@ Demo logins (password `Demo@12345`, override with `DEMO_PASSWORD`):
    (zip it, upload with *File Manager*, then *Extract*), or clone the repo with cPanel → *Git™ Version Control*.
    Put it **outside** `public_html`, e.g. `/home/USER/remoteway`. Do **not** upload `node_modules`.
 3. **Create the app / إنشاء التطبيق** — cPanel → *Setup Node.js App* → *Create Application*:
-   - Node.js version: **20** (or the newest offered, minimum 18)
+   - Node.js version: **20** or newer
    - Application mode: **Production**
    - Application root: `remoteway`
    - Application URL: your domain / subdomain
@@ -72,6 +82,9 @@ Demo logins (password `Demo@12345`, override with `DEMO_PASSWORD`):
    | `DB_HOST` | `localhost` |
    | `DB_NAME` / `DB_USER` / `DB_PASSWORD` | from step 1 |
    | `SUPER_ADMIN_EMAIL` / `SUPER_ADMIN_PASSWORD` | your platform admin login |
+   | `DB_SOCKET` (optional) | `/var/lib/mysql/mysql.sock` if TCP login is refused |
+   | `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD`, `MAIL_FROM` (optional) | a cPanel mailbox to send invitations & notifications |
+   | `STORAGE_PATH` (optional) | where uploaded documents live; defaults to `../remoteway-storage` next to the app |
 
 5. Click **Run NPM Install**, then **Restart**.
 6. Open `https://your-domain.com/healthz` → `{"status":"ok"}` means the app is connected to MySQL.

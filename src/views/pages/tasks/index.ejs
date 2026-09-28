@@ -1,0 +1,75 @@
+<%
+  var today = new Date().toISOString().slice(0, 10);
+  var dd = function (v) { return v ? (v instanceof Date ? v.toISOString().slice(0, 10) : String(v).slice(0, 10)) : null; };
+  var qs = function (over) { var o = Object.assign({}, query, over); return '?' + Object.keys(o).filter(function (k) { return o[k] !== undefined && o[k] !== ''; }).map(function (k) { return encodeURIComponent(k) + '=' + encodeURIComponent(o[k]); }).join('&'); };
+%>
+<div class="page-head">
+  <div><h1><%= t('nav.tasks') %></h1><p><%= t('tasks.subtitle') %></p></div>
+  <div class="page-actions">
+    <% if (hasProjects) { %><a class="btn btn-secondary" href="/app/projects"><%- icon('folder-kanban') %><%= t('tasks.projects') %></a><% } %>
+    <button class="btn btn-dark" type="button" data-open-dialog="task-dialog"><%- icon('plus') %><%= t('tasks.new') %></button>
+  </div>
+</div>
+
+<section class="panel mb-4">
+  <form class="table-toolbar" method="get" data-autosubmit style="border-bottom:0">
+    <input type="hidden" name="view" value="<%= view %>">
+    <div class="input-group"><%- icon('search', 'icon-sm') %><input class="input" type="search" name="q" value="<%= query.q || '' %>" placeholder="<%= t('tasks.search_ph') %>" aria-label="<%= t('common.search') %>"></div>
+    <% if (projects.length) { %><select class="select" name="project_id" aria-label="<%= t('tasks.project') %>"><option value=""><%= t('tasks.all_projects') %></option><% projects.forEach(function (p) { %><option value="<%= p.id %>"<%= String(query.project_id) === String(p.id) ? ' selected' : '' %>><%= p.name %></option><% }) %></select><% } %>
+    <% if (can('tasks.view') || can('tasks.manage')) { %><select class="select" name="assignee" aria-label="<%= t('tasks.assignee') %>"><option value=""><%= t('tasks.everyone') %></option><% members.forEach(function (m) { %><option value="<%= m.id %>"<%= String(query.assignee) === String(m.id) ? ' selected' : '' %>><%= m.name %></option><% }) %></select><% } %>
+    <label class="check"><input type="checkbox" name="mine" value="1"<%= query.mine === '1' ? ' checked' : '' %>><%= t('tasks.only_mine') %></label>
+    <div class="row-sm" style="margin-inline-start:auto">
+      <a class="btn btn-sm <%= view === 'board' ? 'btn-dark' : 'btn-ghost' %>" href="<%= qs({ view: 'board' }) %>"><%- icon('columns-3', 'icon-sm') %><%= t('tasks.board') %></a>
+      <a class="btn btn-sm <%= view === 'list' ? 'btn-dark' : 'btn-ghost' %>" href="<%= qs({ view: 'list' }) %>"><%- icon('list-checks', 'icon-sm') %><%= t('tasks.list') %></a>
+    </div>
+  </form>
+</section>
+
+<% if (view === 'board') { %>
+<div class="board" data-board>
+  <% statuses.forEach(function (s) { var col = rows.filter(function (r) { return r.status === s; }); %>
+  <div class="board-col" data-status="<%= s %>">
+    <div class="board-head"><span class="row-sm"><span class="st st-<%= s %>"><%= t('tasks.status_' + s) %></span></span><span class="muted small"><%= col.length %></span></div>
+    <div class="board-list">
+      <% col.forEach(function (r) { var due = dd(r.due_date); %>
+      <article class="task-card" draggable="true" data-task="<%= r.id %>">
+        <a class="t" href="/app/tasks/<%= r.id %>"><%= r.title %></a>
+        <div class="meta">
+          <span class="prio prio-<%= r.priority %>"><%= t('tasks.prio_' + r.priority) %></span>
+          <% if (r.project_name) { %><span><%- icon('folder-kanban', 'icon-sm') %> <%= r.project_name %></span><% } %>
+          <% if (due) { %><span class="<%= due < today && r.status !== 'done' ? 'overdue' : '' %>"><%- icon('calendar-days', 'icon-sm') %> <%= fmt.date(due, { day: 'numeric', month: 'short' }) %></span><% } %>
+          <% if (r.assignee_name) { %><span class="avatar" style="width:22px;height:22px;font-size:9px;margin-inline-start:auto" title="<%= r.assignee_name %>"><%= initials(r.assignee_name) %></span><% } %>
+        </div>
+        <noscript><form method="post" action="/app/tasks/<%= r.id %>/status"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><select name="status"><% statuses.forEach(function (x) { %><option value="<%= x %>"<%= x === r.status ? ' selected' : '' %>><%= t('tasks.status_' + x) %></option><% }) %></select><button type="submit">OK</button></form></noscript>
+      </article>
+      <% }) %>
+      <% if (!col.length) { %><p class="muted small text-center" style="padding:16px 0"><%= t('tasks.empty_col') %></p><% } %>
+    </div>
+  </div>
+  <% }) %>
+</div>
+<% } else { %>
+<section class="panel">
+  <% if (!rows.length) { %><div class="empty"><span class="empty-icon"><%- icon('list-checks') %></span><h3><%= t('tasks.empty_title') %></h3><p><%= t('tasks.empty_text') %></p></div><% } else { %>
+  <div class="table-wrap"><table class="table">
+    <thead><tr><th><%= t('tasks.title_label') %></th><th><%= t('tasks.project') %></th><th><%= t('tasks.assignee') %></th><th><%= t('tasks.priority') %></th><th><%= t('tasks.due') %></th><th><%= t('fields.status') %></th></tr></thead>
+    <tbody><% rows.forEach(function (r) { var due = dd(r.due_date); %>
+      <tr><td><a class="person-name" href="/app/tasks/<%= r.id %>"><%= r.title %></a></td><td class="muted"><%= r.project_name || '—' %></td><td><%= r.assignee_name || '—' %></td>
+        <td><span class="prio prio-<%= r.priority %>"><%= t('tasks.prio_' + r.priority) %></span></td>
+        <td class="nowrap <%= due && due < today && r.status !== 'done' ? 'overdue' : '' %>"><%= due ? fmt.date(due) : '—' %></td>
+        <td><form method="post" action="/app/tasks/<%= r.id %>/status" data-autosubmit><input type="hidden" name="_csrf" value="<%= csrfToken %>"><select class="select" name="status" style="height:32px;font-size:12px;min-width:130px" aria-label="<%= t('fields.status') %>"><% statuses.forEach(function (x) { %><option value="<%= x %>"<%= x === r.status ? ' selected' : '' %>><%= t('tasks.status_' + x) %></option><% }) %></select></form></td></tr>
+    <% }) %></tbody>
+  </table></div>
+  <div class="table-foot"><a class="link" href="<%= qs({ include_done: query.include_done === '1' ? '' : '1' }) %>"><%= query.include_done === '1' ? t('tasks.hide_done') : t('tasks.show_done') %></a></div>
+  <% } %>
+</section>
+<% } %>
+
+<dialog class="dialog" id="task-dialog"<%= openDialog === 'task' ? ' data-open-on-load' : '' %>>
+  <form method="post" action="/app/tasks" novalidate>
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>"><input type="hidden" name="return_to" value="board">
+    <div class="dialog-head"><h2><%= t('tasks.new') %></h2><button class="btn btn-ghost btn-icon btn-sm" type="button" data-close-dialog aria-label="<%= t('common.close') %>"><%- icon('x') %></button></div>
+    <div class="dialog-body stack"><%- include('../../partials/task-form', { task: null }) %></div>
+    <div class="dialog-foot"><button class="btn btn-ghost" type="button" data-close-dialog><%= t('common.cancel') %></button><button class="btn btn-dark" type="submit"><%= t('tasks.create') %></button></div>
+  </form>
+</dialog>

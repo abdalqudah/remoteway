@@ -4,6 +4,7 @@
   <div class="topbar-actions">
     <a class="btn btn-ghost btn-sm" href="<%= langUrl(locale === 'ar' ? 'en' : 'ar') %>" title="<%= t('common.language') %>"><%- icon('languages') %><span><%= locale === 'ar' ? 'EN' : 'ع' %></span></a>
     <button class="btn btn-ghost btn-icon" type="button" data-theme-toggle aria-label="<%= t('common.toggle_theme') %>"><%- icon('moon', 'theme-moon') %><%- icon('sun', 'theme-sun hidden') %></button>
+    <a class="btn btn-ghost btn-icon bell" href="/app/notifications" aria-label="<%= t('notifications.title') %><%= unreadNotifications ? ' (' + unreadNotifications + ')' : '' %>"><%- icon('bell') %><% if (unreadNotifications) { %><span class="bell-count"><%= unreadNotifications > 9 ? '9+' : unreadNotifications %></span><% } %></a>
     <details class="dropdown">
       <summary class="user-chip"><span class="avatar"><%= initials(currentUser.name) %></span><span class="user-name small" style="font-weight:600"><%= currentUser.name %></span><%- icon('chevron-down', 'icon-sm muted') %></summary>
       <div class="menu">

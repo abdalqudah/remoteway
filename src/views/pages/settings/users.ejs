@@ -61,7 +61,7 @@
     <div class="dialog-body stack">
       <%- include('../../partials/field', { name: 'email', label: t('fields.email'), type: 'email', required: true }) %>
       <%- include('../../partials/field', { name: 'role_id', label: t('fields.role'), type: 'select', required: true, value: (roles.find(function (r) { return r.key === 'employee'; }) || {}).id, options: roles.map(function (r) { return { value: r.id, label: roleName(r) }; }) }) %>
-      <div class="alert alert-info"><%- icon('info') %><div class="grow small"><%= t('settings.invite_email_note') %></div></div>
+      <div class="alert alert-info"><%- icon('info') %><div class="grow small"><%= emailEnabled ? t('settings.invite_email_on') : t('settings.invite_email_note') %></div></div>
     </div>
     <div class="dialog-foot"><button class="btn btn-ghost" type="button" data-close-dialog><%= t('common.cancel') %></button><button class="btn btn-dark" type="submit"><%= t('settings.create_invite') %></button></div>
   </form>

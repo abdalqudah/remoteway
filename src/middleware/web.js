@@ -47,6 +47,7 @@ function locals(req, res, next) {
     errors: {},
     old: {},
     formError: null,
+    unreadNotifications: 0,
     openDialog: null,
   });
   if (req.session) req.session.flash = [];
@@ -64,12 +65,31 @@ function flash(req, type, message) {
 
 // Synchronizer-token CSRF check for every state-changing browser request.
 // API requests authenticated with a Bearer token are exempt (no ambient credentials).
+// Multipart bodies are only parsed by the upload routes below; their token is checked after parsing
+// (verifyCsrfAfterUpload). Multipart sent anywhere else is refused so it can never skip the check.
+const MULTIPART_ROUTES = [/^\/app\/documents(\/\d+\/versions)?\/?$/, /^\/app\/employees\/import\/?$/, /^\/api\/v1\/documents\/?$/];
+
+function tokenValid(req, sent) {
+  return Boolean(req.session?.csrf && sent && safeEqual(sent, req.session.csrf));
+}
+
 function csrf(req, res, next) {
   if (['GET', 'HEAD', 'OPTIONS'].includes(req.method)) return next();
   if (req.apiToken) return next();
-  const sent = req.body?._csrf || req.get('x-csrf-token');
-  if (!req.session?.csrf || !sent || !safeEqual(sent, req.session.csrf)) return next(E.csrf());
+  if (req.is('multipart/form-data')) {
+    if (MULTIPART_ROUTES.some((r) => r.test(req.path))) {
+      req.csrfDeferred = true;
+      return next();
+    }
+    return next(E.csrf());
+  }
+  if (!tokenValid(req, req.body?._csrf || req.get('x-csrf-token'))) return next(E.csrf());
   return next();
 }
 
-module.exports = { locals, flash, csrf };
+function verifyCsrfAfterUpload(req, res, next) {
+  if (!req.csrfDeferred || req.apiToken) return next();
+  return tokenValid(req, req.body?._csrf || req.get('x-csrf-token')) ? next() : next(E.csrf());
+}
+
+module.exports = { locals, flash, csrf, verifyCsrfAfterUpload };

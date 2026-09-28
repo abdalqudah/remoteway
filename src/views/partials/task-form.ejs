@@ -1,0 +1,14 @@
+<%
+  var tk = typeof task !== 'undefined' && task ? task : {};
+  var manage = can('tasks.manage');
+%>
+<%- include('field', { name: 'title', label: t('tasks.title_label'), required: true, value: tk.title }) %>
+<%- include('field', { name: 'description', label: t('fields.description'), type: 'textarea', value: tk.description }) %>
+<div class="form-grid">
+  <% if (manage) { %><%- include('field', { name: 'assignee_user_id', label: t('tasks.assignee'), type: 'select', placeholder: t('tasks.unassigned'), value: tk.assignee_user_id || (tk.id ? '' : currentUser.id), options: members.map(function (m) { return { value: m.id, label: m.name }; }) }) %><% } %>
+  <% if (projects.length) { %><%- include('field', { name: 'project_id', label: t('tasks.project'), type: 'select', placeholder: t('common.none'), value: tk.project_id, options: projects.filter(function (p) { return p.status !== 'archived' || p.id === tk.project_id; }).map(function (p) { return { value: p.id, label: p.name }; }) }) %><% } %>
+  <%- include('field', { name: 'priority', label: t('tasks.priority'), type: 'select', value: tk.priority || 'medium', options: priorities.map(function (p) { return { value: p, label: t('tasks.prio_' + p) }; }) }) %>
+  <%- include('field', { name: 'status', label: t('fields.status'), type: 'select', value: tk.status || 'todo', options: statuses.map(function (s) { return { value: s, label: t('tasks.status_' + s) }; }) }) %>
+  <%- include('field', { name: 'due_date', label: t('tasks.due'), type: 'date', value: fmt.dateInput(tk.due_date) }) %>
+</div>
+<% if (!manage) { %><p class="help"><%= t('tasks.self_assigned_note') %></p><% } %>

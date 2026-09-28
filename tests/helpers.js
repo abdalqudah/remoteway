@@ -1,5 +1,6 @@
 // Test harness: a real MySQL/MariaDB test database (DB_NAME_TEST), rebuilt once per test file.
 process.env.NODE_ENV = 'test';
+process.env.STORAGE_PATH = require('path').join(require('os').tmpdir(), `remoteway-test-storage-${process.pid}`);
 const request = require('supertest');
 const knex = require('../src/db/knex');
 const cache = require('../src/core/cache');

@@ -15,7 +15,13 @@ router.use((req, res, next) => {
 
 router.use('/', require('../modules/dashboard/web'));
 router.use('/onboarding', require('../modules/onboarding/web'));
+router.use('/employees/import', require('../modules/workforce/import.web'));
 router.use('/', require('../modules/workforce/web'));
+router.use('/leave', require('../modules/leave/web'));
+router.use('/attendance', require('../modules/attendance/web'));
+router.use('/documents', require('../modules/documents/web'));
+router.use('/', require('../modules/tasks/web'));
+router.use('/notifications', require('../modules/notifications/web'));
 router.use('/settings', require('../modules/settings/web'));
 router.use('/billing', require('../modules/billing/web'));
 

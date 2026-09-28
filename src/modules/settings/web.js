@@ -9,6 +9,7 @@ const auditLog = require('../organizations/audit.service');
 const rbac = require('../rbac/rbac.service');
 const authService = require('../auth/auth.service');
 const ent = require('../billing/entitlements.service');
+const mailer = require('../../core/mailer');
 
 const router = express.Router();
 const DAYS = ['sat', 'sun', 'mon', 'tue', 'wed', 'thu', 'fri'];
@@ -60,15 +61,23 @@ const renderUsers = async (req, res, extra = {}) => {
   const inviteLink = req.session.lastInviteLink;
   delete req.session.lastInviteLink;
   res.page('pages/settings/users', {
-    title: req.t('settings.users'), section: 'users', members: list, invitations, roles: roles.filter((r) => r.key !== 'owner'), usage, inviteLink, ...extra,
+    title: req.t('settings.users'), section: 'users', members: list, invitations, roles: roles.filter((r) => r.key !== 'owner'), usage, inviteLink,
+    emailEnabled: mailer.enabled(), ...extra,
   });
 };
 router.get('/users', can('users.view'), wrap((req, res) => renderUsers(req, res)));
 router.post('/users/invite', can('users.manage'), form(async (req, res) => {
   const data = validate(z.object({ email: email(), role_id: z.coerce.number().int().positive() }), req.body);
   const { token } = await members.invite(req.ctx, { email: data.email, roleId: data.role_id });
-  req.session.lastInviteLink = `${config.appUrl}/invite/${token}`;
-  flash(req, 'success', req.t('settings.invite_created', { email: data.email }));
+  const link = `${config.appUrl}/invite/${token}`;
+  let emailed = false;
+  if (mailer.enabled()) {
+    const role = await rbac.getRole(req.ctx.organizationId, data.role_id);
+    emailed = await mailer.sendInvitation({ email: data.email, link, organizationName: req.organization.name, roleName: role.name, locale: req.locale })
+      .catch((e) => { console.error('[mail] invitation failed:', e.message); return false; });
+  }
+  if (!emailed) req.session.lastInviteLink = link;
+  flash(req, 'success', req.t(emailed ? 'settings.invite_emailed' : 'settings.invite_created', { email: data.email }));
   res.redirect('/app/settings/users');
 }, (req, res, extra) => renderUsers(req, res, { ...extra, openDialog: 'invite' })));
 router.post('/users/invitations/:id/revoke', can('users.manage'), wrap(async (req, res) => {

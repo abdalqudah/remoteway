@@ -75,6 +75,38 @@ async function applyScope(ctx, query) {
   query.where('e.id', self);
 }
 
+/** Ids of the manager's whole reporting line (direct + indirect), excluding the manager. */
+async function reportIds(organizationId, managerEmployeeId) {
+  const [rows] = await knex.raw(
+    `WITH RECURSIVE team AS (
+       SELECT id FROM employees WHERE manager_id = ? AND organization_id = ?
+       UNION ALL
+       SELECT c.id FROM employees c JOIN team t ON c.manager_id = t.id WHERE c.organization_id = ?
+     ) SELECT id FROM team`, [managerEmployeeId, organizationId, organizationId],
+  );
+  return rows.map((r) => r.id);
+}
+
+/**
+ * Employee ids another module may show to this user:
+ * null = all (employees.view), otherwise self + reporting line (team.view) or just self.
+ */
+async function visibleIds(ctx) {
+  if (ctx.permissions.has('employees.view')) return null;
+  const self = await linkedEmployeeId(ctx);
+  if (!self) return [];
+  if (ctx.permissions.has('team.view')) return [self, ...(await reportIds(ctx.organizationId, self))];
+  return [self];
+}
+
+/** Employee ids whose requests this user may approve: everyone but themselves (HR) or their reporting line (managers). */
+async function approvableIds(ctx) {
+  const self = await linkedEmployeeId(ctx);
+  if (ctx.permissions.has('employees.view')) return { all: true, exclude: self };
+  if (ctx.permissions.has('team.view') && self) return { all: false, ids: await reportIds(ctx.organizationId, self) };
+  return { all: false, ids: [] };
+}
+
 function present(ctx, row) {
   if (!row) return row;
   const out = { ...row, full_name: `${row.first_name} ${row.last_name}` };
@@ -278,4 +310,5 @@ async function forUser(organizationId, userId) {
 
 module.exports = {
   EMPLOYMENT_TYPES, WORK_MODES, STATUSES, list, get, create, update, terminate, reactivate, remove, options, forUser, linkedEmployeeId,
+  visibleIds, approvableIds, reportIds,
 };

@@ -1,0 +1,27 @@
+<%
+  // today: { date, row, isWorkingDay, tz } from attendance.today()
+  var r = today && today.row;
+  var tf = function (v) { return v ? new Intl.DateTimeFormat(locale === 'ar' ? 'ar-SA-u-nu-latn' : 'en-GB', { hour: '2-digit', minute: '2-digit', timeZone: today.tz }).format(new Date(v)) : '—'; };
+  var state = !r || !r.clock_in ? 'out' : r.clock_out ? 'done' : r.break_started_at ? 'break' : 'in';
+%>
+<section class="panel">
+  <div class="panel-head"><div><h2><%= t('attendance.today') %></h2><div class="panel-sub"><%= fmt.date(today.date, { weekday: 'long', day: 'numeric', month: 'long' }) %><%= today.isWorkingDay ? '' : ' · ' + t('attendance.day_off') %></div></div>
+    <span class="st st-<%= state === 'out' ? 'not_yet' : state === 'done' ? 'done' : state === 'break' ? 'late' : 'present' %>"><%= t('attendance.state_' + state) %></span></div>
+  <div class="panel-body clock-card">
+    <div class="clock-steps grow">
+      <span><%= t('attendance.clock_in') %><strong><%= tf(r && r.clock_in) %></strong></span>
+      <span><%= t('attendance.clock_out') %><strong><%= tf(r && r.clock_out) %></strong></span>
+      <span><%= t('attendance.break') %><strong><%= r ? fmt.number(r.break_minutes) + ' ' + t('attendance.min') : '—' %></strong></span>
+      <% if (r && r.late_minutes > 0) { %><span><%= t('attendance.late') %><strong class="overdue"><%= fmt.number(r.late_minutes) %> <%= t('attendance.min') %></strong></span><% } %>
+      <% if (r && r.clock_out) { %><span><%= t('attendance.worked') %><strong><%= Math.floor(r.worked_minutes / 60) %>:<%= String(r.worked_minutes % 60).padStart(2, '0') %></strong></span><% } %>
+    </div>
+    <% if (state !== 'done') { %>
+    <form method="post" action="/app/attendance/clock" class="row-sm">
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+      <% if (state === 'out') { %><button class="btn btn-primary btn-lg" name="action" value="in" type="submit"><%- icon('clock') %><%= t('attendance.clock_in') %></button><% } %>
+      <% if (state === 'in') { %><button class="btn btn-secondary" name="action" value="break_start" type="submit"><%= t('attendance.start_break') %></button><button class="btn btn-dark btn-lg" name="action" value="out" type="submit"><%= t('attendance.clock_out') %></button><% } %>
+      <% if (state === 'break') { %><button class="btn btn-primary btn-lg" name="action" value="break_end" type="submit"><%= t('attendance.end_break') %></button><% } %>
+    </form>
+    <% } %>
+  </div>
+</section>

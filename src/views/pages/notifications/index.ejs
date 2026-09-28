@@ -1,0 +1,15 @@
+<div class="page-head">
+  <div><h1><%= t('notifications.title') %></h1><p><%= t('notifications.subtitle') %></p></div>
+  <% if (items.some(function (n) { return !n.read_at; })) { %><form method="post" action="/app/notifications/read" class="page-actions"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><button class="btn btn-secondary" type="submit"><%- icon('check') %><%= t('notifications.mark_all') %></button></form><% } %>
+</div>
+<section class="panel">
+  <% if (!items.length) { %><div class="empty"><span class="empty-icon"><%- icon('bell') %></span><p><%= t('notifications.empty') %></p></div><% } else { %>
+  <% items.forEach(function (n) { %>
+    <a class="notif <%= n.read_at ? '' : 'unread' %>" href="/app/notifications/<%= n.id %>/open">
+      <span class="dot"></span>
+      <span class="grow"><span style="display:block;font-size:13px"><%= t('notif.' + n.type, n.data) %></span><span class="muted tiny"><%= fmt.date(n.created_at, { dateStyle: 'medium', timeStyle: 'short' }) %></span></span>
+      <%- icon('chevron-right', 'icon-sm muted flip-rtl') %>
+    </a>
+  <% }) %>
+  <% } %>
+</section>

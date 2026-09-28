@@ -1,0 +1,24 @@
+<%
+  // Optional: fixedEmployeeId (upload from an employee profile)
+  var fixed = typeof fixedEmployeeId !== 'undefined' ? fixedEmployeeId : null;
+%>
+<dialog class="dialog" id="upload-dialog"<%= openDialog === 'upload' ? ' data-open-on-load' : '' %>>
+  <form method="post" action="/app/documents" enctype="multipart/form-data" novalidate>
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+    <% if (fixed) { %><input type="hidden" name="employee_id" value="<%= fixed %>"><input type="hidden" name="return_to" value="employee"><% } %>
+    <div class="dialog-head"><div><h2><%= t('documents.upload') %></h2><p class="muted small mt-1"><%= t('documents.upload_sub') %></p></div><button class="btn btn-ghost btn-icon btn-sm" type="button" data-close-dialog aria-label="<%= t('common.close') %>"><%- icon('x') %></button></div>
+    <div class="dialog-body stack">
+      <div class="field"><label class="label" for="doc-file"><%= t('documents.file') %><span class="req">*</span></label><input class="file-input" id="doc-file" type="file" name="file" required accept=".pdf,.png,.jpg,.jpeg,.webp,.doc,.docx,.xls,.xlsx,.txt,.csv">
+        <% if (errors.file) { %><span class="field-error"><%= errors.file %></span><% } else { %><span class="help"><%= t('documents.file_help') %></span><% } %></div>
+      <%- include('field', { name: 'title', label: t('documents.title_label'), required: true }) %>
+      <div class="form-grid">
+        <%- include('field', { name: 'category', label: t('documents.category'), type: 'select', value: 'contract', options: categories.map(function (c) { return { value: c, label: t('documents.cat_' + c) }; }) }) %>
+        <% if (!fixed) { %><%- include('field', { name: 'employee_id', label: t('documents.belongs_to'), type: 'select', placeholder: t('documents.company_wide'), options: people.map(function (p) { return { value: p.id, label: p.first_name + ' ' + p.last_name }; }) }) %><% } %>
+        <%- include('field', { name: 'issue_date', label: t('documents.issue_date'), type: 'date' }) %>
+        <%- include('field', { name: 'expires_at', label: t('documents.expires_at'), type: 'date', help: t('documents.expiry_help') }) %>
+      </div>
+      <label class="check"><input type="checkbox" name="visible_to_employee" checked><%= t('documents.visible_to_employee') %></label>
+    </div>
+    <div class="dialog-foot"><button class="btn btn-ghost" type="button" data-close-dialog><%= t('common.cancel') %></button><button class="btn btn-dark" type="submit"><%- icon('upload') %><%= t('documents.upload') %></button></div>
+  </form>
+</dialog>

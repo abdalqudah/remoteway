@@ -1,0 +1,18 @@
+<% if (can('attendance.manage')) { %>
+<dialog class="dialog" id="manual-dialog">
+  <form method="post" action="/app/attendance/manual" novalidate>
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>"><input type="hidden" name="employee_id" value="">
+    <div class="dialog-head"><div><h2><%= t('attendance.correct_title') %></h2><p class="muted small mt-1"><%= t('attendance.correct_sub') %></p></div><button class="btn btn-ghost btn-icon btn-sm" type="button" data-close-dialog aria-label="<%= t('common.close') %>"><%- icon('x') %></button></div>
+    <div class="dialog-body stack">
+      <div class="form-grid">
+        <div class="field"><label class="label" for="m-date"><%= t('billing.date') %></label><input class="input" id="m-date" type="date" name="work_date" required></div>
+        <div class="field"><label class="label" for="m-break"><%= t('attendance.break') %> (<%= t('attendance.min') %>)</label><input class="input" id="m-break" type="number" min="0" max="600" name="break_minutes" value="0"></div>
+        <div class="field"><label class="label" for="m-in"><%= t('attendance.clock_in') %></label><input class="input" id="m-in" type="time" name="clock_in" required></div>
+        <div class="field"><label class="label" for="m-out"><%= t('attendance.clock_out') %></label><input class="input" id="m-out" type="time" name="clock_out"></div>
+      </div>
+      <div class="field"><label class="label" for="m-note"><%= t('attendance.note') %></label><input class="input" id="m-note" name="note" maxlength="500"></div>
+    </div>
+    <div class="dialog-foot"><button class="btn btn-ghost" type="button" data-close-dialog><%= t('common.cancel') %></button><button class="btn btn-dark" type="submit"><%= t('common.save') %></button></div>
+  </form>
+</dialog>
+<% } %>

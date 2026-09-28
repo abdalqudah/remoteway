@@ -35,13 +35,30 @@
 <section class="kpis" aria-label="<%= t('dashboard.workforce_overview') %>">
   <div class="kpi"><div class="kpi-label"><%- icon('users', 'icon-sm') %><%= t('dashboard.total_employees') %></div><div class="kpi-value"><%= fmt.number(o.total) %></div><div class="kpi-meta"><% if (o.new_this_month) { %><span class="up">+<%= fmt.number(o.new_this_month) %></span> <% } %><%= t('dashboard.new_this_month', { n: fmt.number(o.new_this_month) }) %></div></div>
   <div class="kpi"><div class="kpi-label"><%- icon('user-check', 'icon-sm') %><%= t('dashboard.active') %></div><div class="kpi-value"><%= fmt.number(o.active) %></div><div class="kpi-meta"><%= t('dashboard.on_probation', { n: fmt.number(o.probation) }) %></div></div>
-  <div class="kpi"><div class="kpi-label"><%- icon('plane', 'icon-sm') %><%= t('dashboard.on_leave') %></div><div class="kpi-value"><%= fmt.number(o.on_leave) %></div><div class="kpi-meta"><%= t('dashboard.left_this_month', { n: fmt.number(o.left_this_month) }) %></div></div>
+  <div class="kpi"><div class="kpi-label"><%- icon('plane', 'icon-sm') %><%= t('dashboard.on_leave_today') %></div><div class="kpi-value"><%= fmt.number(today.onLeave !== null ? today.onLeave : o.on_leave) %></div><div class="kpi-meta"><%= t('dashboard.left_this_month', { n: fmt.number(o.left_this_month) }) %></div></div>
   <div class="kpi">
     <div class="kpi-label"><%- icon('gauge', 'icon-sm') %><%= t('dashboard.seats') %></div>
     <div class="kpi-value"><%= fmt.number(data.usage.employees) %><span class="muted" style="font-size:16px;font-weight:600"> / <%= max === null ? '∞' : fmt.number(max) %></span></div>
     <% if (max) { %><div class="meter mt-2 <%= seatPct >= 100 ? 'full' : seatPct >= 90 ? 'warn' : '' %>"><span style="width:<%= seatPct %>%"></span></div><div class="kpi-meta mt-1"><%= t('dashboard.seats_available', { n: fmt.number(Math.max(0, max - data.usage.employees)) }) %></div><% } else { %><div class="kpi-meta"><%= t('billing.unlimited_employees') %></div><% } %>
   </div>
 </section>
+
+<% if (clock || today.attendance) { %>
+<div class="grid grid-3 mt-6">
+  <% if (clock) { %><div class="span-2"><%- include('../../partials/clock-widget', { today: clock }) %></div><% } %>
+  <% if (today.attendance) { var ta = today.attendance; var absent = ta.isWorkingDay && ta.afterStart ? Math.max(0, o.total - ta.present - (today.onLeave || 0)) : null; %>
+  <section class="panel<%= clock ? '' : ' span-2' %>">
+    <div class="panel-head"><div><h2><%= t('dashboard.attendance_today') %></h2><div class="panel-sub"><%= ta.isWorkingDay ? fmt.date(ta.date, { weekday: 'long', day: 'numeric', month: 'short' }) : t('attendance.day_off') %></div></div><a class="btn btn-ghost btn-sm" href="/app/attendance"><%= t('common.view_all') %></a></div>
+    <div class="panel-body"><div class="summary-strip">
+      <span class="chip"><span class="st st-present"><%= t('attendance.status_present') %></span><strong><%= fmt.number(ta.present) %></strong></span>
+      <span class="chip"><span class="st st-late"><%= t('attendance.status_late') %></span><strong><%= fmt.number(ta.late) %></strong></span>
+      <span class="chip"><span class="st st-absent"><%= t('attendance.status_absent') %></span><strong><%= absent === null ? '—' : fmt.number(absent) %></strong></span>
+      <% if (today.onLeave !== null) { %><span class="chip"><span class="st st-on_leave"><%= t('attendance.status_on_leave') %></span><strong><%= fmt.number(today.onLeave) %></strong></span><% } %>
+    </div></div>
+  </section>
+  <% } %>
+</div>
+<% } %>
 
 <div class="grid grid-3 mt-6">
   <section class="panel span-2">
@@ -101,10 +118,13 @@
     </div>
   </section>
   <section class="panel">
-    <div class="panel-head"><div><h2><%= t('dashboard.operations') %></h2><div class="panel-sub"><%= t('dashboard.operations_sub') %></div></div></div>
+    <div class="panel-head"><div><h2><%= t('dashboard.operations') %></h2><div class="panel-sub"><%= t('dashboard.operations_live') %></div></div></div>
     <ul class="action-list">
-      <% [['attendance', 'calendar-check', 'dashboard.op_attendance'], ['leave', 'plane', 'dashboard.op_leave'], ['recruitment', 'briefcase', 'dashboard.op_recruitment'], ['payroll', 'wallet', 'dashboard.op_payroll'], ['documents', 'file-text', 'dashboard.op_documents']].forEach(function (m) { var mod = MODULES.find(function (x) { return x.key === m[0]; }); %>
-        <li><a href="/app/modules/<%= m[0] %>"><span class="action-icon"><%- icon(m[1], 'icon-sm') %></span><span class="grow small"><%= t(m[2]) %></span><span class="badge badge-soon"><%= t('common.phase', { n: mod.phase }) %></span></a></li>
+      <% if (today.approvals !== null) { %><li><a href="/app/leave?tab=approvals"><span class="action-icon <%= today.approvals ? 'warning' : '' %>"><%- icon('plane', 'icon-sm') %></span><span class="grow small"><%= t('dashboard.op_leave_pending') %></span><strong class="num"><%= fmt.number(today.approvals) %></strong></a></li><% } %>
+      <% if (today.docs) { %><li><a href="/app/documents?expiry=expiring"><span class="action-icon <%= today.docs.expired ? 'danger' : today.docs.expiring ? 'warning' : '' %>"><%- icon('file-text', 'icon-sm') %></span><span class="grow small"><%= t('dashboard.op_docs') %></span><strong class="num"><%= fmt.number(today.docs.expiring + today.docs.expired) %></strong></a></li><% } %>
+      <% if (openTasks !== null) { %><li><a href="/app/tasks"><span class="action-icon"><%- icon('list-checks', 'icon-sm') %></span><span class="grow small"><%= t('dashboard.op_tasks') %></span><strong class="num"><%= fmt.number(openTasks) %></strong></a></li><% } %>
+      <% [['recruitment', 'briefcase', 'dashboard.op_recruitment'], ['payroll', 'wallet', 'dashboard.op_payroll']].forEach(function (m) { var mod = MODULES.find(function (x) { return x.key === m[0]; }); %>
+        <li><a href="/app/modules/<%= m[0] %>"><span class="action-icon"><%- icon(m[1], 'icon-sm') %></span><span class="grow small muted"><%= t(m[2]) %></span><span class="badge badge-soon"><%= t('common.phase', { n: mod.phase }) %></span></a></li>
       <% }) %>
     </ul>
   </section>

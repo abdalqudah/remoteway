@@ -1,6 +1,7 @@
 <%
   var e = employee;
-  var tabs = [['overview', true], ['employment', true], ['contract', false], ['documents', false], ['attendance', false], ['leave', false], ['payroll', false], ['performance', false], ['training', false], ['activity', false]];
+  var tabs = [['overview', true], ['employment', true], ['documents', hasFeature('documents')], ['attendance', hasFeature('attendance')], ['leave', hasFeature('leave')], ['contract', false], ['payroll', false], ['performance', false], ['training', false]];
+  var typeName = function (x) { return locale === 'ar' ? (x.type_name_ar || x.name_ar || x.type_name || x.name) : (x.type_name || x.name); };
 %>
 <div class="page-head">
   <div class="row" style="align-items:center">
@@ -67,6 +68,50 @@
     <% if (e.base_salary !== undefined) { %><dt><%= t('fields.base_salary') %></dt><dd class="num"><%= e.base_salary !== null ? fmt.money(e.base_salary, e.salary_currency || organization.currency) : '—' %></dd><% } %>
   </dl></div>
 </section>
+<% } else if (tab === 'documents' && typeof docs !== 'undefined') { %>
+<section class="panel">
+  <div class="panel-head"><h2><%= t('nav.documents') %></h2><% if (can('documents.manage')) { %><button class="btn btn-dark btn-sm" type="button" data-open-dialog="upload-dialog"><%- icon('upload', 'icon-sm') %><%= t('documents.upload') %></button><% } %></div>
+  <%- include('../../partials/document-table', { rows: docs, hideOwner: true }) %>
+</section>
+<% if (can('documents.manage')) { %><%- include('../../partials/document-upload', { fixedEmployeeId: e.id }) %><% } %>
+<% } else if (tab === 'leave' && typeof balances !== 'undefined') { %>
+<div class="balances mb-6">
+  <% balances.forEach(function (b) { %>
+    <div class="balance"><div class="small" style="font-weight:600"><span class="swatch" style="background:<%= b.type.color %>"></span><%= typeName(b.type) %></div>
+      <div class="big"><%= b.available === null ? '—' : fmt.number(b.available) %></div>
+      <div class="muted tiny"><%= b.available === null ? t('leave.not_tracked') : t('leave.balance_line', { used: fmt.number(b.used), total: fmt.number(b.entitled), pending: fmt.number(b.pending) }) %></div></div>
+  <% }) %>
+</div>
+<div class="grid grid-3">
+<section class="panel span-2">
+  <div class="panel-head"><h2><%= t('leave.requests') %></h2></div>
+  <% if (!requests.length) { %><div class="empty"><p><%= t('leave.no_requests') %></p></div><% } else { %>
+  <div class="table-wrap"><table class="table"><tbody><% requests.forEach(function (r) { %>
+    <tr><td><%= typeName(r) %></td><td class="nowrap"><%= fmt.date(r.start_date) %> → <%= fmt.date(r.end_date) %></td><td class="num"><%= fmt.number(r.days) %></td><td><span class="st st-<%= r.status %>"><%= t('leave.status_' + r.status) %></span></td></tr>
+  <% }) %></tbody></table></div><% } %>
+</section>
+<% if (can('leave.approve') && can('employees.view')) { %>
+<form method="post" action="/app/leave/balances/adjust" class="panel" novalidate>
+  <input type="hidden" name="_csrf" value="<%= csrfToken %>"><input type="hidden" name="employee_id" value="<%= e.id %>">
+  <div class="panel-head"><div><h2><%= t('leave.adjust') %></h2><div class="panel-sub"><%= t('leave.adjust_sub') %></div></div></div>
+  <div class="panel-body stack">
+    <div class="field"><label class="label" for="adj-type"><%= t('leave.type') %></label><select class="select" id="adj-type" name="leave_type_id"><% leaveTypes.filter(function (x) { return x.has_balance; }).forEach(function (x) { %><option value="<%= x.id %>"><%= typeName(x) %></option><% }) %></select></div>
+    <div class="field"><label class="label" for="adj-days"><%= t('leave.adjust_days') %></label><input class="input" id="adj-days" type="number" step="0.5" name="adjustment" required placeholder="+2 / -1"></div>
+    <div class="field"><label class="label" for="adj-note"><%= t('attendance.note') %></label><input class="input" id="adj-note" name="note" maxlength="200"></div>
+  </div>
+  <div class="panel-foot"><button class="btn btn-dark btn-sm" type="submit"><%= t('common.save') %></button></div>
+</form>
+<% } %>
+</div>
+<% } else if (tab === 'attendance' && typeof sheet !== 'undefined') { %>
+<% var hm = function (m) { return Math.floor(m / 60) + ':' + String(m % 60).padStart(2, '0'); }; %>
+<section class="kpis mb-6">
+  <div class="kpi"><div class="kpi-label"><%= t('attendance.days_present') %></div><div class="kpi-value"><%= fmt.number(sheet.totals.present) %></div><div class="kpi-meta"><%= fmt.date(sheet.month + '-01', { month: 'long', year: 'numeric' }) %></div></div>
+  <div class="kpi"><div class="kpi-label"><%= t('attendance.hours_worked') %></div><div class="kpi-value"><%= hm(sheet.totals.worked) %></div></div>
+  <div class="kpi"><div class="kpi-label"><%= t('attendance.late_days') %></div><div class="kpi-value"><%= fmt.number(sheet.totals.late) %></div></div>
+  <div class="kpi"><div class="kpi-label"><%= t('attendance.absent_days') %></div><div class="kpi-value"><%= fmt.number(sheet.totals.absent) %></div></div>
+</section>
+<a class="btn btn-secondary" href="/app/attendance/employees/<%= e.id %>"><%- icon('calendar-days') %><%= t('attendance.open_timesheet') %></a>
 <% } else { %>
 <section class="panel"><div class="empty">
   <span class="empty-icon"><%- icon('clock') %></span>

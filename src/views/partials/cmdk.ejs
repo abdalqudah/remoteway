@@ -8,6 +8,13 @@
     can('employees.view') || can('team.view') ? { title: t('nav.employees'), href: '/app/employees', icon: 'users' } : null,
     can('employees.create') ? { title: t('employees.add'), href: '/app/employees/new', icon: 'user-plus' } : null,
     can('employees.view') ? { title: t('nav.structure'), href: '/app/structure', icon: 'building-2' } : null,
+    hasFeature('attendance') ? { title: t('nav.attendance'), href: '/app/attendance', icon: 'calendar-check' } : null,
+    hasFeature('leave') ? { title: t('nav.leave'), href: '/app/leave', icon: 'plane' } : null,
+    hasFeature('leave') && can('leave.approve') ? { title: t('leave.tab_approvals'), href: '/app/leave?tab=approvals', icon: 'circle-check' } : null,
+    hasFeature('documents') ? { title: t('nav.documents'), href: '/app/documents', icon: 'file-text' } : null,
+    hasFeature('tasks') ? { title: t('nav.tasks'), href: '/app/tasks', icon: 'list-checks' } : null,
+    can('employees.create') ? { title: t('import.title'), href: '/app/employees/import', icon: 'upload' } : null,
+    { title: t('notifications.title'), href: '/app/notifications', icon: 'bell' },
     can('users.view') ? { title: t('settings.users'), href: '/app/settings/users', icon: 'user-cog' } : null,
     can('billing.view') ? { title: t('nav.billing'), href: '/app/billing', icon: 'receipt' } : null,
     { title: t('nav.settings'), href: '/app/settings', icon: 'settings' }

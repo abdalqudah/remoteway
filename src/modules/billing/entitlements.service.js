@@ -41,6 +41,9 @@ async function loadEntitlements(organizationId) {
   let status = sub.status;
   if (status === 'trial' && sub.trial_ends_at && new Date(sub.trial_ends_at).getTime() < now) status = 'trial_expired';
   if (status === 'past_due' && sub.grace_ends_at && new Date(sub.grace_ends_at).getTime() < now) status = 'suspended';
+  // A platform suspension of the organization overrides the subscription.
+  const org = await knex('organizations').where({ id: organizationId }).first('status');
+  if (org && org.status !== 'active') status = 'suspended';
   const trialDaysLeft = sub.status === 'trial' && sub.trial_ends_at
     ? Math.max(0, Math.ceil((new Date(sub.trial_ends_at).getTime() - now) / 86_400_000)) : 0;
 
@@ -70,11 +73,11 @@ async function getUsage(organizationId, trx = knex) {
     .where('expires_at', '>', new Date()).count({ invites: '*' });
   const metered = await trx('usage_records').where({ organization_id: organizationId, period: currentPeriod() });
   const m = Object.fromEntries(metered.map((r) => [r.metric, Number(r.quantity)]));
-  const storage = await trx('usage_records').where({ organization_id: organizationId, metric: 'storage_mb' }).max({ q: 'quantity' }).first();
+  const storage = await trx('document_versions').where({ organization_id: organizationId }).sum({ q: 'size_bytes' }).first();
   return {
     employees: Number(employees),
     users: Number(users) + Number(invites),
-    storage_mb: Number(storage?.q || 0),
+    storage_mb: Math.ceil(Number(storage?.q || 0) / (1024 * 1024)),
     api_calls_monthly: m.api_calls || 0,
     ai_requests_monthly: m.ai_requests || 0,
     active_jobs: 0,

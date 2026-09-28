@@ -120,7 +120,7 @@
   /* ---------- Auto-submit filter forms ---------- */
   $$('form[data-autosubmit]').forEach(function (form) {
     var timer;
-    $$('select', form).forEach(function (s) { s.addEventListener('change', function () { form.submit(); }); });
+    $$('select, input[type=checkbox], input[type=date]', form).forEach(function (s) { s.addEventListener('change', function () { form.submit(); }); });
     $$('input[type=search]', form).forEach(function (i) {
       i.addEventListener('input', function () { clearTimeout(timer); timer = setTimeout(function () { form.submit(); }, 400); });
     });
@@ -251,6 +251,33 @@
     });
     var kbd = $('.search-trigger .kbd');
     if (kbd && /Mac|iPhone|iPad/.test(navigator.platform || '')) kbd.textContent = '⌘K';
+  }
+
+  /* ---------- Task board drag & drop (falls back to the status form without JS) ---------- */
+  var board = $('[data-board]');
+  if (board) {
+    var dragged = null;
+    $$('.task-card', board).forEach(function (card) {
+      card.addEventListener('dragstart', function (e) { dragged = card; card.classList.add('dragging'); e.dataTransfer.effectAllowed = 'move'; });
+      card.addEventListener('dragend', function () { card.classList.remove('dragging'); dragged = null; });
+    });
+    $$('.board-col', board).forEach(function (col) {
+      col.addEventListener('dragover', function (e) { e.preventDefault(); col.classList.add('drop'); });
+      col.addEventListener('dragleave', function () { col.classList.remove('drop'); });
+      col.addEventListener('drop', function (e) {
+        e.preventDefault();
+        col.classList.remove('drop');
+        if (!dragged) return;
+        var card = dragged;
+        var from = card.closest('.board-col');
+        if (from === col) return;
+        col.querySelector('.board-list').prepend(card);
+        var body = new URLSearchParams({ status: col.getAttribute('data-status'), _csrf: csrf });
+        fetch('/app/tasks/' + card.getAttribute('data-task') + '/status', { method: 'POST', body: body, credentials: 'same-origin', headers: { 'x-csrf-token': csrf } })
+          .then(function (r) { if (!r.ok) throw new Error('failed'); window.location.reload(); })
+          .catch(function () { from.querySelector('.board-list').prepend(card); });
+      });
+    });
   }
 
   // Keep csrf available for fetch-based features.

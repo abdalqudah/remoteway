@@ -1,0 +1,46 @@
+<%
+  var tf = function (v) { return v ? new Intl.DateTimeFormat(locale === 'ar' ? 'ar-SA-u-nu-latn' : 'en-GB', { hour: '2-digit', minute: '2-digit', timeZone: sheet.tz }).format(new Date(v)) : '—'; };
+  var local = function (v) { return v ? new Intl.DateTimeFormat('en-GB', { hour: '2-digit', minute: '2-digit', hourCycle: 'h23', timeZone: sheet.tz }).format(new Date(v)) : ''; };
+  var hm = function (m) { return Math.floor(m / 60) + ':' + String(m % 60).padStart(2, '0'); };
+  var prev = new Date(Date.UTC(Number(sheet.month.slice(0, 4)), Number(sheet.month.slice(5, 7)) - 2, 1)).toISOString().slice(0, 7);
+  var next = new Date(Date.UTC(Number(sheet.month.slice(0, 4)), Number(sheet.month.slice(5, 7)), 1)).toISOString().slice(0, 7);
+  var isSelf = today && today.row !== undefined && employee.user_id === currentUser.id;
+%>
+<div class="page-head">
+  <div>
+    <div class="eyebrow"><% if (can('attendance.view')) { %><a href="/app/attendance"><%= t('nav.attendance') %></a><%- icon('chevron-right', 'icon-sm flip-rtl') %><% } %><%= employee.employee_number %></div>
+    <h1><%= employee.full_name %></h1><p><%= t('attendance.timesheet') %> · <%= fmt.date(sheet.month + '-01', { month: 'long', year: 'numeric' }) %></p>
+  </div>
+  <div class="page-actions">
+    <a class="btn btn-secondary btn-icon" href="?month=<%= prev %>" aria-label="<%= t('table.prev') %>"><%- icon('chevron-left', 'flip-rtl') %></a>
+    <a class="btn btn-secondary btn-icon" href="?month=<%= next %>" aria-label="<%= t('table.next') %>"><%- icon('chevron-right', 'flip-rtl') %></a>
+  </div>
+</div>
+
+<% if (isSelf) { %><div class="mb-6"><%- include('../../partials/clock-widget', { today: today }) %></div><% } %>
+
+<section class="kpis mb-6">
+  <div class="kpi"><div class="kpi-label"><%= t('attendance.days_present') %></div><div class="kpi-value"><%= fmt.number(sheet.totals.present) %></div></div>
+  <div class="kpi"><div class="kpi-label"><%= t('attendance.hours_worked') %></div><div class="kpi-value"><%= hm(sheet.totals.worked) %></div><div class="kpi-meta"><%= t('attendance.overtime') %>: <%= hm(sheet.totals.overtime) %></div></div>
+  <div class="kpi"><div class="kpi-label"><%= t('attendance.late_days') %></div><div class="kpi-value"><%= fmt.number(sheet.totals.late) %></div></div>
+  <div class="kpi"><div class="kpi-label"><%= t('attendance.absent_days') %></div><div class="kpi-value"><%= fmt.number(sheet.totals.absent) %></div><div class="kpi-meta"><%= t('attendance.leave_days', { n: fmt.number(sheet.totals.leave) }) %></div></div>
+</section>
+
+<section class="panel">
+  <div class="table-wrap"><table class="table">
+    <thead><tr><th><%= t('billing.date') %></th><th><%= t('fields.status') %></th><th><%= t('attendance.clock_in') %></th><th><%= t('attendance.clock_out') %></th><th class="text-end"><%= t('attendance.break') %></th><th class="text-end"><%= t('attendance.worked') %></th><th class="text-end"><%= t('attendance.overtime') %></th><th class="actions"></th></tr></thead>
+    <tbody><% sheet.days.forEach(function (d) { var r = d.record; %>
+      <tr class="<%= d.working ? '' : 'muted' %>">
+        <td class="nowrap"><%= fmt.date(d.date, { weekday: 'short', day: 'numeric', month: 'short' }) %></td>
+        <td><span class="st st-<%= d.status %>"><%= d.leave ? d.leave : t('attendance.status_' + d.status) %></span><% if (r && r.source === 'manual') { %> <span class="muted tiny" title="<%= r.note || '' %>"><%= t('attendance.edited') %></span><% } %></td>
+        <td class="num"><%= tf(r && r.clock_in) %></td>
+        <td class="num"><%= tf(r && r.clock_out) %></td>
+        <td class="text-end num"><%= r ? r.break_minutes : '—' %></td>
+        <td class="text-end num"><%= r && r.clock_out ? hm(r.worked_minutes) : '—' %></td>
+        <td class="text-end num"><%= r && r.overtime_minutes ? hm(r.overtime_minutes) : '—' %></td>
+        <td class="actions"><% if (can('attendance.manage')) { %><button class="btn btn-ghost btn-sm btn-icon" type="button" aria-label="<%= t('attendance.correct') %>" data-open-dialog="manual-dialog" data-fill="<%= JSON.stringify({ employee_id: employee.id, work_date: d.date, clock_in: local(r && r.clock_in) || '09:00', clock_out: local(r && r.clock_out), break_minutes: r ? r.break_minutes : 0, note: (r && r.note) || '' }) %>"><%- icon('pencil', 'icon-sm') %></button><% } %></td>
+      </tr>
+    <% }) %></tbody>
+  </table></div>
+</section>
+<%- include('../../partials/attendance-manual') %>

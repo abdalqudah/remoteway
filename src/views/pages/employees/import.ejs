@@ -1,0 +1,80 @@
+<%
+  var steps = ['upload', 'map', 'preview', 'done'];
+  var idx = steps.indexOf(step);
+%>
+<div class="page-head">
+  <div><div class="eyebrow"><a href="/app/employees"><%= t('nav.employees') %></a><%- icon('chevron-right', 'icon-sm flip-rtl') %></div><h1><%= t('import.title') %></h1><p><%= t('import.subtitle') %></p></div>
+  <div class="page-actions"><a class="btn btn-secondary" href="/app/employees/import/template.csv"><%- icon('download') %><%= t('import.template') %></a></div>
+</div>
+<div class="steps" style="max-width:720px">
+  <% steps.forEach(function (s, i) { %><div class="step <%= i < idx ? 'done' : i === idx ? 'current' : '' %>"><div class="bar"></div><div class="step-label"><%= i + 1 %> · <%= t('import.step_' + s) %></div></div><% }) %>
+</div>
+
+<% if (step === 'upload') { %>
+  <form method="post" action="/app/employees/import" enctype="multipart/form-data" class="panel" style="max-width:720px" novalidate>
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+    <div class="panel-body stack">
+      <input class="file-input" type="file" name="file" accept=".csv,text/csv" required aria-label="CSV">
+      <% if (errors.file) { %><span class="field-error"><%= errors.file %></span><% } %>
+      <p class="help"><%= t('import.upload_help') %></p>
+      <div class="code-box" dir="ltr"><%= fields.join(', ') %></div>
+    </div>
+    <div class="panel-foot"><button class="btn btn-dark" type="submit"><%= t('common.continue') %><%- icon('arrow-right', 'flip-rtl') %></button></div>
+  </form>
+
+<% } else if (step === 'map') { %>
+  <form method="post" action="/app/employees/import/preview" class="panel" novalidate>
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+    <div class="panel-head"><div><h2><%= t('import.map_title') %></h2><div class="panel-sub"><%= parsed.fileName %> · <%= t('import.rows', { n: fmt.number(parsed.rows.length) }) %></div></div></div>
+    <div class="panel-body stack">
+      <div class="map-grid">
+        <% fields.forEach(function (f) { var err = errors['map_' + f]; %>
+          <label class="label" for="map-<%= f %>"><%= t('import.f_' + f) %><% if (required.indexOf(f) >= 0) { %><span class="req">*</span><% } %></label>
+          <div>
+            <select class="select<%= err ? ' is-invalid' : '' %>" id="map-<%= f %>" name="map_<%= f %>">
+              <option value=""><%= t('import.skip') %></option>
+              <% parsed.headers.forEach(function (h, i) { %><option value="<%= i %>"<%= String(parsed.mapping[f]) === String(i) ? ' selected' : '' %>><%= h || ('#' + (i + 1)) %><%= sample[0] && sample[0][i] ? ' — ' + String(sample[0][i]).slice(0, 30) : '' %></option><% }) %>
+            </select>
+            <% if (err) { %><span class="field-error"><%= t('import.map_required') %></span><% } %>
+          </div>
+        <% }) %>
+      </div>
+      <label class="check"><input type="checkbox" name="create_missing"<%= parsed.createMissing ? ' checked' : '' %>><%= t('import.create_missing') %></label>
+    </div>
+    <div class="panel-foot" style="justify-content:space-between"><a class="btn btn-ghost" href="/app/employees/import?reset=1"><%= t('import.start_over') %></a><button class="btn btn-dark" type="submit"><%= t('import.validate') %><%- icon('arrow-right', 'flip-rtl') %></button></div>
+  </form>
+
+<% } else if (step === 'preview') { %>
+  <div class="summary-strip mb-4">
+    <span class="chip"><span class="st st-approved"><%= t('import.valid') %></span><strong><%= fmt.number(result.valid) %></strong></span>
+    <span class="chip"><span class="st st-rejected"><%= t('import.invalid') %></span><strong><%= fmt.number(result.invalid) %></strong></span>
+    <% if (result.seatsLeft !== null) { %><span class="chip"><%= t('import.seats_left') %><strong><%= fmt.number(result.seatsLeft) %></strong></span><% } %>
+  </div>
+  <% if (!result.fitsSeats) { %>
+    <div class="alert alert-warning mb-4"><%- icon('triangle-alert') %><div class="grow"><div class="alert-title"><%= t('limits.employee_limit_title') %></div><div class="text-2"><%= t('import.over_limit', { valid: fmt.number(result.valid), left: fmt.number(result.seatsLeft) }) %></div></div><% if (can('billing.manage')) { %><a class="btn btn-dark btn-sm" href="/app/billing"><%= t('billing.upgrade_plan') %></a><% } %></div>
+  <% } %>
+  <section class="panel">
+    <div class="table-wrap"><table class="table">
+      <thead><tr><th>#</th><th><%= t('fields.name') %></th><th><%= t('fields.email') %></th><th><%= t('fields.job_title') %></th><th><%= t('fields.department') %></th><th><%= t('import.result') %></th></tr></thead>
+      <tbody><% result.items.slice(0, 200).forEach(function (it) { var p = it.data; %>
+        <tr class="<%= it.errors.length ? 'row-error' : '' %>"><td class="muted num"><%= it.line %></td><td><%= p.first_name %> <%= p.last_name %></td><td class="muted"><%= p.email || '—' %></td><td><%= p.job_title || '—' %></td>
+          <td><%= p.department_id ? '✓' : (p.new_department ? p.new_department + ' (' + t('import.new') + ')' : '—') %></td>
+          <td class="small"><% if (it.errors.length) { %><span class="field-error"><%= it.errors.join(' · ') %></span><% } else { %><span class="st st-approved"><%= t('import.ok') %></span><% } %></td></tr>
+      <% }) %></tbody>
+    </table></div>
+    <form method="post" action="/app/employees/import/run" class="panel-foot" style="justify-content:space-between">
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+      <a class="btn btn-ghost" href="/app/employees/import"><%= t('common.back') %></a>
+      <button class="btn btn-primary" type="submit"<%= !result.valid || !result.fitsSeats ? ' disabled' : '' %>><%- icon('upload') %><%= t('import.run', { n: fmt.number(result.valid) }) %></button>
+    </form>
+  </section>
+
+<% } else if (step === 'done') { %>
+  <section class="panel" style="max-width:720px"><div class="empty">
+    <span class="empty-icon"><%- icon('circle-check') %></span>
+    <h3><%= t('import.done_title', { n: fmt.number(done.imported) }) %></h3>
+    <% if (done.skipped) { %><p><%= t('import.done_skipped', { n: fmt.number(done.skipped) }) %></p><% } %>
+    <% if (done.failed.length) { %><div class="alert alert-warning" style="text-align:start"><%- icon('triangle-alert') %><div class="grow small"><% done.failed.forEach(function (f) { %><div><%= t('import.line') %> <%= f.line %>: <%= f.error %></div><% }) %></div></div><% } %>
+    <div class="row wrap" style="justify-content:center"><a class="btn btn-dark" href="/app/employees"><%= t('nav.employees') %></a><a class="btn btn-secondary" href="/app/employees/import?reset=1"><%= t('import.another') %></a></div>
+  </div></section>
+<% } %>

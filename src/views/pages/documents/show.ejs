@@ -1,0 +1,68 @@
+<%
+  var d = doc; var v = d.versions[0];
+  var canManage = can('documents.manage');
+  var previewable = v && /^(application\/pdf|image\/)/.test(v.mime_type);
+%>
+<div class="page-head">
+  <div>
+    <div class="eyebrow"><a href="/app/documents"><%= t('nav.documents') %></a><%- icon('chevron-right', 'icon-sm flip-rtl') %><%= t('documents.cat_' + d.category) %></div>
+    <h1><%= d.title %></h1>
+    <p><%= d.employee_id ? d.first_name + ' ' + d.last_name : t('documents.company_wide') %><% if (d.expires_at) { %> · <span class="st st-<%= d.expiry %>"><%= t('documents.expiry_' + d.expiry) %> <%= fmt.date(d.expires_at) %></span><% } %></p>
+  </div>
+  <div class="page-actions">
+    <% if (previewable) { %><a class="btn btn-secondary" href="/app/documents/<%= d.id %>/download?inline=1" target="_blank" rel="noopener"><%- icon('eye') %><%= t('documents.preview') %></a><% } %>
+    <a class="btn btn-dark" href="/app/documents/<%= d.id %>/download"><%- icon('download') %><%= t('documents.download') %></a>
+  </div>
+</div>
+<div class="grid grid-3">
+  <section class="panel span-2">
+    <div class="panel-head"><h2><%= t('documents.versions') %></h2><% if (canManage) { %><button class="btn btn-secondary btn-sm" type="button" data-open-dialog="version-dialog"><%- icon('upload', 'icon-sm') %><%= t('documents.new_version') %></button><% } %></div>
+    <div class="table-wrap"><table class="table">
+      <thead><tr><th><%= t('documents.version') %></th><th><%= t('documents.file') %></th><th><%= t('documents.uploaded_by') %></th><th><%= t('billing.date') %></th><th class="text-end"><%= t('documents.size') %></th><th class="actions"></th></tr></thead>
+      <tbody><% d.versions.forEach(function (x, i) { %>
+        <tr><td><span class="badge <%= i === 0 ? 'badge-success' : '' %>">v<%= x.version %></span></td><td class="truncate" style="max-width:240px"><%= x.original_name %></td><td class="muted"><%= x.uploaded_by_name || '—' %></td><td class="muted nowrap"><%= fmt.date(x.created_at, { dateStyle: 'medium', timeStyle: 'short' }) %></td>
+          <td class="text-end num muted"><%= x.size_bytes > 1048576 ? (x.size_bytes / 1048576).toFixed(1) + ' MB' : Math.ceil(x.size_bytes / 1024) + ' KB' %></td>
+          <td class="actions"><a class="btn btn-ghost btn-sm btn-icon" href="/app/documents/<%= d.id %>/download?v=<%= x.id %>" aria-label="<%= t('documents.download') %>"><%- icon('download', 'icon-sm') %></a></td></tr>
+      <% }) %></tbody>
+    </table></div>
+  </section>
+  <section class="panel">
+    <div class="panel-head"><h2><%= t('documents.details') %></h2></div>
+    <% if (canManage) { %>
+    <form method="post" action="/app/documents/<%= d.id %>" novalidate>
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+      <div class="panel-body stack">
+        <%- include('../../partials/field', { name: 'title', label: t('documents.title_label'), required: true, value: d.title }) %>
+        <%- include('../../partials/field', { name: 'category', label: t('documents.category'), type: 'select', value: d.category, options: categories.map(function (c) { return { value: c, label: t('documents.cat_' + c) }; }) }) %>
+        <%- include('../../partials/field', { name: 'issue_date', label: t('documents.issue_date'), type: 'date', value: fmt.dateInput(d.issue_date) }) %>
+        <%- include('../../partials/field', { name: 'expires_at', label: t('documents.expires_at'), type: 'date', value: fmt.dateInput(d.expires_at) }) %>
+        <label class="check"><input type="checkbox" name="visible_to_employee"<%= d.visible_to_employee ? ' checked' : '' %>><%= t('documents.visible_to_employee') %></label>
+      </div>
+      <div class="panel-foot" style="justify-content:space-between"><button class="btn btn-danger-ghost btn-sm" type="button" data-open-dialog="delete-doc"><%- icon('trash-2', 'icon-sm') %><%= t('common.delete') %></button><button class="btn btn-dark btn-sm" type="submit"><%= t('common.save') %></button></div>
+    </form>
+    <% } else { %>
+    <div class="panel-body"><dl class="dl" style="grid-template-columns:1fr">
+      <dt><%= t('documents.issue_date') %></dt><dd><%= fmt.date(d.issue_date) %></dd>
+      <dt><%= t('documents.expires_at') %></dt><dd><%= fmt.date(d.expires_at) %></dd>
+    </dl></div>
+    <% } %>
+  </section>
+</div>
+<% if (canManage) { %>
+<dialog class="dialog" id="version-dialog">
+  <form method="post" action="/app/documents/<%= d.id %>/versions" enctype="multipart/form-data" novalidate>
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+    <div class="dialog-head"><h2><%= t('documents.new_version') %></h2><button class="btn btn-ghost btn-icon btn-sm" type="button" data-close-dialog aria-label="<%= t('common.close') %>"><%- icon('x') %></button></div>
+    <div class="dialog-body stack"><input class="file-input" type="file" name="file" required accept=".pdf,.png,.jpg,.jpeg,.webp,.doc,.docx,.xls,.xlsx,.txt,.csv"><span class="help"><%= t('documents.file_help') %></span></div>
+    <div class="dialog-foot"><button class="btn btn-ghost" type="button" data-close-dialog><%= t('common.cancel') %></button><button class="btn btn-dark" type="submit"><%= t('documents.upload') %></button></div>
+  </form>
+</dialog>
+<dialog class="dialog" id="delete-doc">
+  <form method="post" action="/app/documents/<%= d.id %>/delete">
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+    <div class="dialog-head"><h2><%= t('documents.delete_title') %></h2></div>
+    <div class="dialog-body"><p class="text-2"><%= t('documents.delete_text', { n: d.versions.length }) %></p></div>
+    <div class="dialog-foot"><button class="btn btn-ghost" type="button" data-close-dialog><%= t('common.cancel') %></button><button class="btn btn-danger" type="submit"><%= t('common.delete') %></button></div>
+  </form>
+</dialog>
+<% } %>

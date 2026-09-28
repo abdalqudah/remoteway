@@ -124,7 +124,7 @@ All of them carry `organization_id` and a composite index that starts with it.
 | 4 | Plans, Features, Limits, Add-ons, Subscriptions, Invoices | 1 | **Built** |
 | 5 | Employees, Departments, Locations | 1–2 | **Built** (core); CSV import in P2 |
 | 6 | Super Admin (tenants, plans, invoices, audit) | 1 | **Built** |
-| 7 | Documents, Attendance, Leave, Tasks/Projects, Notifications, Email templates, Compliance | 2 | Planned |
+| 7 | Documents, Attendance, Leave, Tasks/Projects, Notifications, CSV import | 2 | **Built** (email templates & compliance dashboard move to Phase 3) |
 | 8 | Recruitment/ATS, Candidates, Interviews, Onboarding checklists | 3 | Planned |
 | 9 | Payroll, Payslips, Allowances/Deductions (Country Policy Engine) | 4 | Planned |
 | 10 | Performance (Goals, KPIs, OKRs, Reviews) | 5 | Planned |
@@ -264,7 +264,7 @@ Payroll / Employees ─► domain events (payroll.approved, employee.updated)
 | Phase | Scope | Exit criteria |
 |---|---|---|
 | **1 — SaaS Core** | Auth, multi-tenancy, orgs, users, roles, permissions, plans, features, subscriptions, limits, billing foundation, dashboard | ✅ Done: 33 integration tests (tenant isolation, limits, RBAC, subscription, CSRF/auth) |
-| 2 — Workforce | Documents (object storage + signed URLs), attendance, leave (country policies), tasks, notifications (in-app + email), CSV import wizard, compliance basics | Same DoD as below |
+| **2 — Workforce** | Documents (private storage, versions, expiry), attendance, leave (types, balances, approvals, calendar), tasks & projects, notifications (in-app + SMTP email), CSV import wizard | ✅ Done — 20 more integration tests (leave scope/balances, attendance, document access & CSRF on uploads, tasks visibility, import limits) |
 | 3 — Talent | Jobs, candidates, pipeline, interviews, assessments, hire → onboarding | |
 | 4 — Payroll | Payroll runs (draft → review → approved → processed → paid), payslips, Saudi rules via the Country Policy Engine | |
 | 5 — Performance | Cycles, goals, KPIs/OKRs, reviews, feedback | |

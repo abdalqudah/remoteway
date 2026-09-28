@@ -1,0 +1,159 @@
+<%
+  var typeName = function (x) { return locale === 'ar' ? (x.type_name_ar || x.name_ar || x.type_name || x.name) : (x.type_name || x.name); };
+  var d = function (v) { return v instanceof Date ? v.toISOString().slice(0, 10) : String(v).slice(0, 10); };
+  var tabs = [['mine', t('leave.tab_mine')]];
+  if (can('leave.approve')) tabs.push(['approvals', t('leave.tab_approvals') + (approvals.length ? ' (' + approvals.length + ')' : '')]);
+  if (can('leave.view') || can('employees.view') || can('team.view')) tabs.push(['calendar', t('leave.tab_calendar')]);
+  if (can('settings.manage')) tabs.push(['types', t('leave.tab_types')]);
+%>
+<div class="page-head">
+  <div><h1><%= t('nav.leave') %></h1><p><%= t('leave.subtitle') %></p></div>
+  <div class="page-actions">
+    <% if (can('leave.request') && (self || can('leave.approve'))) { %><button class="btn btn-dark" type="button" data-open-dialog="leave-dialog"><%- icon('plus') %><%= t('leave.request') %></button><% } %>
+  </div>
+</div>
+<nav class="tabs mb-6"><% tabs.forEach(function (tb) { %><a href="?tab=<%= tb[0] %>" class="<%= tab === tb[0] ? 'active' : '' %>"><%= tb[1] %></a><% }) %></nav>
+
+<% if (tab === 'mine') { %>
+  <% if (!self) { %>
+    <div class="alert alert-info mb-6"><%- icon('info') %><div class="grow"><%= t('dashboard.not_linked_text') %></div></div>
+  <% } else { %>
+    <div class="balances mb-6">
+      <% balances.forEach(function (b) { %>
+        <div class="balance">
+          <div class="small" style="font-weight:600"><span class="swatch" style="background:<%= b.type.color %>"></span><%= typeName(b.type) %></div>
+          <div class="big"><%= b.available === null ? '—' : fmt.number(b.available) %></div>
+          <div class="muted tiny"><%= b.available === null ? t('leave.not_tracked') : t('leave.balance_line', { used: fmt.number(b.used), total: fmt.number(b.entitled), pending: fmt.number(b.pending) }) %></div>
+        </div>
+      <% }) %>
+    </div>
+  <% } %>
+  <section class="panel">
+    <div class="panel-head"><h2><%= t('leave.my_requests') %></h2></div>
+    <% if (!mine.length) { %><div class="empty"><span class="empty-icon"><%- icon('plane') %></span><p><%= t('leave.no_requests') %></p></div><% } else { %>
+    <div class="table-wrap"><table class="table">
+      <thead><tr><th><%= t('leave.type') %></th><th><%= t('leave.dates') %></th><th class="text-end"><%= t('leave.days') %></th><th><%= t('fields.status') %></th><th><%= t('leave.decided_by') %></th><th class="actions"></th></tr></thead>
+      <tbody><% mine.forEach(function (r) { %>
+        <tr>
+          <td><span class="balance" style="border:0;padding:0;background:none"><span class="swatch" style="background:<%= r.type_color %>"></span></span><%= typeName(r) %></td>
+          <td class="nowrap"><%= fmt.date(r.start_date) %> → <%= fmt.date(r.end_date) %></td>
+          <td class="text-end num"><%= fmt.number(r.days) %></td>
+          <td><span class="st st-<%= r.status %>"><%= t('leave.status_' + r.status) %></span><% if (r.decision_note) { %><div class="muted tiny"><%= r.decision_note %></div><% } %></td>
+          <td class="muted"><%= r.decided_by_name || '—' %></td>
+          <td class="actions"><% if (r.status === 'pending' || r.status === 'approved') { %><form method="post" action="/app/leave/<%= r.id %>/cancel" data-confirm="<%= t('leave.confirm_cancel') %>"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><button class="btn btn-ghost btn-sm" type="submit"><%= t('common.cancel') %></button></form><% } %></td>
+        </tr>
+      <% }) %></tbody>
+    </table></div><% } %>
+  </section>
+
+<% } else if (tab === 'approvals') { %>
+  <section class="panel">
+    <div class="panel-head"><div><h2><%= t('leave.pending_approvals') %></h2><div class="panel-sub"><%= t('leave.pending_sub') %></div></div></div>
+    <% if (!approvals.length) { %><div class="empty"><span class="empty-icon"><%- icon('circle-check') %></span><p><%= t('leave.no_pending') %></p></div><% } else { %>
+    <div class="table-wrap"><table class="table">
+      <thead><tr><th><%= t('fields.name') %></th><th><%= t('leave.type') %></th><th><%= t('leave.dates') %></th><th class="text-end"><%= t('leave.days') %></th><th><%= t('leave.reason') %></th><th class="actions"></th></tr></thead>
+      <tbody><% approvals.forEach(function (r) { %>
+        <tr>
+          <td><a class="person" href="/app/employees/<%= r.employee_id %>?tab=leave"><span class="avatar"><%= initials(r.first_name + ' ' + r.last_name) %></span><span><span class="person-name"><%= r.first_name %> <%= r.last_name %></span><span class="person-sub" style="display:block"><%= r.job_title || '' %></span></span></a></td>
+          <td><%= typeName(r) %></td>
+          <td class="nowrap"><%= fmt.date(r.start_date) %> → <%= fmt.date(r.end_date) %></td>
+          <td class="text-end num"><%= fmt.number(r.days) %></td>
+          <td class="small text-2" style="max-width:260px"><%= r.reason || '—' %></td>
+          <td class="actions">
+            <form method="post" action="/app/leave/<%= r.id %>/decide" class="row-sm" style="justify-content:flex-end">
+              <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+              <input class="input" name="note" placeholder="<%= t('leave.note_ph') %>" style="height:32px;max-width:160px" aria-label="<%= t('leave.note_ph') %>">
+              <button class="btn btn-danger-ghost btn-sm" type="submit" name="decision" value="rejected"><%= t('leave.reject') %></button>
+              <button class="btn btn-primary btn-sm" type="submit" name="decision" value="approved"><%- icon('check', 'icon-sm') %><%= t('leave.approve') %></button>
+            </form>
+          </td>
+        </tr>
+      <% }) %></tbody>
+    </table></div><% } %>
+  </section>
+
+<% } else if (tab === 'calendar') { %>
+  <%
+    var days = []; for (var dd = new Date(month + '-01T00:00:00Z'); dd.toISOString().slice(0, 10) <= monthEnd; dd.setUTCDate(dd.getUTCDate() + 1)) days.push(dd.toISOString().slice(0, 10));
+    var byPerson = {}; team.forEach(function (r) { var k = r.employee_id; (byPerson[k] = byPerson[k] || { name: r.first_name + ' ' + r.last_name, items: [] }).items.push(r); });
+    var prev = new Date(Date.UTC(Number(month.slice(0, 4)), Number(month.slice(5, 7)) - 2, 1)).toISOString().slice(0, 7);
+    var next = new Date(Date.UTC(Number(month.slice(0, 4)), Number(month.slice(5, 7)), 1)).toISOString().slice(0, 7);
+    var todayStr = new Date().toISOString().slice(0, 10);
+  %>
+  <section class="panel">
+    <div class="panel-head">
+      <h2><%= fmt.date(month + '-01', { month: 'long', year: 'numeric' }) %></h2>
+      <div class="row-sm"><a class="btn btn-secondary btn-sm btn-icon" href="?tab=calendar&month=<%= prev %>" aria-label="<%= t('table.prev') %>"><%- icon('chevron-left', 'icon-sm flip-rtl') %></a><a class="btn btn-secondary btn-sm btn-icon" href="?tab=calendar&month=<%= next %>" aria-label="<%= t('table.next') %>"><%- icon('chevron-right', 'icon-sm flip-rtl') %></a></div>
+    </div>
+    <% if (!Object.keys(byPerson).length) { %><div class="empty"><span class="empty-icon"><%- icon('calendar-days') %></span><p><%= t('leave.nobody_off') %></p></div><% } else { %>
+    <div class="cal-wrap"><table class="cal">
+      <thead><tr><th></th><% days.forEach(function (x) { %><th class="<%= x === todayStr ? 'today' : '' %>"><%= Number(x.slice(8)) %></th><% }) %></tr></thead>
+      <tbody><% Object.keys(byPerson).forEach(function (k) { var p = byPerson[k]; %>
+        <tr><td class="truncate"><a class="link" href="/app/employees/<%= k %>?tab=leave"><%= p.name %></a></td>
+          <% days.forEach(function (x) { var hit = p.items.find(function (r) { return d(r.start_date) <= x && d(r.end_date) >= x; }); %>
+            <td class="<%= x === todayStr ? 'today' : '' %>"><% if (hit) { %><span class="bar <%= hit.status === 'pending' ? 'pending' : '' %>" style="background:<%= hit.type_color %>" title="<%= typeName(hit) %> · <%= t('leave.status_' + hit.status) %>"></span><% } %></td>
+          <% }) %>
+        </tr>
+      <% }) %></tbody>
+    </table></div>
+    <div class="panel-foot" style="justify-content:flex-start"><span class="legend"><% types.forEach(function (x) { %><span><i style="background:<%= x.color %>"></i><%= typeName(x) %></span><% }) %><span class="muted"><%= t('leave.pending_hatched') %></span></span></div>
+    <% } %>
+  </section>
+
+<% } else if (tab === 'types') { %>
+  <section class="panel">
+    <div class="panel-head"><div><h2><%= t('leave.tab_types') %></h2><div class="panel-sub"><%= t('leave.types_sub') %></div></div><button class="btn btn-dark btn-sm" type="button" data-open-dialog="type-dialog" data-reset-form><%- icon('plus', 'icon-sm') %><%= t('leave.new_type') %></button></div>
+    <div class="table-wrap"><table class="table">
+      <thead><tr><th><%= t('fields.name') %></th><th class="text-end"><%= t('leave.days_per_year') %></th><th><%= t('leave.balance') %></th><th><%= t('leave.paid') %></th><th><%= t('fields.status') %></th><th class="actions"></th></tr></thead>
+      <tbody><% allTypes.forEach(function (x) { %>
+        <tr><td><span class="balance" style="border:0;padding:0;background:none"><span class="swatch" style="background:<%= x.color %>"></span></span><%= typeName(x) %><% if (x.requires_document) { %> <span class="badge"><%= t('leave.needs_document') %></span><% } %></td>
+          <td class="text-end num"><%= x.has_balance ? fmt.number(x.days_per_year) : '—' %></td>
+          <td><%= x.has_balance ? t('leave.tracked') : t('leave.not_tracked') %></td>
+          <td><%= x.is_paid ? t('leave.paid') : t('leave.unpaid') %></td>
+          <td><span class="badge <%= x.is_active ? 'badge-success' : '' %>"><%= x.is_active ? t('statuses.active') : t('leave.inactive') %></span></td>
+          <td class="actions"><button class="btn btn-ghost btn-sm" type="button" data-open-dialog="type-dialog" data-fill="<%= JSON.stringify({ id: x.id, name: x.name, name_ar: x.name_ar || '', days_per_year: Number(x.days_per_year), has_balance: !!x.has_balance, is_paid: !!x.is_paid, requires_document: !!x.requires_document, is_active: !!x.is_active }) %>"><%- icon('pencil', 'icon-sm') %><%= t('common.edit') %></button></td>
+        </tr>
+      <% }) %></tbody>
+    </table></div>
+  </section>
+  <dialog class="dialog" id="type-dialog"<%= openDialog === 'type' ? ' data-open-on-load' : '' %>>
+    <form method="post" action="/app/leave/types" novalidate>
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>"><input type="hidden" name="id" value="">
+      <div class="dialog-head"><h2><%= t('leave.type') %></h2><button class="btn btn-ghost btn-icon btn-sm" type="button" data-close-dialog aria-label="<%= t('common.close') %>"><%- icon('x') %></button></div>
+      <div class="dialog-body stack">
+        <div class="form-grid">
+          <%- include('../../partials/field', { name: 'name', label: t('fields.name') + ' (EN)', required: true }) %>
+          <%- include('../../partials/field', { name: 'name_ar', label: t('fields.name') + ' (AR)' }) %>
+          <%- include('../../partials/field', { name: 'days_per_year', label: t('leave.days_per_year'), type: 'number', attrs: 'min="0" max="365" step="0.5"', value: 0 }) %>
+        </div>
+        <label class="check"><input type="checkbox" name="has_balance" checked><%= t('leave.track_balance') %></label>
+        <label class="check"><input type="checkbox" name="is_paid" checked><%= t('leave.paid') %></label>
+        <label class="check"><input type="checkbox" name="requires_document"><%= t('leave.needs_document') %></label>
+        <label class="check"><input type="checkbox" name="is_active" checked><%= t('statuses.active') %></label>
+      </div>
+      <div class="dialog-foot"><button class="btn btn-ghost" type="button" data-close-dialog><%= t('common.cancel') %></button><button class="btn btn-dark" type="submit"><%= t('common.save') %></button></div>
+    </form>
+  </dialog>
+<% } %>
+
+<% if (can('leave.request') && (self || can('leave.approve'))) { %>
+<dialog class="dialog" id="leave-dialog"<%= openDialog === 'leave' ? ' data-open-on-load' : '' %>>
+  <form method="post" action="/app/leave" novalidate>
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+    <div class="dialog-head"><div><h2><%= t('leave.request') %></h2><p class="muted small mt-1"><%= t('leave.request_sub') %></p></div><button class="btn btn-ghost btn-icon btn-sm" type="button" data-close-dialog aria-label="<%= t('common.close') %>"><%- icon('x') %></button></div>
+    <div class="dialog-body stack">
+      <% if (can('leave.approve') && people.length) { %>
+        <%- include('../../partials/field', { name: 'employee_id', label: t('leave.for_employee'), type: 'select', placeholder: self ? t('leave.myself') : t('common.select'), options: people.filter(function (p) { return p.id !== self; }).map(function (p) { return { value: p.id, label: p.first_name + ' ' + p.last_name }; }) }) %>
+      <% } %>
+      <%- include('../../partials/field', { name: 'leave_type_id', label: t('leave.type'), type: 'select', required: true, options: types.map(function (x) { return { value: x.id, label: typeName(x) }; }) }) %>
+      <div class="form-grid">
+        <%- include('../../partials/field', { name: 'start_date', label: t('leave.start'), type: 'date', required: true }) %>
+        <%- include('../../partials/field', { name: 'end_date', label: t('leave.end'), type: 'date', required: true }) %>
+      </div>
+      <%- include('../../partials/field', { name: 'reason', label: t('leave.reason'), type: 'textarea' }) %>
+      <p class="help"><%= t('leave.working_days_note') %></p>
+    </div>
+    <div class="dialog-foot"><button class="btn btn-ghost" type="button" data-close-dialog><%= t('common.cancel') %></button><button class="btn btn-dark" type="submit"><%= t('leave.submit') %></button></div>
+  </form>
+</dialog>
+<% } %>

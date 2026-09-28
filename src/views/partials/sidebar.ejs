@@ -27,8 +27,8 @@
     <div class="nav-title"><%= t('nav.group_workforce') %></div>
     <% if (can('employees.view') || can('team.view')) { %><a href="/app/employees" class="<%= isActive('/app/employees') ? 'active' : '' %>"><%- icon('users') %><%= can('employees.view') ? t('nav.employees') : t('nav.my_team') %></a><% } %>
     <% if (can('employees.view')) { %><a href="/app/structure" class="<%= isActive('/app/structure') ? 'active' : '' %>"><%- icon('building-2') %><%= t('nav.structure') %></a><% } %>
-    <% MODULES.filter(function (m) { return m.group === 'workforce'; }).forEach(function (m) { %>
-      <a href="/app/modules/<%= m.key %>" class="is-soon <%= isActive('/app/modules/' + m.key) ? 'active' : '' %>"><%- icon(m.icon) %><%= t('nav.' + m.key) %><span class="badge badge-soon"><%= t('common.soon') %></span></a>
+    <% [['attendance', '/app/attendance', 'calendar-check'], ['leave', '/app/leave', 'plane'], ['documents', '/app/documents', 'file-text'], ['tasks', '/app/tasks', 'list-checks']].forEach(function (m) { %>
+      <a href="<%= m[1] %>" class="<%= isActive(m[1]) || (m[0] === 'tasks' && isActive('/app/projects')) ? 'active' : '' %><%= hasFeature(m[0]) ? '' : ' is-soon' %>"><%- icon(m[2]) %><%= t('nav.' + m[0]) %><% if (!hasFeature(m[0])) { %><span class="badge badge-soon"><%- icon('lock', 'icon-sm') %></span><% } %></a>
     <% }) %>
   </div>
   <% groups.slice(1).forEach(function (g) { %>

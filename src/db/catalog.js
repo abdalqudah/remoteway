@@ -37,6 +37,8 @@ const PERMISSIONS = [
   ['payway.view', 'payway', 'View PayWay integration'],
   ['payway.manage', 'payway', 'Manage PayWay integration'],
   ['reports.view', 'reports', 'View reports'],
+  ['tasks.view', 'tasks', 'View all tasks and projects'],
+  ['tasks.manage', 'tasks', 'Create, assign and manage tasks and projects'],
 ];
 
 const ALL = PERMISSIONS.map((p) => p[0]);
@@ -51,7 +53,8 @@ const ROLE_TEMPLATES = [
     key: 'hr_manager', name: 'HR Manager', description: 'Manages people, structure and HR processes',
     permissions: ['users.view', 'employees.view', 'employees.create', 'employees.edit', 'employees.delete', 'employees.view_salary',
       'departments.manage', 'locations.manage', 'attendance.view', 'attendance.manage', 'leave.view', 'leave.request', 'leave.approve',
-      'performance.view', 'performance.manage', 'recruitment.view', 'recruitment.manage', 'documents.view', 'documents.manage', 'reports.view'],
+      'performance.view', 'performance.manage', 'recruitment.view', 'recruitment.manage', 'documents.view', 'documents.manage', 'reports.view',
+      'tasks.view', 'tasks.manage'],
   },
   {
     key: 'recruiter', name: 'Recruiter', description: 'Runs hiring pipelines',
@@ -68,11 +71,12 @@ const ROLE_TEMPLATES = [
   },
   {
     key: 'department_manager', name: 'Department Manager', description: 'Leads a department',
-    permissions: ['team.view', 'attendance.view', 'leave.view', 'leave.request', 'leave.approve', 'performance.view', 'performance.manage', 'reports.view'],
+    permissions: ['team.view', 'attendance.view', 'leave.view', 'leave.request', 'leave.approve', 'performance.view', 'performance.manage', 'reports.view',
+      'tasks.manage'],
   },
   {
     key: 'team_manager', name: 'Team Manager', description: 'Leads a team',
-    permissions: ['team.view', 'attendance.view', 'leave.view', 'leave.request', 'leave.approve', 'performance.view'],
+    permissions: ['team.view', 'attendance.view', 'leave.view', 'leave.request', 'leave.approve', 'performance.view', 'tasks.manage'],
   },
   { key: 'employee', name: 'Employee', description: 'Self-service access', permissions: ['leave.request'] },
 ];
@@ -81,17 +85,17 @@ const ROLE_TEMPLATES = [
 const FEATURES = [
   ['employees', 'Employee Management', 'workforce', 'available'],
   ['departments', 'Departments & Locations', 'workforce', 'available'],
-  ['attendance', 'Attendance', 'workforce', 'coming_soon'],
-  ['leave', 'Leave', 'workforce', 'coming_soon'],
-  ['documents', 'Documents', 'workforce', 'coming_soon'],
-  ['tasks', 'Tasks', 'remote_work', 'coming_soon'],
+  ['attendance', 'Attendance', 'workforce', 'available'],
+  ['leave', 'Leave', 'workforce', 'available'],
+  ['documents', 'Documents', 'workforce', 'available'],
+  ['tasks', 'Tasks', 'remote_work', 'available'],
   ['basic_reports', 'Basic Reports', 'analytics', 'coming_soon'],
   ['recruitment', 'Recruitment (ATS)', 'talent', 'coming_soon'],
   ['onboarding', 'Onboarding', 'talent', 'coming_soon'],
   ['payroll', 'Payroll', 'payroll', 'coming_soon'],
   ['performance', 'Performance', 'performance', 'coming_soon'],
   ['learning', 'Learning', 'learning', 'coming_soon'],
-  ['projects', 'Projects', 'remote_work', 'coming_soon'],
+  ['projects', 'Projects', 'remote_work', 'available'],
   ['advanced_reports', 'Advanced Reports', 'analytics', 'coming_soon'],
   ['integrations', 'Integrations', 'integrations', 'coming_soon'],
   ['analytics', 'Advanced Analytics', 'analytics', 'coming_soon'],
@@ -174,4 +178,14 @@ const COUNTRIES = [
   { country_code: 'GB', name: 'United Kingdom', name_ar: 'المملكة المتحدة', currency: 'GBP', timezone: 'Europe/London', default_locale: 'en', working_days: MON_FRI, vat_rate: 20 },
 ];
 
-module.exports = { PERMISSIONS, ROLE_TEMPLATES, FEATURES, PLANS, ADDONS, COUNTRIES, LIMIT_KEYS };
+// Default leave types created for each organization the first time Leave is opened.
+// They are starting points only: HR edits days and rules per company (Settings → Leave types).
+const LEAVE_TYPE_DEFAULTS = [
+  { key: 'annual', name: 'Annual leave', name_ar: 'إجازة سنوية', days_per_year: 21, has_balance: true, is_paid: true, color: '#1ACC6C' },
+  { key: 'sick', name: 'Sick leave', name_ar: 'إجازة مرضية', days_per_year: 30, has_balance: true, is_paid: true, requires_document: true, color: '#F59E0B' },
+  { key: 'emergency', name: 'Emergency leave', name_ar: 'إجازة طارئة', days_per_year: 5, has_balance: true, is_paid: true, color: '#DC2626' },
+  { key: 'maternity', name: 'Maternity leave', name_ar: 'إجازة وضع', days_per_year: 70, has_balance: true, is_paid: true, requires_document: true, color: '#8B5CF6' },
+  { key: 'unpaid', name: 'Unpaid leave', name_ar: 'إجازة بدون راتب', days_per_year: 0, has_balance: false, is_paid: false, color: '#767676' },
+];
+
+module.exports = { PERMISSIONS, ROLE_TEMPLATES, FEATURES, PLANS, ADDONS, COUNTRIES, LIMIT_KEYS, LEAVE_TYPE_DEFAULTS };

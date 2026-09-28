@@ -34,7 +34,9 @@
     "express-session": "^1.19.0",
     "helmet": "^8.3.0",
     "knex": "^3.3.0",
+    "multer": "^2.4.0",
     "mysql2": "^3.24.4",
+    "nodemailer": "^10.0.12",
     "zod": "^4.6.5"
   },
   "devDependencies": {
@@ -44,6 +46,6 @@
   },
   "private": true,
   "engines": {
-    "node": ">=18.18"
+    "node": ">=20"
   }
 }

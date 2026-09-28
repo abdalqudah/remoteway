@@ -5,6 +5,7 @@ const employees = require('./employee.service');
 const structure = require('./structure.service');
 const orgs = require('../organizations/organization.service');
 const ent = require('../billing/entitlements.service');
+const documents = require('../documents/document.service');
 
 const router = express.Router();
 
@@ -59,7 +60,24 @@ router.post('/employees', can('employees.create'), form(async (req, res) => {
 
 router.get('/employees/:id', canAny('employees.view', 'team.view'), wrap(async (req, res) => {
   const employee = await employees.get(req.ctx, Number(req.params.id));
-  res.page('pages/employees/show', { title: employee.full_name, employee, tab: req.query.tab || 'overview' });
+  const tab = req.query.tab || 'overview';
+  const has = (f) => req.entitlements.features.has(f);
+  const extra = {};
+  if (tab === 'documents' && has('documents')) {
+    extra.docs = await documents.list(req.ctx, { employee_id: employee.id });
+    extra.categories = documents.CATEGORIES;
+    extra.people = [];
+  }
+  if (tab === 'leave' && has('leave')) {
+    const leaveService = require('../leave/leave.service');
+    extra.balances = await leaveService.balancesFor(req.ctx.organizationId, employee.id);
+    extra.requests = (await leaveService.teamRequests(req.ctx, { status: undefined })).filter((r) => r.employee_id === employee.id);
+    extra.leaveTypes = await leaveService.listTypes(req.ctx.organizationId, { activeOnly: true });
+  }
+  if (tab === 'attendance' && has('attendance')) {
+    extra.sheet = await require('../attendance/attendance.service').timesheet(req.ctx, employee.id, req.query.month);
+  }
+  res.page('pages/employees/show', { title: employee.full_name, employee, tab, ...extra });
 }));
 
 const renderEdit = async (req, res, extra = {}) => {

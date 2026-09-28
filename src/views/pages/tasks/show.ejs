@@ -1,0 +1,53 @@
+<%
+  var tk = task;
+  var canEdit = can('tasks.manage') || tk.created_by === currentUser.id;
+%>
+<div class="page-head">
+  <div>
+    <div class="eyebrow"><a href="/app/tasks"><%= t('nav.tasks') %></a><%- icon('chevron-right', 'icon-sm flip-rtl') %><%= tk.project_name || t('tasks.no_project') %></div>
+    <h1><%= tk.title %></h1>
+    <div class="row-sm mt-2 wrap"><span class="st st-<%= tk.status %>"><%= t('tasks.status_' + tk.status) %></span><span class="prio prio-<%= tk.priority %>"><%= t('tasks.prio_' + tk.priority) %></span><span class="muted small"><%= t('tasks.created_by', { name: tk.created_by_name || '—' }) %></span></div>
+  </div>
+  <div class="page-actions">
+    <form method="post" action="/app/tasks/<%= tk.id %>/status" class="row-sm"><input type="hidden" name="_csrf" value="<%= csrfToken %>">
+      <% if (tk.status !== 'done') { %><button class="btn btn-primary" type="submit" name="status" value="done"><%- icon('check') %><%= t('tasks.mark_done') %></button><% } else { %><button class="btn btn-secondary" type="submit" name="status" value="todo"><%= t('tasks.reopen') %></button><% } %>
+    </form>
+    <% if (canEdit) { %><form method="post" action="/app/tasks/<%= tk.id %>/delete" data-confirm="<%= t('tasks.confirm_delete') %>"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><button class="btn btn-danger-ghost" type="submit"><%- icon('trash-2') %></button></form><% } %>
+  </div>
+</div>
+<div class="grid grid-3">
+  <div class="span-2 stack-lg">
+    <section class="panel">
+      <div class="panel-head"><h2><%= t('fields.description') %></h2></div>
+      <div class="panel-body"><p style="white-space:pre-wrap" class="<%= tk.description ? '' : 'muted' %>"><%= tk.description || t('tasks.no_description') %></p></div>
+    </section>
+    <section class="panel" id="comments">
+      <div class="panel-head"><h2><%= t('tasks.comments') %> <span class="badge"><%= tk.comments.length %></span></h2></div>
+      <div class="panel-body">
+        <% if (tk.comments.length) { %><ul class="comments mb-4"><% tk.comments.forEach(function (c) { %>
+          <li><span class="avatar"><%= initials(c.user_name) %></span><div class="grow"><div class="small"><strong><%= c.user_name || '—' %></strong> <span class="muted"><%= fmt.date(c.created_at, { dateStyle: 'medium', timeStyle: 'short' }) %></span></div><div class="body"><%= c.body %></div></div></li>
+        <% }) %></ul><% } %>
+        <form method="post" action="/app/tasks/<%= tk.id %>/comments" class="stack-sm"><input type="hidden" name="_csrf" value="<%= csrfToken %>">
+          <textarea class="textarea" name="body" required placeholder="<%= t('tasks.comment_ph') %>" aria-label="<%= t('tasks.comments') %>"></textarea>
+          <div class="form-actions"><button class="btn btn-dark btn-sm" type="submit"><%= t('tasks.add_comment') %></button></div>
+        </form>
+      </div>
+    </section>
+  </div>
+  <section class="panel">
+    <div class="panel-head"><h2><%= t('tasks.details') %></h2></div>
+    <% if (canEdit) { %>
+      <form method="post" action="/app/tasks/<%= tk.id %>" novalidate>
+        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+        <div class="panel-body stack"><%- include('../../partials/task-form', { task: tk }) %></div>
+        <div class="panel-foot"><button class="btn btn-dark btn-sm" type="submit"><%= t('common.save_changes') %></button></div>
+      </form>
+    <% } else { %>
+      <div class="panel-body"><dl class="dl" style="grid-template-columns:1fr">
+        <dt><%= t('tasks.assignee') %></dt><dd><%= tk.assignee_name || t('tasks.unassigned') %></dd>
+        <dt><%= t('tasks.project') %></dt><dd><%= tk.project_name || '—' %></dd>
+        <dt><%= t('tasks.due') %></dt><dd><%= fmt.date(tk.due_date) %></dd>
+      </dl></div>
+    <% } %>
+  </section>
+</div>

@@ -1,0 +1,37 @@
+<div class="page-head">
+  <div><div class="eyebrow"><a href="/app/tasks"><%= t('nav.tasks') %></a></div><h1><%= t('tasks.projects') %></h1><p><%= t('tasks.projects_sub') %></p></div>
+  <% if (can('tasks.manage')) { %><div class="page-actions"><button class="btn btn-dark" type="button" data-open-dialog="project-dialog" data-reset-form><%- icon('plus') %><%= t('tasks.new_project') %></button></div><% } %>
+</div>
+<section class="panel">
+  <% if (!projects.length) { %><div class="empty"><span class="empty-icon"><%- icon('folder-kanban') %></span><h3><%= t('tasks.no_projects') %></h3><p><%= t('tasks.no_projects_text') %></p></div><% } else { %>
+  <div class="table-wrap"><table class="table">
+    <thead><tr><th><%= t('fields.name') %></th><th><%= t('fields.status') %></th><th><%= t('tasks.progress') %></th><th><%= t('tasks.due') %></th><th><%= t('tasks.owner') %></th><th class="actions"></th></tr></thead>
+    <tbody><% projects.forEach(function (p) { var pct = p.task_count ? Math.round(p.done_count / p.task_count * 100) : 0; %>
+      <tr>
+        <td><a class="person-name" href="/app/tasks?project_id=<%= p.id %>"><%= p.name %></a><% if (p.description) { %><div class="muted small truncate" style="max-width:340px"><%= p.description %></div><% } %></td>
+        <td><span class="badge <%= p.status === 'active' ? 'badge-success' : '' %>"><%= t('tasks.pstatus_' + p.status) %></span></td>
+        <td style="min-width:160px"><div class="usage-row"><span class="small"><%= p.done_count %>/<%= p.task_count %></span><span class="small muted"><%= pct %>%</span><div class="meter"><span style="width:<%= pct %>%"></span></div></div></td>
+        <td class="nowrap"><%= fmt.date(p.due_date) %></td>
+        <td class="muted"><%= p.owner_name || '—' %></td>
+        <td class="actions"><% if (can('tasks.manage')) { %><button class="btn btn-ghost btn-sm" type="button" data-open-dialog="project-dialog" data-fill="<%= JSON.stringify({ id: p.id, name: p.name, description: p.description || '', status: p.status, due_date: fmt.dateInput(p.due_date) }) %>"><%- icon('pencil', 'icon-sm') %><%= t('common.edit') %></button><% } %></td>
+      </tr>
+    <% }) %></tbody>
+  </table></div><% } %>
+</section>
+<% if (can('tasks.manage')) { %>
+<dialog class="dialog" id="project-dialog"<%= openDialog === 'project' ? ' data-open-on-load' : '' %>>
+  <form method="post" action="/app/projects" novalidate>
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>"><input type="hidden" name="id" value="">
+    <div class="dialog-head"><h2><%= t('tasks.project') %></h2><button class="btn btn-ghost btn-icon btn-sm" type="button" data-close-dialog aria-label="<%= t('common.close') %>"><%- icon('x') %></button></div>
+    <div class="dialog-body stack">
+      <%- include('../../partials/field', { name: 'name', label: t('fields.name'), required: true }) %>
+      <%- include('../../partials/field', { name: 'description', label: t('fields.description'), type: 'textarea' }) %>
+      <div class="form-grid">
+        <%- include('../../partials/field', { name: 'status', label: t('fields.status'), type: 'select', value: 'active', options: ['active', 'on_hold', 'completed', 'archived'].map(function (s) { return { value: s, label: t('tasks.pstatus_' + s) }; }) }) %>
+        <%- include('../../partials/field', { name: 'due_date', label: t('tasks.due'), type: 'date' }) %>
+      </div>
+    </div>
+    <div class="dialog-foot"><button class="btn btn-ghost" type="button" data-close-dialog><%= t('common.cancel') %></button><button class="btn btn-dark" type="submit"><%= t('common.save') %></button></div>
+  </form>
+</dialog>
+<% } %>
