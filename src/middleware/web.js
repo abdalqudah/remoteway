@@ -30,6 +30,7 @@ function locals(req, res, next) {
     fmt: {
       date: (v, o) => fmt.formatDate(v, locale, o),
       money: (a, c) => fmt.formatMoney(a, c, locale),
+      amount: (a, c) => fmt.formatAmount(a, c, locale),
       number: (n) => fmt.formatNumber(n, locale),
       mb: (mb) => fmt.formatBytesMb(mb, locale),
       dateInput: fmt.toDateInput,

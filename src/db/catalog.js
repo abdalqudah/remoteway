@@ -28,6 +28,7 @@ const PERMISSIONS = [
   ['leave.approve', 'leave', 'Approve or reject leave'],
   ['payroll.view', 'payroll', 'View payroll'],
   ['payroll.process', 'payroll', 'Process payroll'],
+  ['payroll.approve', 'payroll', 'Approve payroll'],
   ['performance.view', 'performance', 'View performance'],
   ['performance.manage', 'performance', 'Manage performance'],
   ['recruitment.view', 'recruitment', 'View recruitment'],
@@ -63,7 +64,7 @@ const ROLE_TEMPLATES = [
   },
   {
     key: 'finance_manager', name: 'Finance Manager', description: 'Financial visibility and billing',
-    permissions: ['employees.view', 'employees.view_salary', 'billing.view', 'payroll.view', 'payway.view', 'reports.view', 'leave.request'],
+    permissions: ['employees.view', 'employees.view_salary', 'billing.view', 'payroll.view', 'payroll.approve', 'payway.view', 'reports.view', 'leave.request'],
   },
   {
     key: 'payroll_manager', name: 'Payroll Manager', description: 'Prepares and processes payroll',
@@ -93,7 +94,7 @@ const FEATURES = [
   ['basic_reports', 'Basic Reports', 'analytics', 'coming_soon'],
   ['recruitment', 'Recruitment (ATS)', 'talent', 'available'],
   ['onboarding', 'Onboarding', 'talent', 'available'],
-  ['payroll', 'Payroll', 'payroll', 'coming_soon'],
+  ['payroll', 'Payroll', 'payroll', 'available'],
   ['performance', 'Performance', 'performance', 'coming_soon'],
   ['learning', 'Learning', 'learning', 'coming_soon'],
   ['projects', 'Projects', 'remote_work', 'available'],

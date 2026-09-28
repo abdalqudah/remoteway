@@ -1,0 +1,12 @@
+<div class="page-head"><div><h1><%= t('payroll.my_payslips') %></h1><p><%= t('payroll.my_payslips_sub') %></p></div></div>
+<section class="panel">
+  <% if (!rows.length) { %><div class="empty"><span class="empty-icon"><%- icon('receipt') %></span><h3><%= t('payroll.no_payslips') %></h3><p><%= t('payroll.no_payslips_text') %></p></div><% } else { %>
+  <div class="table-wrap"><table class="table">
+    <thead><tr><th><%= t('payroll.period') %></th><th><%= t('payroll.payment_date') %></th><th class="num"><%= t('payroll.gross') %></th><th class="num"><%= t('payroll.deductions') %></th><th class="num"><%= t('payroll.net') %></th><th></th></tr></thead>
+    <tbody><% rows.forEach(function (s) { %>
+      <tr><td><a class="person-name" href="/app/payroll/payslips/<%= s.id %>"><%= fmt.date(s.period + '-01', { month: 'long', year: 'numeric' }) %></a></td><td><%= s.payment_date ? fmt.date(s.payment_date) : '—' %></td>
+        <td class="num nowrap"><%= fmt.amount(s.gross, s.currency) %></td><td class="num nowrap"><%= fmt.amount(s.total_deductions, s.currency) %></td><td class="num nowrap"><strong><%= fmt.amount(s.net, s.currency) %></strong> <span class="tiny muted"><%= s.currency %></span></td>
+        <td class="text-end"><a class="btn btn-secondary btn-sm" href="/app/payroll/payslips/<%= s.id %>"><%= t('payroll.payslip') %></a></td></tr>
+    <% }) %></tbody>
+  </table></div><% } %>
+</section>

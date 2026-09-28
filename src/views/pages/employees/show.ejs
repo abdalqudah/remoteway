@@ -1,6 +1,6 @@
 <%
   var e = employee;
-  var tabs = [['overview', true], ['employment', true], ['documents', hasFeature('documents')], ['attendance', hasFeature('attendance')], ['leave', hasFeature('leave')], ['contract', false], ['payroll', false], ['performance', false], ['training', false]];
+  var tabs = [['overview', true], ['employment', true], ['documents', hasFeature('documents')], ['attendance', hasFeature('attendance')], ['leave', hasFeature('leave')], ['contract', false], ['payroll', hasFeature('payroll') && (can('employees.view_salary') || can('payroll.view'))], ['performance', false], ['training', false]];
   var typeName = function (x) { return locale === 'ar' ? (x.type_name_ar || x.name_ar || x.type_name || x.name) : (x.type_name || x.name); };
 %>
 <div class="page-head">
@@ -112,6 +112,8 @@
   <div class="kpi"><div class="kpi-label"><%= t('attendance.absent_days') %></div><div class="kpi-value"><%= fmt.number(sheet.totals.absent) %></div></div>
 </section>
 <a class="btn btn-secondary" href="/app/attendance/employees/<%= e.id %>"><%- icon('calendar-days') %><%= t('attendance.open_timesheet') %></a>
+<% } else if (tab === 'payroll' && typeof payslips !== 'undefined') { %>
+<%- include('_payroll', { e: e }) %>
 <% } else { %>
 <section class="panel"><div class="empty">
   <span class="empty-icon"><%- icon('clock') %></span>

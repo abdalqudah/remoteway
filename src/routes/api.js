@@ -23,6 +23,7 @@ const tasks = require('../modules/tasks/task.service');
 const notifications = require('../modules/notifications/notification.service');
 const recruitment = require('../modules/recruitment/recruitment.service');
 const onboarding = require('../modules/onboarding/onboarding.service');
+const payroll = require('../modules/payroll/payroll.service');
 
 const router = express.Router();
 const ok = (res, data, meta, status = 200) => res.status(status).json({ success: true, data, ...(meta ? { meta } : {}) });
@@ -226,6 +227,19 @@ router.post('/onboarding/tasks/:id', feature('onboarding'), wrap(async (req, res
   const planId = await onboarding.setTaskDone(req.ctx, Number(req.params.id), req.body.done !== false && req.body.done !== '0' && req.body.done !== 0);
   ok(res, await onboarding.getPlan(req.ctx, planId));
 }));
+
+// Payroll
+router.get('/payroll/runs', feature('payroll'), can('payroll.view'), wrap(async (req, res) => ok(res, await payroll.listRuns(req.ctx, { status: req.query.status }))));
+router.post('/payroll/runs', feature('payroll'), can('payroll.process'), wrap(async (req, res) => ok(res, await payroll.getRun(req.ctx, await payroll.createRun(req.ctx, req.body.period)), undefined, 201)));
+router.get('/payroll/runs/:id', feature('payroll'), can('payroll.view'), wrap(async (req, res) => ok(res, await payroll.getRun(req.ctx, Number(req.params.id)))));
+router.post('/payroll/runs/:id/:action(submit|reopen|approve|pay|cancel)', feature('payroll'), can('payroll.view'), wrap(async (req, res) => {
+  const needed = req.params.action === 'approve' ? 'payroll.approve' : 'payroll.process';
+  if (!req.ctx.permissions.has(needed)) throw E.forbidden(needed);
+  await payroll.transition(req.ctx, Number(req.params.id), req.params.action, req.body);
+  ok(res, await payroll.getRun(req.ctx, Number(req.params.id)));
+}));
+router.get('/payroll/payslips/mine', feature('payroll'), wrap(async (req, res) => ok(res, await payroll.myPayslips(req.ctx))));
+router.get('/payroll/payslips/:id', feature('payroll'), wrap(async (req, res) => ok(res, await payroll.getPayslip(req.ctx, Number(req.params.id)))));
 
 // Notifications
 router.get('/notifications', wrap(async (req, res) => ok(res, await notifications.list(req.ctx, { unreadOnly: req.query.unread === '1' }), { unread: await notifications.unreadCount(req.ctx) })));

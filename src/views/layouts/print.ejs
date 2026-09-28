@@ -1,0 +1,11 @@
+<!doctype html>
+<html lang="<%= locale %>" dir="<%= dir %>" data-v="<%= assetV %>" data-theme="light">
+<head><%- include('../partials/head') %></head>
+<body class="print-page">
+<main class="print-sheet">
+  <div class="print-actions no-print"><button class="btn btn-dark btn-sm" type="button" data-print><%- icon('download', 'icon-sm') %><%= t('payroll.print_now') %></button></div>
+  <%- body %>
+</main>
+<script src="/js/app.js?v=<%= assetV %>" defer></script>
+</body>
+</html>

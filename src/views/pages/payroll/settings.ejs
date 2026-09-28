@@ -1,0 +1,74 @@
+<%
+  var proc = can('payroll.process');
+  var g = rules.gosi;
+  var dis = proc ? '' : ' disabled';
+  var compDialog = function (c, id) { %>
+<dialog class="dialog" id="<%= id %>"<%= openDialog === id ? ' data-open-on-load' : '' %>>
+  <form method="post" action="/app/payroll/components<%= c.id ? '/' + c.id : '' %>" novalidate>
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+    <div class="dialog-head"><h2><%= c.id ? t('payroll.edit_component') : t('payroll.new_component') %></h2><button class="btn btn-ghost btn-icon btn-sm" type="button" data-close-dialog aria-label="<%= t('common.close') %>"><%- icon('x') %></button></div>
+    <div class="dialog-body stack">
+      <% if (openDialog === id && formError) { %><div class="alert alert-error"><%= Object.values(errors)[0] || formError.message %></div><% } %>
+      <div class="form-grid">
+        <div class="field"><label class="label" for="<%= id %>-name"><%= t('payroll.name_en') %><span class="req">*</span></label><input class="input" id="<%= id %>-name" name="name" maxlength="100" required value="<%= c.name || '' %>"></div>
+        <div class="field"><label class="label" for="<%= id %>-name-ar"><%= t('payroll.name_ar') %></label><input class="input" id="<%= id %>-name-ar" name="name_ar" dir="rtl" maxlength="100" value="<%= c.name_ar || '' %>"></div>
+        <div class="field"><label class="label" for="<%= id %>-code"><%= t('payroll.code') %></label><input class="input mono" id="<%= id %>-code" name="code" maxlength="30" dir="ltr" value="<%= c.code || '' %>" placeholder="SCHOOL"></div>
+        <div class="field"><label class="label" for="<%= id %>-kind"><%= t('payroll.type') %></label><select class="select" id="<%= id %>-kind" name="kind"><% ['earning', 'deduction'].forEach(function (k) { %><option value="<%= k %>"<%= (c.kind || 'earning') === k ? ' selected' : '' %>><%= t('payroll.kind_' + k) %></option><% }) %></select></div>
+        <div class="field"><label class="label" for="<%= id %>-calc"><%= t('payroll.calc') %></label><select class="select" id="<%= id %>-calc" name="calc"><% ['fixed', 'percent_basic'].forEach(function (k) { %><option value="<%= k %>"<%= (c.calc || 'fixed') === k ? ' selected' : '' %>><%= t('payroll.calc_' + k) %></option><% }) %></select></div>
+        <div class="field"><label class="label" for="<%= id %>-val"><%= t('payroll.default_value') %></label><input class="input num" id="<%= id %>-val" name="default_value" type="number" min="0" step="any" value="<%= c.default_value != null ? Number(c.default_value) : '' %>"><span class="help"><%= t('payroll.default_value_help') %></span></div>
+      </div>
+      <label class="check"><input type="checkbox" name="prorate"<%= c.id ? (c.prorate ? ' checked' : '') : ' checked' %>><%= t('payroll.prorate') %></label>
+      <label class="check"><input type="checkbox" name="in_gosi_base"<%= c.in_gosi_base ? ' checked' : '' %>><%= t('payroll.in_gosi_base') %></label>
+      <% if (c.id) { %><label class="check"><input type="checkbox" name="is_active"<%= c.is_active ? ' checked' : '' %>><%= t('payroll.active') %></label><% } %>
+    </div>
+    <div class="dialog-foot"><button class="btn btn-ghost" type="button" data-close-dialog><%= t('common.cancel') %></button><button class="btn btn-dark" type="submit"><%= t('common.save') %></button></div>
+  </form>
+</dialog>
+<% }; %>
+<div class="page-head">
+  <div><div class="eyebrow"><a href="/app/payroll"><%= t('nav.payroll') %></a></div><h1><%= t('payroll.settings') %></h1><p><%= t('payroll.settings_sub') %></p></div>
+</div>
+<% if (formError && !openDialog) { %><div class="alert alert-error mb-4"><%= Object.values(errors)[0] || formError.message %></div><% } %>
+<div class="grid grid-3">
+  <form class="span-2 stack-lg" method="post" action="/app/payroll/settings" novalidate>
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+    <section class="panel">
+      <div class="panel-head"><h2><%= t('payroll.rules') %></h2></div>
+      <div class="panel-body stack">
+        <div class="field"><span class="label"><%= t('payroll.proration') %></span>
+          <label class="check"><input type="radio" name="proration" value="thirty"<%= rules.proration === 'thirty' ? ' checked' : '' %><%= dis %>><%= t('payroll.proration_thirty') %></label>
+          <label class="check"><input type="radio" name="proration" value="calendar"<%= rules.proration === 'calendar' ? ' checked' : '' %><%= dis %>><%= t('payroll.proration_calendar') %></label>
+        </div>
+        <label class="check"><input type="checkbox" name="four_eyes"<%= rules.fourEyes ? ' checked' : '' %><%= dis %>><span><%= t('payroll.four_eyes') %><span class="help" style="display:block"><%= t('payroll.four_eyes_help') %></span></span></label>
+      </div>
+    </section>
+    <% if (g) { %>
+    <section class="panel">
+      <div class="panel-head"><div><h2><%= t('payroll.gosi_title') %></h2><div class="panel-sub"><%= t('payroll.gosi_sub') %></div></div></div>
+      <div class="panel-body stack">
+        <label class="check"><input type="checkbox" name="gosi_enabled"<%= g.enabled ? ' checked' : '' %><%= dis %>><%= t('payroll.gosi_enabled') %></label>
+        <div class="form-grid">
+          <% [['national_employee_rate', '%'], ['national_employer_rate', '%'], ['expat_employee_rate', '%'], ['expat_employer_rate', '%'], ['wage_floor', organization.currency], ['wage_ceiling', organization.currency]].forEach(function (f) { %>
+          <div class="field"><label class="label" for="g-<%= f[0] %>"><%= t('payroll.gosi_' + f[0]) %> (<%= f[1] %>)</label><input class="input num<%= errors[f[0]] ? ' is-invalid' : '' %>" id="g-<%= f[0] %>" name="<%= f[0] %>" type="number" min="0" step="any" value="<%= g[f[0]] %>"<%= dis %>><% if (errors[f[0]]) { %><span class="field-error"><%= errors[f[0]] %></span><% } %></div>
+          <% }) %>
+        </div>
+        <p class="help"><%= t('payroll.gosi_help') %></p>
+      </div>
+    </section>
+    <% } else { %>
+    <div class="alert alert-info"><%- icon('info') %><div><%= t('payroll.no_statutory', { country: locale === 'ar' ? (organization.country_name_ar || organization.country_code) : (organization.country_name || organization.country_code) }) %></div></div>
+    <% } %>
+    <% if (proc) { %><div class="form-actions"><button class="btn btn-dark" type="submit"><%= t('common.save_changes') %></button></div><% } %>
+  </form>
+
+  <section class="panel" id="components">
+    <div class="panel-head"><div><h2><%= t('payroll.components') %></h2><div class="panel-sub"><%= t('payroll.components_sub') %></div></div><% if (proc) { %><button class="btn btn-secondary btn-sm" type="button" data-open-dialog="component-new"><%- icon('plus', 'icon-sm') %></button><% } %></div>
+    <ul class="action-list"><% components.forEach(function (c) { %>
+      <li><% if (proc) { %><button type="button" class="w-full" data-open-dialog="component-<%= c.id %>" style="all:unset;display:flex;gap:12px;align-items:center;width:100%;padding:12px 20px;cursor:pointer;box-sizing:border-box"><% } else { %><div style="display:flex;gap:12px;align-items:center;padding:12px 20px"><% } %>
+        <span class="grow small<%= c.is_active ? '' : ' muted' %>"><strong><%= locale === 'ar' && c.name_ar ? c.name_ar : c.name %></strong><span class="muted" style="display:block"><%= c.code %> · <%= c.calc === 'percent_basic' ? (c.default_value != null ? Number(c.default_value) + '% ' : '') + t('payroll.of_basic') : t('payroll.calc_fixed') %><%= c.in_gosi_base ? ' · ' + t('payroll.in_gosi_short') : '' %><%= c.is_active ? '' : ' · ' + t('payroll.inactive') %></span></span>
+        <span class="st <%= c.kind === 'earning' ? 'st-approved' : 'st-rejected' %>"><%= t('payroll.kind_' + c.kind) %></span>
+      <% if (proc) { %></button><% } else { %></div><% } %></li>
+    <% }) %></ul>
+  </section>
+</div>
+<% if (proc) { compDialog({}, 'component-new'); components.forEach(function (c) { compDialog(c, 'component-' + c.id); }); } %>

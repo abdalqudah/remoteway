@@ -1,3 +1,4 @@
+const { decimalsOf } = require('./money');
 // View helpers for dates and money that respect the active locale.
 function formatDate(value, locale = 'en', opts = { year: 'numeric', month: 'short', day: 'numeric' }) {
   if (!value) return '—';
@@ -9,8 +10,15 @@ function formatDate(value, locale = 'en', opts = { year: 'numeric', month: 'shor
 function formatMoney(amount, currency = 'SAR', locale = 'en') {
   if (amount === null || amount === undefined) return '—';
   return new Intl.NumberFormat(locale === 'ar' ? 'ar-SA-u-nu-latn' : 'en-US', {
-    style: 'currency', currency, maximumFractionDigits: Number(amount) % 1 === 0 ? 0 : 2,
+    style: 'currency', currency, maximumFractionDigits: Number(amount) % 1 === 0 ? 0 : decimalsOf(currency),
   }).format(Number(amount));
+}
+
+/** Payroll figures: always the currency's exact number of decimals, no currency symbol (tables show it once). */
+function formatAmount(amount, currency = 'SAR', locale = 'en') {
+  if (amount === null || amount === undefined) return '—';
+  const d = decimalsOf(currency);
+  return new Intl.NumberFormat(locale === 'ar' ? 'ar-SA-u-nu-latn' : 'en-US', { minimumFractionDigits: d, maximumFractionDigits: d }).format(Number(amount));
 }
 
 function formatNumber(n, locale = 'en') {
@@ -29,4 +37,4 @@ function toDateInput(value) {
   return Number.isNaN(d.getTime()) ? '' : d.toISOString().slice(0, 10);
 }
 
-module.exports = { formatDate, formatMoney, formatNumber, formatBytesMb, toDateInput };
+module.exports = { formatDate, formatMoney, formatAmount, formatNumber, formatBytesMb, toDateInput };

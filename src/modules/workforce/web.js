@@ -77,6 +77,12 @@ router.get('/employees/:id', canAny('employees.view', 'team.view'), wrap(async (
   if (tab === 'attendance' && has('attendance')) {
     extra.sheet = await require('../attendance/attendance.service').timesheet(req.ctx, employee.id, req.query.month);
   }
+  const perms = req.ctx.permissions;
+  if (tab === 'payroll' && has('payroll') && (perms.has('employees.view_salary') || perms.has('payroll.view'))) {
+    const payroll = require('../payroll/payroll.service');
+    extra.comp = perms.has('employees.view_salary') ? await payroll.getCompensation(req.ctx, employee.id) : null;
+    extra.payslips = perms.has('payroll.view') ? await payroll.payslipsForEmployee(req.ctx, employee.id, { paidOnly: false }) : [];
+  }
   res.page('pages/employees/show', { title: employee.full_name, employee, tab, ...extra });
 }));
 

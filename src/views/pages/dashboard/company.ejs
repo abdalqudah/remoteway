@@ -130,9 +130,11 @@
         <li><a href="/app/recruitment/candidates"><span class="action-icon <%= today.recruitment.newApplications ? 'info' : '' %>"><%- icon('user-plus', 'icon-sm') %></span><span class="grow small"><%= t('dashboard.op_new_applications') %></span><strong class="num"><%= fmt.number(today.recruitment.newApplications) %></strong></a></li>
         <li><a href="/app/recruitment/interviews"><span class="action-icon"><%- icon('calendar-days', 'icon-sm') %></span><span class="grow small"><%= t('dashboard.op_interviews') %></span><strong class="num"><%= fmt.number(today.recruitment.upcomingInterviews) %></strong></a></li>
       <% } %>
-      <% [['payroll', 'wallet', 'dashboard.op_payroll']].forEach(function (m) { var mod = MODULES.find(function (x) { return x.key === m[0]; }); %>
-        <li><a href="/app/modules/<%= m[0] %>"><span class="action-icon"><%- icon(m[1], 'icon-sm') %></span><span class="grow small muted"><%= t(m[2]) %></span><span class="badge badge-soon"><%= t('common.phase', { n: mod.phase }) %></span></a></li>
-      <% }) %>
+      <% if (today.payroll) { var pl = today.payroll.last; %>
+        <li><a href="<%= pl ? '/app/payroll/runs/' + pl.id : '/app/payroll' %>"><span class="action-icon <%= pl && (pl.status === 'review' || pl.status === 'approved') ? 'warning' : '' %>"><%- icon('wallet', 'icon-sm') %></span>
+          <span class="grow small"><%= t('dashboard.op_payroll') %><span class="muted" style="display:block"><%= pl ? fmt.date(pl.period + '-01', { month: 'long', year: 'numeric' }) + ' · ' + t('payroll.status_' + pl.status) : t('payroll.kpi_no_runs') %></span></span>
+          <% if (pl) { %><strong class="num nowrap"><%= fmt.money(pl.total_net, pl.currency) %></strong><% } %></a></li>
+      <% } %>
     </ul>
   </section>
 </div>

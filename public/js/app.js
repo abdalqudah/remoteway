@@ -305,6 +305,9 @@
     });
   });
 
+  /* ---------- Print buttons (payslips) ---------- */
+  $$('[data-print]').forEach(function (b) { b.addEventListener('click', function () { window.print(); }); });
+
   // Keep csrf available for fetch-based features.
   window.RemoteWay = { csrf: csrf };
 })();

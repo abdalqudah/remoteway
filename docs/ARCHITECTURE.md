@@ -126,7 +126,7 @@ All of them carry `organization_id` and a composite index that starts with it.
 | 6 | Super Admin (tenants, plans, invoices, audit) | 1 | **Built** |
 | 7 | Documents, Attendance, Leave, Tasks/Projects, Notifications, CSV import | 2 | **Built** (email templates & compliance dashboard move to Phase 3) |
 | 8 | Recruitment/ATS, Candidates, Interviews, Assessments, public careers page, Onboarding checklists | 3 | **Built** |
-| 9 | Payroll, Payslips, Allowances/Deductions (Country Policy Engine) | 4 | Planned |
+| 9 | Payroll, Payslips, Allowances/Deductions (Country Policy Engine: Saudi GOSI) | 4 | **Built** |
 | 10 | Performance (Goals, KPIs, OKRs, Reviews) | 5 | Planned |
 | 11 | Learning (Courses, Paths, Certificates) | 6 | Planned |
 | 12 | Integration hub: PayWay, Email, SMS, Accounting, Webhooks | 7 | Planned |
@@ -141,10 +141,11 @@ All of them carry `organization_id` and a composite index that starts with it.
 `/leave/*` · `/attendance/*` · `/documents` · `/tasks` · `/notifications` ·
 `GET|POST /recruitment/jobs` · `GET /recruitment/jobs/:id` · `POST /recruitment/jobs/:id/status` · `GET /recruitment/jobs/:id/applications` ·
 `GET|POST /recruitment/candidates` · `GET /recruitment/candidates/:id` · `GET /recruitment/applications/:id` · `POST /recruitment/applications/:id/stage` · `GET /recruitment/interviews` ·
-`GET|POST /onboarding/plans` · `GET /onboarding/plans/:id` · `POST /onboarding/tasks/:id`.
+`GET|POST /onboarding/plans` · `GET /onboarding/plans/:id` · `POST /onboarding/tasks/:id` ·
+`GET|POST /payroll/runs` · `GET /payroll/runs/:id` · `POST /payroll/runs/:id/{submit|reopen|approve|pay|cancel}` · `GET /payroll/payslips/mine` · `GET /payroll/payslips/:id`.
 Auth is `Authorization: Bearer rw_…` (Settings → API; requires the `api` feature, metered against `api_calls_monthly`) or the browser session plus the `X-CSRF-Token` header.
 
-**Planned:** `/payroll, /performance, /learning, /projects, /integrations, /payway, /webhooks, /reports, /ai`.
+**Planned:** `/performance, /learning, /projects, /integrations, /payway, /webhooks, /reports, /ai`.
 
 ## H. Permission matrix — **Built** (system roles; Super Admin is a platform flag outside tenants)
 
@@ -270,7 +271,7 @@ Payroll / Employees ─► domain events (payroll.approved, employee.updated)
 | **1 — SaaS Core** | Auth, multi-tenancy, orgs, users, roles, permissions, plans, features, subscriptions, limits, billing foundation, dashboard | ✅ Done: 33 integration tests (tenant isolation, limits, RBAC, subscription, CSRF/auth) |
 | **2 — Workforce** | Documents (private storage, versions, expiry), attendance, leave (types, balances, approvals, calendar), tasks & projects, notifications (in-app + SMTP email), CSV import wizard | ✅ Done — 20 more integration tests (leave scope/balances, attendance, document access & CSRF on uploads, tasks visibility, import limits) |
 | **3 — Talent** | Jobs, candidates (private CVs), pipeline board, interviews & feedback, assessments, hire → employee → onboarding, public careers page, onboarding templates & plans | ✅ Done — 19 more integration tests (plan gating, active-jobs & seat limits, CV isolation, interviewer-only feedback, careers page consent/honeypot/CSRF, onboarding assignees & completion) |
-| 4 — Payroll | Payroll runs (draft → review → approved → processed → paid), payslips, Saudi rules via the Country Policy Engine | |
+| **4 — Payroll** | Compensation & bank details, payroll runs (draft → review → approved → paid, four-eyes), payslips, Saudi GOSI via the Country Policy Engine, proration, unpaid leave, adjustments, register/bank/GOSI exports | ✅ Done — 23 more tests (13 pure calculation tests + 10 integration: GOSI, proration, unpaid leave, workflow & locking, four-eyes, payslip visibility, isolation, exports) |
 | 5 — Performance | Cycles, goals, KPIs/OKRs, reviews, feedback | |
 | 6 — Learning | Courses, paths, enrollments, certificates | |
 | 7 — Integrations | Integration hub, Email/SMS providers, outbound webhooks (signed, retried), PayWay adapter (once docs are available) | |

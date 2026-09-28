@@ -9,11 +9,18 @@
 | Runtime | Node.js ≥ 20 (Express 4, server-rendered EJS, no build step) |
 | Database | MySQL 8 / MariaDB ≥ 10.3 (all data, including sessions, lives in the database) |
 | Hosting | Any cPanel host with **Setup Node.js App** (e.g. Orange Host), or any VPS |
-| Status | **Phase 1 — SaaS Core**, **Phase 2 — Workforce** and **Phase 3 — Talent** complete and tested (see `docs/ARCHITECTURE.md`) |
+| Status | **Phases 1–4** (SaaS Core, Workforce, Talent, Payroll) complete and tested (see `docs/ARCHITECTURE.md`) |
 
 ---
 
-## What works today (Phases 1–3)
+## What works today (Phases 1–4)
+
+**Phase 4 — Payroll:**
+- **Compensation per employee:** basic salary, recurring allowances/deductions (fixed or % of basic), bank details with IBAN validation (ISO 13616), GOSI registration.
+- **Monthly payroll runs:** draft → review → approved (locked) → paid, with optional four-eyes approval (the submitter cannot approve) and a separate `payroll.approve` permission.
+- **Calculation engine (Country Policy Engine):** Saudi GOSI (Saudi 9.75% employee / 11.75% employer, non-Saudi 2% employer, contribution wage floor/ceiling — all editable per company), 30-day or calendar-day proration for joiners and leavers, unpaid-leave deductions from the Leave module, one-off adjustments, Labor Law 50% deduction warning, exact money maths (3-decimal currencies supported).
+- **Payslips:** printable / save as PDF, visible to the employee once payroll is paid, "My payslips" for everyone.
+- **Exports:** payroll register, bank transfer list (IBAN) and GOSI contributions (CSV). Bank-specific WPS file formats arrive with the integrations phase.
 
 **Phase 3 — Talent:**
 - **Recruitment (ATS):** jobs (draft → open → closed, counted against the plan's active-jobs limit), candidates with private CV storage, a drag & drop pipeline (applied → screening → shortlisted → interview → assessment → offer → hired / rejected), ratings, internal notes and a full activity timeline.
@@ -36,7 +43,7 @@
 - **Multi-tenancy:** every record carries `organization_id`; the tenant comes from a verified membership on the server, never from the request.
 - **Auth:** sign-up wizard (account → company → plan), login, sessions stored in MySQL, invitations, API tokens (hashed).
 - **Organizations:** multiple workspaces per user, organization switcher, company profile, working-week settings from the country policy (Saudi Arabia first).
-- **RBAC:** 9 system roles plus a super admin, 34 permissions, a permission matrix, custom roles (Enterprise), team-scoped data for managers, and salary visibility controlled by permission.
+- **RBAC:** 9 system roles plus a super admin, 38 permissions, a permission matrix, custom roles (Enterprise), team-scoped data for managers, and salary visibility controlled by permission.
 - **Subscription engine:** plans, features, limits, add-ons, trials, grace periods, and usage metering all live in the database. Employee, user and API limits are **enforced on the backend**, with row locking.
 - **Billing foundation:** invoices with VAT from the country policy. Offline payments are confirmed by a super admin; there is no card gateway yet, and the app says so.
 - **Employees:** enterprise table (search, filters, sort, column visibility, pagination, CSV export), profile, create/edit, end employment, reactivate, delete.
@@ -45,7 +52,7 @@
 - **UI:** RemoteWay brand identity (your logos, the `#1ACC6C / #13AA54 / #000 / #E2E2E2` palette, Montserrat), RTL/LTR, real dark mode, responsive.
 - **REST API v1** with standard `{ success, data | error: { code, message } }` responses.
 
-Modules that are not built yet (payroll, performance, learning, PayWay, AI…) appear as **Soon / Setup required** with their phase number. Nothing is faked.
+Modules that are not built yet (performance, learning, PayWay, AI…) appear as **Soon / Setup required** with their phase number. Nothing is faked.
 
 ---
 

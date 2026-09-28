@@ -199,6 +199,43 @@ async function seedPhase3(ctx, empIds, userIds) {
   for (const tk of firstTasks) await onboarding.setTaskDone(ctx, tk.id, true);
 }
 
+/** Salaries, allowances, bank details and two payrolls (last month paid, this month in draft). */
+async function seedPhase4(ctx, empIds) {
+  const payroll = require('../src/modules/payroll/payroll.service');
+  const { todayIn } = require('../src/core/workdays');
+  // Valid Saudi IBANs (ISO 13616 check digits) for demo accounts.
+  const iban = (n) => {
+    const bban = `80${String(1000000000000000 + n * 7919).padStart(18, '0')}`;
+    const digits = `${bban}SA00`.replace(/[A-Z]/g, (ch) => String(ch.charCodeAt(0) - 55));
+    let rem = 0;
+    for (const ch of digits) rem = (rem * 10 + Number(ch)) % 97;
+    return `SA${String(98 - rem).padStart(2, '0')}${bban}`;
+  };
+  const comps = await payroll.listComponents(ctx.organizationId);
+  const byCode = Object.fromEntries(comps.map((c) => [c.code, c.id]));
+  const expats = new Set([8, 11]); // two non-Saudi employees, for GOSI differences
+  for (const [i, id] of empIds.entries()) {
+    if (expats.has(i)) await knex('employees').where({ id }).update({ nationality: 'EG' });
+    const e = await knex('employees').where({ id }).first('base_salary');
+    const input = {
+      base_salary: Number(e.base_salary), payment_method: 'bank', bank_name: i % 2 ? 'Al Rajhi Bank' : 'Saudi National Bank',
+      iban: i === 17 ? '' : iban(i + 1), gosi_registered: 'on',
+      [`component_${byCode.HOUSING}`]: 25, [`component_${byCode.TRANSPORT}`]: 10,
+    };
+    if (i === 6) input[`component_${byCode.LOAN}`] = 1500;
+    await payroll.saveCompensation(ctx, id, input);
+  }
+  const current = todayIn('Asia/Riyadh').slice(0, 7);
+  const [y, m] = current.split('-').map(Number);
+  const previous = new Date(Date.UTC(y, m - 2, 1)).toISOString().slice(0, 7);
+  const last = await payroll.createRun(ctx, previous);
+  await payroll.addAdjustment(ctx, last, { employee_id: empIds[5], kind: 'earning', name: 'Performance bonus', amount: 2000 });
+  await payroll.transition(ctx, last, 'submit');
+  await payroll.transition(ctx, last, 'approve');
+  await payroll.transition(ctx, last, 'pay', { payment_date: `${previous}-27` });
+  await payroll.createRun(ctx, current);
+}
+
 function monthsAgo(n) {
   const d = new Date();
   d.setUTCMonth(d.getUTCMonth() - n);
@@ -271,6 +308,7 @@ function monthsAgo(n) {
     await orgs.completeOnboarding(ctx);
     await seedPhase2(ctx, empIds);
     await seedPhase3(ctx, empIds, userIds);
+    await seedPhase4(ctx, empIds);
 
     console.log('\nRemoteWay Demo Company is ready.');
     console.log(`Password for all demo users: ${PASSWORD}\n`);

@@ -1,0 +1,126 @@
+<%
+  var r = run; var cur = r.currency;
+  var proc = can('payroll.process');
+  var steps = ['draft', 'review', 'approved', 'paid'];
+  var at = steps.indexOf(r.status);
+  var monthName = fmt.date(r.period + '-01', { month: 'long', year: 'numeric' });
+  var w = r.warnings || {};
+  var dt = function (v) { return v ? fmt.date(v, { dateStyle: 'medium', timeStyle: 'short' }) : ''; };
+%>
+<div class="page-head">
+  <div>
+    <div class="eyebrow"><a href="/app/payroll"><%= t('nav.payroll') %></a></div>
+    <h1><%= t('payroll.run_title', { period: monthName }) %></h1>
+    <div class="row-sm wrap mt-2 small muted"><span class="st st-<%= r.status %>"><%= t('payroll.status_' + r.status) %></span><span><%= fmt.date(r.period_start) %> – <%= fmt.date(r.period_end) %></span><% if (r.calculated_at) { %><span><%= t('payroll.calculated_at', { at: dt(r.calculated_at) }) %></span><% } %></div>
+  </div>
+  <div class="page-actions">
+    <details class="dropdown"><summary class="btn btn-secondary"><%- icon('download') %><%= t('payroll.exports') %></summary>
+      <div class="menu">
+        <a href="/app/payroll/runs/<%= r.id %>/export/register.csv"><%- icon('file-text', 'icon-sm') %><%= t('payroll.export_register') %></a>
+        <a href="/app/payroll/runs/<%= r.id %>/export/bank.csv"><%- icon('credit-card', 'icon-sm') %><%= t('payroll.export_bank') %></a>
+        <% if (rules.gosi) { %><a href="/app/payroll/runs/<%= r.id %>/export/gosi.csv"><%- icon('shield-check', 'icon-sm') %><%= t('payroll.export_gosi') %></a><% } %>
+      </div>
+    </details>
+    <% if (r.status === 'draft' && proc) { %>
+      <form method="post" action="/app/payroll/runs/<%= r.id %>/recalculate"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><button class="btn btn-secondary" type="submit"><%- icon('history') %><%= t('payroll.recalculate') %></button></form>
+      <form method="post" action="/app/payroll/runs/<%= r.id %>/submit" data-confirm="<%= t('payroll.confirm_submit') %>"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><button class="btn btn-dark" type="submit"><%- icon('send') %><%= t('payroll.submit') %></button></form>
+    <% } else if (r.status === 'review') { %>
+      <% if (proc) { %><form method="post" action="/app/payroll/runs/<%= r.id %>/reopen"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><button class="btn btn-secondary" type="submit"><%= t('payroll.reopen') %></button></form><% } %>
+      <% if (can('payroll.approve')) { %><form method="post" action="/app/payroll/runs/<%= r.id %>/approve" data-confirm="<%= t('payroll.confirm_approve') %>"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><button class="btn btn-primary" type="submit"><%- icon('badge-check') %><%= t('payroll.approve') %></button></form><% } %>
+    <% } else if (r.status === 'approved' && proc) { %>
+      <button class="btn btn-primary" type="button" data-open-dialog="pay-dialog"><%- icon('circle-check') %><%= t('payroll.mark_paid') %></button>
+    <% } %>
+    <% if ((r.status === 'draft' || r.status === 'review') && proc) { %>
+      <form method="post" action="/app/payroll/runs/<%= r.id %>/cancel" data-confirm="<%= t('payroll.confirm_cancel') %>"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><button class="btn btn-danger-ghost" type="submit" aria-label="<%= t('payroll.cancel_run') %>" title="<%= t('payroll.cancel_run') %>"><%- icon('trash-2') %></button></form>
+    <% } %>
+  </div>
+</div>
+
+<% if (r.status !== 'cancelled') { %>
+<ol class="workflow mb-6" aria-label="<%= t('payroll.workflow') %>">
+  <% steps.forEach(function (s, i) { var who = { review: r.submitted_by_name, approved: r.approved_by_name, paid: r.paid_by_name, draft: r.created_by_name }[s]; var when = { review: r.submitted_at, approved: r.approved_at, paid: r.paid_at }[s]; %>
+  <li class="<%= i < at ? 'done' : i === at ? 'current' : '' %>"><span class="n"><%= i < at ? '✓' : i + 1 %></span><span><strong><%= t('payroll.status_' + s) %></strong><% if (i <= at && who) { %><span class="tiny muted" style="display:block"><%= who %><%= when ? ' · ' + dt(when) : '' %></span><% } %></span></li>
+  <% }) %>
+</ol>
+<% } %>
+
+<% if (r.status === 'review' && rules.fourEyes && r.submitted_by === currentUser.id) { %><div class="alert alert-info mb-4"><%- icon('info') %><div><%= t('payroll.four_eyes_note') %></div></div><% } %>
+<% if (r.status === 'paid') { %><div class="alert alert-success mb-4"><%- icon('circle-check') %><div><%= t('payroll.paid_note', { date: fmt.date(r.payment_date) }) %></div></div><% } %>
+<% ['no_salary', 'no_iban', 'negative_net', 'deduction_limit'].forEach(function (k) { if (w[k]) { %>
+  <div class="alert <%= k === 'negative_net' ? 'alert-error' : 'alert-warning' %> mb-4"><%- icon('triangle-alert') %><div><%= t('payroll.warn_' + k, { n: w[k] }) %></div></div>
+<% } }) %>
+
+<div class="kpis mb-6">
+  <div class="kpi"><div class="kpi-label"><%= t('payroll.employees') %></div><div class="kpi-value"><%= fmt.number(r.employee_count) %></div></div>
+  <div class="kpi"><div class="kpi-label"><%= t('payroll.gross') %></div><div class="kpi-value" style="font-size:22px"><%= fmt.amount(r.total_gross, cur) %></div><div class="kpi-meta"><%= cur %></div></div>
+  <div class="kpi"><div class="kpi-label"><%= t('payroll.deductions') %></div><div class="kpi-value" style="font-size:22px"><%= fmt.amount(r.total_deductions, cur) %></div><div class="kpi-meta"><%= cur %></div></div>
+  <div class="kpi"><div class="kpi-label"><%= t('payroll.net_pay') %></div><div class="kpi-value" style="font-size:22px;color:var(--accent-strong)"><%= fmt.amount(r.total_net, cur) %></div><div class="kpi-meta"><%= t('payroll.employer_contrib', { amount: fmt.amount(r.total_employer, cur) + ' ' + cur }) %></div></div>
+</div>
+
+<section class="panel mb-6">
+  <div class="panel-head"><h2><%= t('payroll.payslips') %></h2><% if (r.status === 'draft' && proc && r.payslips.length) { %><button class="btn btn-secondary btn-sm" type="button" data-open-dialog="adjust-dialog"><%- icon('plus', 'icon-sm') %><%= t('payroll.add_adjustment') %></button><% } %></div>
+  <% if (!r.payslips.length) { %><div class="empty"><span class="empty-icon"><%- icon('users') %></span><p><%= t('payroll.no_employees_in_run') %></p></div><% } else { %>
+  <div class="table-wrap"><table class="table">
+    <thead><tr><th style="min-width:230px"><%= t('payroll.employee') %></th><th class="num"><%= t('payroll.days') %></th><th class="num"><%= t('payroll.basic') %></th><th class="num"><%= t('payroll.allowances') %></th><th class="num"><%= t('payroll.gross') %></th><th class="num"><%= t('payroll.deductions') %></th><th class="num"><%= t('payroll.net') %></th><th></th></tr></thead>
+    <tbody><% r.payslips.forEach(function (s) { %>
+      <tr>
+        <td><a class="person" href="/app/payroll/payslips/<%= s.id %>"><span class="avatar"><%= initials(s.employee_name) %></span><span><span class="person-name"><%= s.employee_name %></span><span class="person-sub" style="display:block"><%= s.job_title || '' %><%= s.department_name ? ' · ' + s.department_name : '' %></span></span></a>
+          <% if (s.warnings.length) { %><div class="row-sm wrap mt-1"><% s.warnings.forEach(function (x) { %><span class="st <%= x === 'negative_net' ? 'st-rejected' : 'st-pending' %>"><%= t('payroll.flag_' + x) %></span><% }) %></div><% } %></td>
+        <td class="num"><%= Number(s.paid_days) %><%= Number(s.unpaid_leave_days) ? ' (−' + Number(s.unpaid_leave_days) + ')' : '' %></td>
+        <td class="num nowrap"><%= fmt.amount(s.basic, cur) %></td>
+        <td class="num nowrap"><%= fmt.amount(s.allowances, cur) %></td>
+        <td class="num nowrap"><%= fmt.amount(s.gross, cur) %></td>
+        <td class="num nowrap"><%= fmt.amount(s.total_deductions, cur) %></td>
+        <td class="num nowrap"><strong><%= fmt.amount(s.net, cur) %></strong></td>
+        <td class="text-end"><a class="btn btn-ghost btn-sm" href="/app/payroll/payslips/<%= s.id %>"><%= t('payroll.payslip') %></a></td>
+      </tr>
+    <% }) %></tbody>
+    <tfoot><tr><th><%= t('payroll.total') %></th><th></th><th></th><th></th><th class="num nowrap"><%= fmt.amount(r.total_gross, cur) %></th><th class="num nowrap"><%= fmt.amount(r.total_deductions, cur) %></th><th class="num nowrap"><%= fmt.amount(r.total_net, cur) %></th><th></th></tr></tfoot>
+  </table></div><% } %>
+</section>
+
+<% if (r.adjustments.length) { %>
+<section class="panel">
+  <div class="panel-head"><div><h2><%= t('payroll.adjustments') %></h2><div class="panel-sub"><%= t('payroll.adjustments_sub') %></div></div></div>
+  <div class="table-wrap"><table class="table">
+    <thead><tr><th><%= t('payroll.employee') %></th><th><%= t('payroll.item') %></th><th><%= t('payroll.type') %></th><th class="num"><%= t('payroll.amount') %></th><th><%= t('recruitment.notes') %></th><th></th></tr></thead>
+    <tbody><% r.adjustments.forEach(function (a) { %>
+      <tr><td><%= a.employee_name %></td><td><%= a.name %></td><td><span class="st <%= a.kind === 'earning' ? 'st-approved' : 'st-rejected' %>"><%= t('payroll.kind_' + a.kind) %></span></td><td class="num nowrap"><%= a.kind === 'deduction' ? '−' : '' %><%= fmt.amount(a.amount, cur) %></td><td class="small muted"><%= a.note || '' %></td>
+        <td class="text-end"><% if (r.status === 'draft' && proc) { %><form method="post" action="/app/payroll/runs/<%= r.id %>/adjustments/<%= a.id %>/delete"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><button class="btn btn-ghost btn-sm btn-icon" type="submit" aria-label="<%= t('common.delete') %>"><%- icon('x', 'icon-sm') %></button></form><% } %></td></tr>
+    <% }) %></tbody>
+  </table></div>
+</section>
+<% } %>
+
+<% if (r.status === 'draft' && proc && r.payslips.length) { %>
+<dialog class="dialog" id="adjust-dialog"<%= openDialog === 'adjust' ? ' data-open-on-load' : '' %>>
+  <form method="post" action="/app/payroll/runs/<%= r.id %>/adjustments" novalidate>
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+    <div class="dialog-head"><div><h2><%= t('payroll.add_adjustment') %></h2><p class="muted small mt-1"><%= t('payroll.adjustment_sub') %></p></div><button class="btn btn-ghost btn-icon btn-sm" type="button" data-close-dialog aria-label="<%= t('common.close') %>"><%- icon('x') %></button></div>
+    <div class="dialog-body stack">
+      <%- include('../../partials/field', { name: 'employee_id', label: t('payroll.employee'), type: 'select', required: true, placeholder: t('onboarding_plans.choose_employee'), options: r.payslips.map(function (s) { return { value: s.employee_id, label: s.employee_name }; }) }) %>
+      <div class="form-grid">
+        <%- include('../../partials/field', { name: 'kind', label: t('payroll.type'), type: 'select', value: 'earning', options: ['earning', 'deduction'].map(function (k) { return { value: k, label: t('payroll.kind_' + k) }; }) }) %>
+        <%- include('../../partials/field', { name: 'amount', label: t('payroll.amount') + ' (' + cur + ')', type: 'number', required: true, attrs: 'min="0" step="any"' }) %>
+      </div>
+      <%- include('../../partials/field', { name: 'name', label: t('payroll.item'), required: true, placeholder: t('payroll.item_ph') }) %>
+      <%- include('../../partials/field', { name: 'note', label: t('recruitment.notes') }) %>
+    </div>
+    <div class="dialog-foot"><button class="btn btn-ghost" type="button" data-close-dialog><%= t('common.cancel') %></button><button class="btn btn-dark" type="submit"><%= t('common.add') %></button></div>
+  </form>
+</dialog>
+<% } %>
+
+<% if (r.status === 'approved' && proc) { %>
+<dialog class="dialog" id="pay-dialog">
+  <form method="post" action="/app/payroll/runs/<%= r.id %>/pay">
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+    <div class="dialog-head"><h2><%= t('payroll.mark_paid') %></h2><button class="btn btn-ghost btn-icon btn-sm" type="button" data-close-dialog aria-label="<%= t('common.close') %>"><%- icon('x') %></button></div>
+    <div class="dialog-body stack">
+      <p class="text-2"><%= t('payroll.pay_text') %></p>
+      <div class="field"><label class="label" for="pay-date"><%= t('payroll.payment_date') %></label><input class="input" type="date" id="pay-date" name="payment_date" value="<%= new Date().toISOString().slice(0, 10) %>"></div>
+    </div>
+    <div class="dialog-foot"><button class="btn btn-ghost" type="button" data-close-dialog><%= t('common.cancel') %></button><button class="btn btn-primary" type="submit"><%= t('payroll.confirm_paid') %></button></div>
+  </form>
+</dialog>
+<% } %>

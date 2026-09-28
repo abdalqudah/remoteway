@@ -1,0 +1,54 @@
+<%
+  var edit = can('payroll.process') && can('employees.view_salary') && e.status !== 'terminated';
+  var cur = organization.currency;
+  var money = function (v) { return fmt.money(v, cur); };
+%>
+<div class="grid grid-3">
+  <div class="span-2 stack-lg">
+    <% if (comp) { var pf = comp.profile; %>
+    <form method="post" action="/app/payroll/compensation/<%= e.id %>" novalidate>
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+      <section class="panel">
+        <div class="panel-head"><div><h2><%= t('payroll.compensation') %></h2><div class="panel-sub"><%= t('payroll.compensation_sub') %></div></div></div>
+        <div class="panel-body stack">
+          <div class="form-grid">
+            <div class="field"><label class="label" for="c-basic"><%= t('payroll.basic_salary') %> (<%= cur %>)</label><input class="input num" id="c-basic" name="base_salary" type="number" min="0" step="any" value="<%= comp.employee.base_salary != null ? Number(comp.employee.base_salary) : '' %>"<%= edit ? '' : ' disabled' %>></div>
+          </div>
+          <div class="table-wrap"><table class="table">
+            <thead><tr><th><%= t('payroll.component') %></th><th><%= t('payroll.type') %></th><th style="width:180px"><%= t('payroll.value') %></th></tr></thead>
+            <tbody><% comp.components.filter(function (c) { return c.is_active || c.assigned; }).forEach(function (c) { %>
+              <tr><td><strong><%= locale === 'ar' && c.name_ar ? c.name_ar : c.name %></strong><div class="tiny muted"><%= c.code %><%= c.in_gosi_base ? ' · ' + t('payroll.in_gosi_short') : '' %></div></td>
+                <td><span class="st <%= c.kind === 'earning' ? 'st-approved' : 'st-rejected' %>"><%= t('payroll.kind_' + c.kind) %></span></td>
+                <td><div class="row-sm" style="max-width:190px;flex-wrap:nowrap"><input class="input num" style="min-width:0" name="component_<%= c.id %>" type="number" min="0" step="any" value="<%= c.assigned ? c.value : '' %>" placeholder="<%= c.default_value != null ? Number(c.default_value) : '—' %>" aria-label="<%= c.name %>"<%= edit ? '' : ' disabled' %>><span class="muted small nowrap"><%= c.calc === 'percent_basic' ? '%' : cur %></span></div></td></tr>
+            <% }) %></tbody>
+          </table></div>
+          <p class="help"><%= t('payroll.components_help') %></p>
+        </div>
+      </section>
+      <section class="panel mt-6">
+        <div class="panel-head"><h2><%= t('payroll.payment_details') %></h2></div>
+        <div class="panel-body stack">
+          <div class="form-grid">
+            <div class="field"><label class="label" for="c-method"><%= t('payroll.payment_method') %></label><select class="select" id="c-method" name="payment_method"<%= edit ? '' : ' disabled' %>><% ['bank', 'cash'].forEach(function (m) { %><option value="<%= m %>"<%= pf.payment_method === m ? ' selected' : '' %>><%= t('payroll.method_' + m) %></option><% }) %></select></div>
+            <div class="field"><label class="label" for="c-bank"><%= t('payroll.bank_name') %></label><input class="input" id="c-bank" name="bank_name" maxlength="100" value="<%= pf.bank_name || '' %>"<%= edit ? '' : ' disabled' %>></div>
+            <div class="field"><label class="label" for="c-iban">IBAN</label><input class="input mono" id="c-iban" name="iban" maxlength="40" dir="ltr" placeholder="SA00 0000 0000 0000 0000 0000" value="<%= pf.iban || '' %>"<%= edit ? '' : ' disabled' %>></div>
+            <div class="field"><label class="label" for="c-acc"><%= t('payroll.account_name') %></label><input class="input" id="c-acc" name="account_name" maxlength="150" value="<%= pf.account_name || '' %>"<%= edit ? '' : ' disabled' %>></div>
+            <div class="field"><label class="label" for="c-gosi"><%= t('payroll.gosi_number') %></label><input class="input" id="c-gosi" name="gosi_number" maxlength="30" value="<%= pf.gosi_number || '' %>"<%= edit ? '' : ' disabled' %>></div>
+          </div>
+          <label class="check"><input type="checkbox" name="gosi_registered"<%= pf.gosi_registered === false || pf.gosi_registered === 0 ? '' : ' checked' %><%= edit ? '' : ' disabled' %>><%= t('payroll.gosi_registered') %></label>
+        </div>
+        <% if (edit) { %><div class="panel-foot"><button class="btn btn-dark btn-sm" type="submit"><%= t('common.save_changes') %></button></div><% } %>
+      </section>
+    </form>
+    <% } else { %>
+      <section class="panel"><div class="empty"><span class="empty-icon"><%- icon('lock') %></span><p><%= t('payroll.salary_hidden') %></p></div></section>
+    <% } %>
+  </div>
+  <section class="panel">
+    <div class="panel-head"><h2><%= t('payroll.payslips') %></h2></div>
+    <% if (!payslips.length) { %><div class="empty" style="padding:28px"><p><%= t('payroll.no_payslips') %></p></div><% } else { %>
+    <ul class="action-list"><% payslips.forEach(function (s) { %>
+      <li><a href="/app/payroll/payslips/<%= s.id %>"><span class="grow small"><strong><%= fmt.date(s.period + '-01', { month: 'long', year: 'numeric' }) %></strong><span class="muted" style="display:block"><%= t('payroll.net') %>: <%= fmt.money(s.net, s.currency) %></span></span><span class="st st-<%= s.run_status %>"><%= t('payroll.status_' + s.run_status) %></span></a></li>
+    <% }) %></ul><% } %>
+  </section>
+</div>

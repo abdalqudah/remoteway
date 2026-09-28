@@ -1,0 +1,47 @@
+<%
+  var s = slip; var cur = s.currency; var ar = locale === 'ar';
+  var nm = function (l) { return ar && l.name_ar ? l.name_ar : l.name; };
+  var earnings = s.lines.filter(function (l) { return l.kind === 'earning'; });
+  var deductions = s.lines.filter(function (l) { return l.kind === 'deduction'; });
+  var employer = s.lines.filter(function (l) { return l.kind === 'employer'; });
+  var print = layout === 'print';
+  var note = function (l) { return l.source === 'leave' ? t('payroll.days_n', { n: Number(l.note) }) : (l.note || ''); };
+%>
+<% if (!print) { %>
+<div class="page-head">
+  <div>
+    <div class="eyebrow"><% if (can('payroll.view')) { %><a href="/app/payroll/runs/<%= s.run_id %>"><%= t('payroll.run_title', { period: fmt.date(s.period + '-01', { month: 'long', year: 'numeric' }) }) %></a><% } else { %><a href="/app/payroll/my"><%= t('payroll.my_payslips') %></a><% } %></div>
+    <h1><%= t('payroll.payslip') %> · <%= fmt.date(s.period + '-01', { month: 'long', year: 'numeric' }) %></h1>
+    <div class="row-sm wrap mt-2 small muted"><span class="st st-<%= s.run_status %>"><%= t('payroll.status_' + s.run_status) %></span><span><%= s.employee_name %></span></div>
+  </div>
+  <div class="page-actions"><a class="btn btn-secondary" href="?print=1" target="_blank" rel="noopener"><%- icon('download') %><%= t('payroll.print') %></a></div>
+</div>
+<% if (s.run_status !== 'paid' && s.run_status !== 'approved') { %><div class="alert alert-warning mb-4"><%- icon('triangle-alert') %><div><%= t('payroll.preview_note') %></div></div><% } %>
+<% } %>
+<article class="payslip panel">
+  <header class="payslip-head">
+    <div><div class="org-mark"><%= initials(organization.name) %></div></div>
+    <div class="grow"><strong style="font-size:17px"><%= organization.name %></strong><div class="muted small"><%= t('payroll.payslip_for', { period: fmt.date(s.period + '-01', { month: 'long', year: 'numeric' }) }) %></div></div>
+    <div class="text-end small"><div class="muted"><%= t('payroll.payment_date') %></div><strong><%= s.payment_date ? fmt.date(s.payment_date) : '—' %></strong></div>
+  </header>
+  <div class="panel-body">
+    <dl class="payslip-meta">
+      <div><dt><%= t('payroll.employee') %></dt><dd><%= s.employee_name %></dd></div>
+      <div><dt><%= t('fields.employee_number') %></dt><dd class="mono"><%= s.employee_number || '—' %></dd></div>
+      <div><dt><%= t('fields.job_title') %></dt><dd><%= s.job_title || '—' %></dd></div>
+      <div><dt><%= t('fields.department') %></dt><dd><%= s.department_name || '—' %></dd></div>
+      <div><dt><%= t('payroll.paid_days') %></dt><dd><%= Number(s.paid_days) %> / <%= Number(s.period_days) %></dd></div>
+      <div><dt><%= t('payroll.payment_method') %></dt><dd><%= s.payment_method === 'cash' ? t('payroll.method_cash') : (s.iban ? (s.bank_name ? s.bank_name + ' · ' : '') + '…' + s.iban.slice(-4) : '—') %></dd></div>
+    </dl>
+    <div class="payslip-cols">
+      <table class="table payslip-table"><thead><tr><th><%= t('payroll.earnings') %></th><th class="num"><%= cur %></th></tr></thead>
+        <tbody><% earnings.forEach(function (l) { %><tr><td><%= nm(l) %><% if (note(l)) { %> <span class="muted tiny"<%- l.source === 'leave' ? '' : ' dir="ltr"' %>><%= note(l) %></span><% } %></td><td class="num"><%= fmt.amount(l.amount, cur) %></td></tr><% }) %></tbody>
+        <tfoot><tr><th><%= t('payroll.gross') %></th><th class="num"><%= fmt.amount(s.gross, cur) %></th></tr></tfoot></table>
+      <table class="table payslip-table"><thead><tr><th><%= t('payroll.deductions') %></th><th class="num"><%= cur %></th></tr></thead>
+        <tbody><% if (!deductions.length) { %><tr><td class="muted">—</td><td></td></tr><% } %><% deductions.forEach(function (l) { %><tr><td><%= nm(l) %><% if (note(l)) { %> <span class="muted tiny"<%- l.source === 'leave' ? '' : ' dir="ltr"' %>><%= note(l) %></span><% } %></td><td class="num"><%= fmt.amount(l.amount, cur) %></td></tr><% }) %></tbody>
+        <tfoot><tr><th><%= t('payroll.deductions') %></th><th class="num"><%= fmt.amount(s.total_deductions, cur) %></th></tr></tfoot></table>
+    </div>
+    <div class="payslip-net"><span><%= t('payroll.net_pay') %></span><strong><%= fmt.amount(s.net, cur) %> <%= cur %></strong></div>
+    <% if (employer.length) { %><p class="muted small mt-4"><%= t('payroll.employer_note') %>: <% employer.forEach(function (l, i) { %><%= i ? ' · ' : '' %><%= nm(l) %> <%= fmt.amount(l.amount, cur) %> <%= cur %><% }) %></p><% } %>
+  </div>
+</article>
