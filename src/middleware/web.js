@@ -67,7 +67,7 @@ function flash(req, type, message) {
 // API requests authenticated with a Bearer token are exempt (no ambient credentials).
 // Multipart bodies are only parsed by the upload routes below; their token is checked after parsing
 // (verifyCsrfAfterUpload). Multipart sent anywhere else is refused so it can never skip the check.
-const MULTIPART_ROUTES = [/^\/app\/documents(\/\d+\/versions)?\/?$/, /^\/app\/employees\/import\/?$/, /^\/api\/v1\/documents\/?$/];
+const MULTIPART_ROUTES = [/^\/app\/documents(\/\d+\/versions)?\/?$/, /^\/app\/employees\/import\/?$/, /^\/api\/v1\/documents\/?$/, /^\/admin\/system\/update\/?$/];
 
 function tokenValid(req, sent) {
   return Boolean(req.session?.csrf && sent && safeEqual(sent, req.session.csrf));

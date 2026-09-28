@@ -1,6 +1,9 @@
 // Test harness: a real MySQL/MariaDB test database (DB_NAME_TEST), rebuilt once per test file.
 process.env.NODE_ENV = 'test';
 process.env.STORAGE_PATH = require('path').join(require('os').tmpdir(), `remoteway-test-storage-${process.pid}`);
+// The in-app updater writes into a scratch app folder during tests, never into this checkout.
+process.env.UPDATER_APP_ROOT = require('path').join(require('os').tmpdir(), `remoteway-test-approot-${process.pid}`);
+process.env.UPDATES_PATH = require('path').join(require('os').tmpdir(), `remoteway-test-updates-${process.pid}`);
 const request = require('supertest');
 const knex = require('../src/db/knex');
 const cache = require('../src/core/cache');

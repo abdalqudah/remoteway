@@ -1,6 +1,6 @@
 {
   "name": "remoteway",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "RemoteWay — Workforce Management & Remote Employment SaaS",
   "main": "app.js",
   "scripts": {
@@ -23,6 +23,7 @@
   },
   "homepage": "https://github.com/abdalqudah/remoteway#readme",
   "dependencies": {
+    "adm-zip": "^0.6.1",
     "bcryptjs": "^3.0.3",
     "compression": "^1.8.2",
     "connect-session-knex": "^5.0.0",

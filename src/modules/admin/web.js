@@ -6,6 +6,10 @@ const { LIMIT_KEYS } = require('../../db/catalog');
 const admin = require('./admin.service');
 const subscriptions = require('../billing/subscription.service');
 const auditLog = require('../organizations/audit.service');
+const bcrypt = require('bcryptjs');
+const { E } = require('../../core/errors');
+const { singleFile } = require('../../middleware/upload');
+const updater = require('./updater.service');
 
 const router = express.Router();
 
@@ -90,6 +94,34 @@ router.post('/invoices/:id/paid', form(async (req, res) => {
   flash(req, 'error', extra.formError.message);
   res.redirect('/admin/invoices');
 }));
+
+// ---------- System update (no server access needed) ----------
+const renderSystem = async (req, res, extra = {}) => {
+  const [[{ v: dbVersion }]] = await knex.raw('SELECT VERSION() AS v');
+  res.page('pages/admin/system', {
+    layout: 'admin', title: req.t('admin.system'), current: updater.currentVersion(), backups: updater.listBackups(), log: updater.readLog(),
+    dbVersion, workRoot: updater.WORK_ROOT, updated: req.query.updated, ...extra,
+  });
+};
+router.get('/system', wrap((req, res) => renderSystem(req, res)));
+
+async function confirmPassword(req) {
+  if (!(await bcrypt.compare(String(req.body.password || ''), req.user.password_hash))) {
+    throw E.validation({ password: 'Current password is incorrect.' });
+  }
+}
+
+router.post('/system/update', ...singleFile('file', { big: true }), form(async (req, res) => {
+  await confirmPassword(req);
+  const result = await updater.apply({ ...req.ctx, userEmail: req.user.email }, req.file?.buffer, req.file?.originalname);
+  res.redirect(`/admin/system?updated=${encodeURIComponent(result.to)}`);
+}, renderSystem));
+
+router.post('/system/restore', form(async (req, res) => {
+  await confirmPassword(req);
+  const result = await updater.restore({ ...req.ctx, userEmail: req.user.email }, req.body.backup);
+  res.redirect(`/admin/system?updated=${encodeURIComponent(result.to)}`);
+}, renderSystem));
 
 // ---------- Platform audit log ----------
 router.get('/audit', wrap(async (req, res) => {

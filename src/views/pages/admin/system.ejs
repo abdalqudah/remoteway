@@ -1,0 +1,67 @@
+<div class="page-head"><div><h1><%= t('admin.system') %></h1><p><%= t('admin.system_sub') %></p></div></div>
+
+<% if (updated) { %>
+  <div class="alert alert-success mb-6"><%- icon('rocket') %><div class="grow"><div class="alert-title"><%= t('admin.update_started', { version: updated }) %></div><div class="text-2"><%= t('admin.update_restart_note') %></div></div><a class="btn btn-dark btn-sm" href="/admin/system"><%= t('admin.refresh') %></a></div>
+<% } %>
+
+<div class="grid grid-3">
+  <section class="panel">
+    <div class="panel-head"><h2><%= t('admin.current_version') %></h2></div>
+    <div class="panel-body">
+      <div style="font-size:30px;font-weight:800" class="num">v<%= current.version %></div>
+      <dl class="dl mt-4" style="grid-template-columns:1fr auto">
+        <dt><%= t('admin.build') %></dt><dd class="mono"><%= current.commit || '—' %></dd>
+        <dt><%= t('admin.built_at') %></dt><dd><%= current.builtAt ? fmt.date(current.builtAt, { dateStyle: 'medium', timeStyle: 'short' }) : '—' %></dd>
+        <dt>Node.js</dt><dd class="mono"><%= current.node %></dd>
+        <dt><%= t('admin.database') %></dt><dd class="mono small"><%= dbVersion %></dd>
+      </dl>
+    </div>
+  </section>
+
+  <form method="post" action="/admin/system/update" enctype="multipart/form-data" class="panel span-2" novalidate>
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+    <div class="panel-head"><div><h2><%= t('admin.install_update') %></h2><div class="panel-sub"><%= t('admin.install_update_sub') %></div></div></div>
+    <div class="panel-body stack">
+      <div class="field"><label class="label" for="upd-file"><%= t('admin.package') %><span class="req">*</span></label>
+        <input class="file-input" id="upd-file" type="file" name="file" accept=".zip,application/zip" required>
+        <% if (errors.file) { %><span class="field-error"><%= errors.file %></span><% } else { %><span class="help"><%= t('admin.package_help') %></span><% } %></div>
+      <%- include('../../partials/field', { name: 'password', label: t('admin.confirm_password'), type: 'password', required: true, autocomplete: 'current-password' }) %>
+      <ul class="small text-2" style="margin:0;padding-inline-start:18px;display:grid;gap:4px">
+        <li><%= t('admin.update_step_backup') %></li>
+        <li><%= t('admin.update_step_keep') %></li>
+        <li><%= t('admin.update_step_migrate') %></li>
+        <li><%= t('admin.update_step_db') %></li>
+      </ul>
+    </div>
+    <div class="panel-foot"><button class="btn btn-primary" type="submit"><%- icon('upload') %><%= t('admin.install') %></button></div>
+  </form>
+</div>
+
+<div class="grid grid-2 mt-6">
+  <section class="panel">
+    <div class="panel-head"><div><h2><%= t('admin.backups') %></h2><div class="panel-sub"><%= t('admin.backups_sub') %></div></div></div>
+    <% if (!backups.length) { %><div class="empty"><p><%= t('admin.no_backups') %></p></div><% } else { %>
+    <div class="table-wrap"><table class="table"><tbody>
+      <% backups.forEach(function (b) { %>
+      <tr><td><strong class="num">v<%= b.version %></strong> <span class="muted mono small"><%= b.commit || '' %></span><div class="muted tiny"><%= fmt.date(b.createdAt, { dateStyle: 'medium', timeStyle: 'short' }) %></div></td>
+        <td class="actions"><button class="btn btn-secondary btn-sm" type="button" data-open-dialog="restore-dialog" data-fill="<%= JSON.stringify({ backup: b.id }) %>"><%- icon('history', 'icon-sm') %><%= t('admin.restore') %></button></td></tr>
+      <% }) %>
+    </tbody></table></div><% } %>
+  </section>
+  <section class="panel">
+    <div class="panel-head"><h2><%= t('admin.update_history') %></h2></div>
+    <% if (!log.length) { %><div class="empty"><p><%= t('admin.no_updates') %></p></div><% } else { %>
+    <ul class="feed"><% log.forEach(function (l) { %>
+      <li><span class="dot" style="<%= l.ok ? '' : 'background:var(--danger)' %>"></span><div class="grow"><div class="what"><strong><%= t('admin.log_' + l.action) %></strong> v<%= l.from %> → v<%= l.to %><% if (!l.ok) { %> · <span class="field-error"><%= l.error %></span><% } %></div><div class="when"><%= fmt.date(l.at, { dateStyle: 'medium', timeStyle: 'short' }) %> · <%= l.by %><%= l.sha256 ? ' · sha256 ' + l.sha256.slice(0, 12) : '' %></div></div></li>
+    <% }) %></ul><% } %>
+  </section>
+</div>
+
+<dialog class="dialog" id="restore-dialog">
+  <form method="post" action="/admin/system/restore" novalidate>
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>"><input type="hidden" name="backup" value="">
+    <div class="dialog-head"><div><h2><%= t('admin.restore_title') %></h2><p class="muted small mt-1"><%= t('admin.restore_sub') %></p></div><button class="btn btn-ghost btn-icon btn-sm" type="button" data-close-dialog aria-label="<%= t('common.close') %>"><%- icon('x') %></button></div>
+    <div class="dialog-body"><div class="field"><label class="label" for="rs-pass"><%= t('admin.confirm_password') %></label><input class="input" id="rs-pass" type="password" name="password" required autocomplete="current-password"></div></div>
+    <div class="dialog-foot"><button class="btn btn-ghost" type="button" data-close-dialog><%= t('common.cancel') %></button><button class="btn btn-danger" type="submit"><%= t('admin.restore') %></button></div>
+  </form>
+</dialog>

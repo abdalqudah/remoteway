@@ -98,7 +98,16 @@ source /home/USER/nodevenv/remoteway/20/bin/activate && cd ~/remoteway
 npm run migrate
 ```
 
-Updating: pull the new version (Git Version Control → *Update from Remote*), click *Run NPM Install*, then *Restart*. Migrations run automatically when `AUTO_MIGRATE=true`.
+### Updating — from the browser (recommended)
+
+Super Admin → **System update** (`/admin/system`): upload the `remoteway-dist.zip` package, confirm your password, done.
+The app backs up the running version (last 3 kept, one-click restore), replaces the code, installs new dependencies only if they changed,
+restarts itself and applies database migrations on start. `.env`, `node_modules` and uploaded documents are never touched.
+Backups and the update log live next to the app in `../remoteway-updates` (override with `UPDATES_PATH`).
+
+Build the package with `npm run build` → `remoteway-dist.zip` (files 0644 / folders 0755 so the web server can read them).
+
+Manual alternative: extract the zip over the app folder, click *Run NPM Install*, then *Restart*.
 
 > Do not run `npm run seed:demo` on production. It refuses to run when `NODE_ENV=production`.
 
