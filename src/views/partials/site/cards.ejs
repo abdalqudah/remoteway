@@ -1,0 +1,11 @@
+<% var d = s.data; %>
+<section class="section talent-cta-band" id="<%= s.anchor %>">
+  <div class="container">
+    <%- include('head', { s: s }) %>
+    <div class="grid grid-<%= Math.min(3, Math.max(1, (d.items || []).length)) %>" style="gap:24px">
+      <% (d.items || []).forEach(function (c) { %>
+      <div class="panel panel-body stack-sm"><% if (c.icon) { %><span class="icon-wrap"><%- icon(c.icon) %></span><% } %><h3><%= L(c.title) %></h3><% if (L(c.text)) { %><p class="muted small"><%= L(c.text) %></p><% } %><% if (L(c.button_label) && c.button_href) { %><div><a class="btn btn-<%= c.style || 'primary' %>" href="<%= c.button_href %>"><%= L(c.button_label) %></a></div><% } %></div>
+      <% }) %>
+    </div>
+  </div>
+</section>

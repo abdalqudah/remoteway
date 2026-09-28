@@ -1,6 +1,7 @@
 <section class="section" style="border-top:0" id="pricing">
   <div class="container">
-    <div class="section-head"><h2><%= t('site.pricing_title') %></h2><p><%= t('site.pricing_lead') %></p></div>
+    <% var ps = (site.sections || []).find(function (x) { return x.type === 'pricing'; }); %>
+    <div class="section-head"><h2><%= ps ? L(ps.data.title) : t('site.pricing_title') %></h2><p><%= ps ? L(ps.data.lead) : t('site.pricing_lead') %></p></div>
     <%- include('../../partials/pricing-cards') %>
     <p class="muted small mt-4"><%= t('site.pricing_note') %></p>
     <details class="panel mt-6 compare">

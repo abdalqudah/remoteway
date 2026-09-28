@@ -1,0 +1,9 @@
+<% var d = s.data; %>
+<section class="section" id="<%= s.anchor %>">
+  <div class="container">
+    <% if (L(d.title)) { %><div class="section-head"><h2><%= L(d.title) %></h2></div><% } %>
+    <div class="site-stats">
+      <% (d.items || []).forEach(function (x) { %><div class="site-stat"><strong dir="ltr"><%= x.value %></strong><span><%= L(x.label) %></span></div><% }) %>
+    </div>
+  </div>
+</section>

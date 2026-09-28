@@ -1,0 +1,9 @@
+<% var d = s.data; %>
+<section class="section" id="<%= s.anchor %>" style="border-top:0;padding-top:0">
+  <div class="container">
+    <div class="cta-band">
+      <h2><%= L(d.title_1) %> <span><%= L(d.title_2) %></span></h2>
+      <div class="row wrap"><% if (L(d.btn1_label) && d.btn1_href) { %><a class="btn btn-primary btn-lg" href="<%= d.btn1_href %>"><%= L(d.btn1_label) %></a><% } %><% if (L(d.btn2_label) && d.btn2_href) { %><a class="btn btn-lg" style="background:#fff;color:#000" href="<%= d.btn2_href %>"><%= L(d.btn2_label) %></a><% } %></div>
+    </div>
+  </div>
+</section>

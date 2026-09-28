@@ -1,5 +1,11 @@
 # RemoteWay — Changelog
 
+## 1.1.0 — Editable website
+
+- **Landing page editor** (Super Admin → Website): every text on the public site, in Arabic and English, from the header to the footer. Add, delete, hide, duplicate and reorder sections; edit, add, remove and reorder the items inside each section (cards, modules, list items, questions, numbers, menu and footer links); choose icons from 169; restore the original page at any time.
+- Section types: hero, numbers, latest jobs, talent, cards with buttons, modules grid, list with badges, feature grid, pricing, FAQ, free text, call-to-action band. Jobs, talent and pricing cards stay live; their headings and buttons are editable. The pricing heading is also used on /pricing.
+- Links accept site paths, anchors, http(s), mailto and tel only; all texts are escaped.
+
 ## 1.0.0 — Launch release
 
 The first production release. Everything below ships together; install it from Super Admin → System update.

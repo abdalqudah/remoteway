@@ -24,6 +24,7 @@ const SECTIONS = {
   errors: ['owner', 'admin'],
   launch: ['owner', 'admin'],
   legal: ['owner', 'admin'],
+  site: ['owner', 'admin'], // landing page editor
   users: ['owner', 'admin', 'support'], // find accounts, create password reset links
 };
 // Changing things (POST) in these sections needs a narrower role than reading them.

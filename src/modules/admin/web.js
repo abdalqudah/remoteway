@@ -370,6 +370,59 @@ router.post('/users/:id/reset-link', wrap(async (req, res) => {
   res.redirect(to);
 }));
 
+// ---------- Landing page editor ----------
+const site = require('../site/content.service');
+const siteFeatures = () => knex('features').orderBy('sort_order').select('key', 'name');
+router.get('/site', wrap(async (req, res) => {
+  res.page('pages/admin/site/index', { layout: 'admin', title: req.t('siteed.title'), content: await site.get(), types: Object.keys(site.TYPES), customised: await site.isCustomised() });
+}));
+router.post('/site/sections', wrap(async (req, res) => {
+  try {
+    const id = await site.addSection(req.ctx, String(req.body.type || ''), String(req.body.after || ''));
+    flash(req, 'success', req.t('siteed.added'));
+    return res.redirect(`/admin/site/sections/${id}`);
+  } catch (e) {
+    if (!(e instanceof AppError)) throw e;
+    flash(req, 'error', req.t('siteed.choose_type'));
+    return res.redirect('/admin/site');
+  }
+}));
+const renderSection = async (req, res, extra = {}) => {
+  const content = await site.get();
+  const s = content.sections.find((x) => x.id === req.params.id);
+  if (!s) throw E.notFound('Section');
+  res.page('pages/admin/site/edit', { layout: 'admin', title: req.t('siteed.edit_section'), kind: 'section', s, schema: site.TYPES[s.type], data: s.data, icons: site.ICONS, features: await siteFeatures(), action: `/admin/site/sections/${s.id}`, ...extra });
+};
+router.get('/site/sections/:id', wrap((req, res) => renderSection(req, res)));
+router.post('/site/sections/:id', wrap(async (req, res) => {
+  await site.updateSection(req.ctx, req.params.id, req.body);
+  flash(req, 'success', req.t('common.saved'));
+  res.redirect(req.body.stay === '1' ? `/admin/site/sections/${req.params.id}` : '/admin/site');
+}));
+for (const [path, fn] of [['move', (ctx, id, b) => site.moveSection(ctx, id, b.dir === 'down' ? 'down' : 'up')], ['toggle', (ctx, id) => site.toggleSection(ctx, id)], ['delete', (ctx, id) => site.removeSection(ctx, id)], ['duplicate', (ctx, id) => site.duplicateSection(ctx, id)]]) {
+  router.post(`/site/sections/:id/${path}`, wrap(async (req, res) => {
+    await fn(req.ctx, req.params.id, req.body);
+    if (path !== 'move') flash(req, 'success', req.t(`siteed.done_${path}`));
+    res.redirect(`/admin/site#s-${req.params.id}`);
+  }));
+}
+for (const which of ['header', 'footer']) {
+  router.get(`/site/${which}`, wrap(async (req, res) => {
+    const content = await site.get();
+    res.page('pages/admin/site/edit', { layout: 'admin', title: req.t(`siteed.${which}`), kind: which, s: null, schema: which === 'header' ? site.HEADER : site.FOOTER, data: content[which], icons: site.ICONS, features: [], action: `/admin/site/${which}` });
+  }));
+  router.post(`/site/${which}`, wrap(async (req, res) => {
+    await site.updateBlock(req.ctx, which, req.body);
+    flash(req, 'success', req.t('common.saved'));
+    res.redirect('/admin/site');
+  }));
+}
+router.post('/site/reset', wrap(async (req, res) => {
+  await site.reset(req.ctx);
+  flash(req, 'success', req.t('siteed.reset_done'));
+  res.redirect('/admin/site');
+}));
+
 // ---------- Launch readiness ----------
 const renderLaunch = async (req, res, extra = {}) => res.page('pages/admin/launch', {
   layout: 'admin', title: req.t('admin.launch'), result: await require('./launch.service').run(req.user), demo: await demo.preview(), inlineFormError: true, ...extra, // eslint-disable-line global-require

@@ -1,0 +1,49 @@
+<% var preview = function (s) { var d = s.data || {}; return L(d.title) || L(d.title_1) || L(d.eyebrow) || ''; }; %>
+<div class="page-head"><div><h1><%= t('siteed.title') %></h1><p><%= t('siteed.sub') %></p></div>
+  <div class="page-actions"><a class="btn btn-secondary" href="/" target="_blank" rel="noopener"><%- icon('external-link') %><%= t('siteed.view') %></a></div></div>
+
+<section class="panel site-block">
+  <div class="row between"><div class="row-sm"><span class="icon-wrap"><%- icon('menu') %></span><div><strong><%= t('siteed.header') %></strong><div class="small muted"><%= content.header.items.map(function (n) { return L(n.label); }).filter(Boolean).join(' · ') %></div></div></div>
+    <a class="btn btn-dark btn-sm" href="/admin/site/header"><%- icon('pencil', 'icon-sm') %><%= t('common.edit') %></a></div>
+</section>
+
+<div class="site-sections mt-4">
+<% content.sections.forEach(function (s, i) { %>
+  <section class="panel site-block<%= s.hidden ? ' is-hidden' : '' %>" id="s-<%= s.id %>">
+    <div class="row between wrap">
+      <div class="row-sm">
+        <span class="site-order num"><%= i + 1 %></span>
+        <div><div class="row-sm"><strong><%= t('siteed.type_' + s.type) %></strong><% if (s.hidden) { %><span class="badge"><%= t('siteed.hidden') %></span><% } %><% if (['jobs','talent','pricing'].indexOf(s.type) !== -1) { %><span class="badge badge-info"><%= t('siteed.dynamic') %></span><% } %></div>
+          <div class="small muted truncate" style="max-width:520px"><%= preview(s) || '—' %> · <span dir="ltr">#<%= s.anchor %></span></div></div>
+      </div>
+      <div class="row-sm site-actions">
+        <form class="inline" method="post" action="/admin/site/sections/<%= s.id %>/move"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><input type="hidden" name="dir" value="up"><button class="btn btn-ghost btn-icon btn-sm" type="submit" title="<%= t('siteed.up') %>" aria-label="<%= t('siteed.up') %>"<%= i === 0 ? ' disabled' : '' %>><%- icon('chevron-up', 'icon-sm') %></button></form>
+        <form class="inline" method="post" action="/admin/site/sections/<%= s.id %>/move"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><input type="hidden" name="dir" value="down"><button class="btn btn-ghost btn-icon btn-sm" type="submit" title="<%= t('siteed.down') %>" aria-label="<%= t('siteed.down') %>"<%= i === content.sections.length - 1 ? ' disabled' : '' %>><%- icon('chevron-down', 'icon-sm') %></button></form>
+        <form class="inline" method="post" action="/admin/site/sections/<%= s.id %>/toggle"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><button class="btn btn-ghost btn-sm" type="submit"><%- icon(s.hidden ? 'eye' : 'eye-off', 'icon-sm') %><%= s.hidden ? t('siteed.show') : t('siteed.hide') %></button></form>
+        <form class="inline" method="post" action="/admin/site/sections/<%= s.id %>/duplicate"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><button class="btn btn-ghost btn-sm" type="submit"><%- icon('copy', 'icon-sm') %><%= t('siteed.duplicate') %></button></form>
+        <form class="inline" method="post" action="/admin/site/sections/<%= s.id %>/delete" data-confirm="<%= t('siteed.delete_confirm') %>"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><button class="btn btn-danger-ghost btn-icon btn-sm" type="submit" aria-label="<%= t('common.delete') %>"><%- icon('trash-2', 'icon-sm') %></button></form>
+        <a class="btn btn-dark btn-sm" href="/admin/site/sections/<%= s.id %>"><%- icon('pencil', 'icon-sm') %><%= t('common.edit') %></a>
+      </div>
+    </div>
+  </section>
+<% }) %>
+</div>
+
+<form class="panel mt-4" method="post" action="/admin/site/sections">
+  <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+  <div class="panel-body row wrap">
+    <strong><%- icon('plus', 'icon-sm') %> <%= t('siteed.add') %></strong>
+    <select class="select" name="type" style="width:auto" aria-label="<%= t('siteed.add') %>"><% types.forEach(function (ty) { %><option value="<%= ty %>"><%= t('siteed.type_' + ty) %></option><% }) %></select>
+    <select class="select" name="after" style="width:auto" aria-label="<%= t('siteed.position') %>"><option value=""><%= t('siteed.at_end') %></option><% content.sections.forEach(function (s, i) { %><option value="<%= s.id %>"><%= t('siteed.after', { n: i + 1, name: t('siteed.type_' + s.type) }) %></option><% }) %></select>
+    <button class="btn btn-dark" type="submit"><%= t('siteed.add_go') %></button>
+  </div>
+</form>
+
+<section class="panel site-block mt-4">
+  <div class="row between"><div class="row-sm"><span class="icon-wrap"><%- icon('layers') %></span><div><strong><%= t('siteed.footer') %></strong><div class="small muted"><%= L(content.footer.tagline) %></div></div></div>
+    <a class="btn btn-dark btn-sm" href="/admin/site/footer"><%- icon('pencil', 'icon-sm') %><%= t('common.edit') %></a></div>
+</section>
+
+<% if (customised) { %>
+<form class="mt-6" method="post" action="/admin/site/reset" data-confirm="<%= t('siteed.reset_confirm') %>"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><button class="btn btn-danger-ghost btn-sm" type="submit"><%- icon('history', 'icon-sm') %><%= t('siteed.reset') %></button> <span class="small muted"><%= t('siteed.reset_hint') %></span></form>
+<% } %>

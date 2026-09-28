@@ -1,0 +1,11 @@
+<% var d = s.data; %>
+<section class="section" id="<%= s.anchor %>">
+  <div class="container grid grid-2" style="align-items:center;gap:48px">
+    <div class="section-head" style="margin:0"><h2><%= L(d.title) %></h2><% if (L(d.lead)) { %><p><%= L(d.lead) %></p><% } %></div>
+    <div class="stack-sm">
+      <% (d.items || []).forEach(function (i) { %>
+      <div class="integration"><span class="logo-box"><%- icon(i.icon || 'check') %></span><div class="grow"><strong><%= L(i.title) %></strong><% if (L(i.text)) { %><div class="muted small"><%= L(i.text) %></div><% } %></div><% if (i.badge === 'available') { %><span class="badge badge-success"><%= t('site.available_now') %></span><% } else if (i.badge === 'soon') { %><span class="badge"><%= t('common.soon') %></span><% } %></div>
+      <% }) %>
+    </div>
+  </div>
+</section>

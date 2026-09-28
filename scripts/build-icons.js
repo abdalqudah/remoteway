@@ -15,6 +15,7 @@ const ICONS = [
   'copy', 'external-link', 'panel-left', 'columns-3', 'user-cog', 'badge-check', 'package', 'zap',
   'phone', 'video', 'star', 'message-square', 'link', 'send', 'clipboard-list', 'user-round-plus',
   'mail-check', 'shield-alert', 'smartphone', 'database', 'bug', 'scale', 'cookie', 'archive-restore',
+  'chevron-up', 'eye-off', 'heart', 'handshake', 'building', 'house', 'home', 'award', 'trophy', 'medal', 'lightbulb', 'headset', 'circle-help', 'circle-play', 'play', 'monitor', 'laptop', 'tablet-smartphone', 'cloud', 'server', 'lock-keyhole', 'fingerprint', 'scan-line', 'qr-code', 'map', 'calendar', 'clock-3', 'timer', 'bell-ring', 'megaphone', 'message-circle', 'mail-open', 'inbox', 'chart-line', 'chart-pie', 'trending-up', 'percent', 'banknote', 'coins', 'receipt-text', 'file-check', 'file-signature', 'folder', 'book-open', 'notebook-pen', 'pen-tool', 'palette', 'image', 'camera', 'video-off', 'wifi', 'signal', 'flag', 'leaf', 'sun-medium', 'star-half', 'thumbs-up', 'smile', 'users-round', 'user-check-2', 'id-card', 'contact', 'briefcase-business', 'hand-coins', 'piggy-bank', 'scale-3d', 'store', 'truck', 'plane-takeoff', 'car', 'globe-2', 'languages', 'list-checks', 'list-todo', 'layout-grid', 'layout-list', 'puzzle', 'plug-zap', 'settings-2', 'sliders-horizontal',
 ];
 
 const dir = path.join(__dirname, '..', 'node_modules', 'lucide-static', 'icons');

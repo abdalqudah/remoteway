@@ -314,8 +314,26 @@
       var rm = e.target.closest('[data-remove-row]');
       if (add && rows && tpl) { rows.appendChild(tpl.content.cloneNode(true)); var inputs = rows.querySelectorAll('input[name="item_title"]'); if (inputs.length) inputs[inputs.length - 1].focus(); }
       if (rm) { var row = rm.closest('[data-row]'); if (row && rows.querySelectorAll('[data-row]').length > 1) row.remove(); else if (row && row.querySelector('input')) row.querySelector('input').value = ''; }
-      if ((add || rm) && rows) $$('[data-row-n]', rows).forEach(function (n, i) { n.textContent = String(i + 1); });
+      var mv = e.target.closest('[data-move-row]');
+      if (mv && rows) {
+        var r0 = mv.closest('[data-row]');
+        if (mv.getAttribute('data-move-row') === '-1' && r0.previousElementSibling) rows.insertBefore(r0, r0.previousElementSibling);
+        else if (mv.getAttribute('data-move-row') === '1' && r0.nextElementSibling) rows.insertBefore(r0.nextElementSibling, r0);
+      }
+      if ((add || rm || mv) && rows) $$('[data-row-n]', rows).forEach(function (n, i) { n.textContent = String(i + 1); });
     });
+  });
+
+  $$('[data-rows]').forEach(function (rows) { $$('[data-row-n]', rows).forEach(function (n, i) { n.textContent = String(i + 1); }); });
+
+  /* ---------- Icon picker preview (site editor) ---------- */
+  document.addEventListener('change', function (e) {
+    var sel = e.target.closest && e.target.closest('[data-icon-select]');
+    if (!sel) return;
+    var prev = sel.parentNode.querySelector('[data-icon-preview]');
+    if (!prev) return;
+    var v = document.documentElement.getAttribute('data-v') || '';
+    prev.innerHTML = sel.value ? '<svg class="icon" aria-hidden="true"><use href="/icons.svg?v=' + v + '#i-' + sel.value.replace(/[^a-z0-9-]/g, '') + '"></use></svg>' : '';
   });
 
   /* ---------- Print buttons (payslips) ---------- */

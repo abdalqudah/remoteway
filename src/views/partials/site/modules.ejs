@@ -1,0 +1,15 @@
+<% var d = s.data; %>
+<section class="section" id="<%= s.anchor %>">
+  <div class="container">
+    <%- include('head', { s: s }) %>
+    <div class="module-grid">
+      <% (d.items || []).forEach(function (m) { var badge = m.badge === 'auto' ? (!m.feature || availability[m.feature] === 'available' ? 'available' : 'soon') : m.badge; %>
+      <div class="module">
+        <div class="row between"><% if (m.icon) { %><span class="icon-wrap"><%- icon(m.icon) %></span><% } else { %><span></span><% } %><% if (badge === 'available') { %><span class="badge badge-success"><%= t('site.available_now') %></span><% } else if (badge === 'soon') { %><span class="badge"><%= t('common.soon') %></span><% } %></div>
+        <h3><%= L(m.title) %></h3>
+        <% if (L(m.text)) { %><p><%= L(m.text) %></p><% } %>
+      </div>
+      <% }) %>
+    </div>
+  </div>
+</section>

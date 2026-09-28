@@ -19,6 +19,8 @@ function locals(req, res, next) {
   Object.assign(res.locals, {
     t,
     locale,
+    // Editable site texts are { ar, en }: show the visitor's language, else the other one.
+    L: (v) => (v && typeof v === 'object' ? (v[locale] || v[locale === 'ar' ? 'en' : 'ar'] || '') : (v || '')),
     dir: locale === 'ar' ? 'rtl' : 'ltr',
     theme,
     csrfToken: req.session?.csrf,

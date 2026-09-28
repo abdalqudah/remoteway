@@ -1,0 +1,82 @@
+<%
+  var i18n = function (kind) { return kind === 'text' || kind === 'textarea'; };
+  var val = function (obj, key, lang) { var v = obj ? obj[key] : undefined; if (lang) return v && typeof v === 'object' ? (v[lang] || '') : ''; return v === undefined || v === null ? '' : v; };
+  var label = function (key) { return t('siteed.f_' + key); };
+  var optLabel = function (key, o) { return t('siteed.opt_' + o); };
+  var iconSelect = function (name, current) {
+    var h = '<span class="icon-pick"><select class="select select-sm" name="' + name + '" data-icon-select><option value="">—</option>';
+    icons.forEach(function (ic) { h += '<option value="' + ic + '"' + (ic === current ? ' selected' : '') + '>' + ic + '</option>'; });
+    return h + '</select><span class="icon-preview" data-icon-preview>' + (current ? icon(current) : '') + '</span></span>';
+  };
+  var esc = function (v) { return String(v === undefined || v === null ? '' : v).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); };
+  // One input (scalar or item) — returns HTML; every value is escaped.
+  var input = function (f, name, obj) {
+    var key = f[0], kind = f[1], opts = f[2];
+    if (i18n(kind)) {
+      var tag = function (lang) {
+        var v = esc(val(obj, key, lang)), n = name + key + '_' + lang;
+        return kind === 'textarea'
+          ? '<textarea class="textarea" name="' + n + '" dir="' + (lang === 'ar' ? 'rtl' : 'ltr') + '" rows="3" placeholder="' + (lang === 'ar' ? 'العربية' : 'English') + '">' + v + '</textarea>'
+          : '<input class="input" name="' + n + '" value="' + v + '" dir="' + (lang === 'ar' ? 'rtl' : 'ltr') + '" placeholder="' + (lang === 'ar' ? 'العربية' : 'English') + '">';
+      };
+      return '<div class="bi-lang">' + tag('ar') + tag('en') + '</div>';
+    }
+    var cur = val(obj, key);
+    if (kind === 'icon') return iconSelect(name + key, cur);
+    if (kind === 'select') { var h = '<select class="select" name="' + name + key + '">'; opts.forEach(function (o) { h += '<option value="' + o + '"' + (o === cur ? ' selected' : '') + '>' + esc(optLabel(key, o)) + '</option>'; }); return h + '</select>'; }
+    if (kind === 'feature') { var hf = '<select class="select" name="' + name + key + '"><option value="">—</option>'; features.forEach(function (x) { hf += '<option value="' + x.key + '"' + (x.key === cur ? ' selected' : '') + '>' + esc(x.name) + '</option>'; }); return hf + '</select>'; }
+    return '<input class="input" name="' + name + key + '" value="' + esc(cur) + '" dir="ltr"' + (kind === 'link' ? ' placeholder="/signup  ·  /#faq  ·  https://…"' : '') + '>';
+  };
+  var itemTitle = function (item) {
+    if (!item) return t('siteed.new_item');
+    var first = schema.items.find(function (f) { return i18n(f[1]); });
+    var v = first ? item[first[0]] : null;
+    return (v && (v[locale] || v.ar || v.en)) || item.value || item.href || t('siteed.new_item');
+  };
+  var itemRow = function (item) {
+    var h = '<details class="site-item" data-row' + (item ? '' : ' open') + '><summary class="site-item-sum">' + (item && item.icon ? icon(item.icon, 'icon-sm') : '') + '<span class="small muted">#<span data-row-n></span></span> <strong>' + esc(itemTitle(item)) + '</strong></summary><div class="site-item-bar"><span></span><span class="row-sm">'
+      + '<button class="btn btn-ghost btn-icon btn-sm" type="button" data-move-row="-1" aria-label="' + esc(t('siteed.up')) + '">' + icon('chevron-up', 'icon-sm') + '</button>'
+      + '<button class="btn btn-ghost btn-icon btn-sm" type="button" data-move-row="1" aria-label="' + esc(t('siteed.down')) + '">' + icon('chevron-down', 'icon-sm') + '</button>'
+      + '<button class="btn btn-danger-ghost btn-icon btn-sm" type="button" data-remove-row aria-label="' + esc(t('common.delete')) + '">' + icon('trash-2', 'icon-sm') + '</button></span></div><div class="site-item-grid">';
+    schema.items.forEach(function (f) { h += '<div class="field' + (i18n(f[1]) ? ' full' : '') + '"><span class="label">' + esc(label(f[0])) + '</span>' + input(f, 'it_', item) + '</div>'; });
+    return h + '</div></details>';
+  };
+%>
+<div class="page-head"><div><div class="eyebrow"><a href="/admin/site"><%= t('siteed.title') %></a><%- icon('chevron-right', 'icon-sm flip-rtl') %></div>
+  <h1><%= kind === 'section' ? t('siteed.type_' + s.type) : t('siteed.' + kind) %></h1><p><%= kind === 'section' ? t('siteed.type_' + s.type + '_help') : t('siteed.' + kind + '_help') %></p></div>
+  <div class="page-actions"><a class="btn btn-secondary" href="/<%= kind === 'section' ? '#' + s.anchor : '' %>" target="_blank" rel="noopener"><%- icon('external-link') %><%= t('siteed.view') %></a></div></div>
+
+<form method="post" action="<%= action %>" class="stack" novalidate>
+  <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+  <section class="panel">
+    <div class="panel-head"><h2><%= t('siteed.texts') %></h2><span class="small muted"><%= t('siteed.bilingual_hint') %></span></div>
+    <div class="panel-body site-fields">
+      <% schema.fields.forEach(function (f) { %>
+        <div class="field<%= i18n(f[1]) ? ' full' : '' %>"><span class="label"><%= label(f[0]) %></span><%- input(f, 'f_', data) %></div>
+      <% }) %>
+      <% if (kind === 'section') { %>
+        <div class="field"><span class="label"><%= t('siteed.f_anchor') %></span><input class="input" name="anchor" value="<%= s.anchor %>" dir="ltr"><span class="help"><%= t('siteed.anchor_help') %></span></div>
+        <div class="field"><span class="label">&nbsp;</span><label class="check"><input type="checkbox" name="hidden" value="1"<%= s.hidden ? ' checked' : '' %>> <span><%= t('siteed.hidden_check') %></span></label></div>
+      <% } %>
+    </div>
+  </section>
+
+  <% if (schema.items) { %>
+  <section class="panel" data-repeater>
+    <div class="panel-head"><h2><%= t('siteed.items_' + (kind === 'section' ? s.type : kind)) %></h2><span class="badge"><%= (data.items || []).length %></span></div>
+    <div class="panel-body stack">
+      <div class="stack" data-rows><% (data.items && data.items.length ? data.items : [null]).forEach(function (it) { %><%- itemRow(it) %><% }) %></div>
+      <template data-row-template><%- itemRow(null) %></template>
+      <div><button class="btn btn-secondary btn-sm" type="button" data-add-row><%- icon('plus', 'icon-sm') %><%= t('siteed.add_item') %></button></div>
+    </div>
+  </section>
+  <% } %>
+
+  <% if (kind === 'section' && ['jobs','talent','pricing'].indexOf(s.type) !== -1) { %><div class="alert alert-info"><%- icon('info') %><div><%= t('siteed.dynamic_help') %></div></div><% } %>
+
+  <div class="row wrap">
+    <button class="btn btn-dark" type="submit"><%= t('common.save_changes') %></button>
+    <% if (kind === 'section') { %><button class="btn btn-secondary" type="submit" name="stay" value="1"><%= t('siteed.save_stay') %></button><% } %>
+    <a class="btn btn-ghost" href="/admin/site"><%= t('common.cancel') %></a>
+  </div>
+</form>

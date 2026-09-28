@@ -8,6 +8,11 @@ router.use((req, res, next) => {
   res.locals.MODULES = MODULES;
   next();
 });
+// Editable landing page content (header, sections, footer), cached for a minute.
+const siteContent = require('../modules/site/content.service');
+router.use((req, res, next) => {
+  siteContent.get().then((c) => { res.locals.site = c; next(); }, next);
+});
 router.use('/', require('../modules/site/web'));
 router.use('/', require('../modules/auth/web'));
 router.use('/sso', require('../modules/sso/web').router);

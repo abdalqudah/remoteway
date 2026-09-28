@@ -5,14 +5,9 @@
 <header class="site-nav">
   <div class="inner">
     <a href="/" aria-label="RemoteWay"><%- include('../partials/logo') %></a>
+    <% var H = (typeof site !== 'undefined' && site) ? site.header : null; %>
     <nav class="site-links" aria-label="<%= t('nav.main') %>">
-      <a href="/#platform"><%= t('site.nav_platform') %></a>
-      <a href="/#modules"><%= t('site.nav_modules') %></a>
-      <a href="/jobs"><%= t('talent.nav_jobs') %></a>
-      <a href="/talent"><%= t('talent.nav_talent') %></a>
-      <a href="/#security"><%= t('site.nav_security') %></a>
-      <a href="/pricing"><%= t('site.pricing') %></a>
-      <a href="/#faq"><%= t('site.nav_faq') %></a>
+      <% if (H) { H.items.forEach(function (n) { if (n.href && L(n.label)) { %><a href="<%= n.href %>"><%= L(n.label) %></a><% } }); } %>
     </nav>
     <div class="right">
       <a class="btn btn-ghost btn-sm" href="<%= langUrl(locale === 'ar' ? 'en' : 'ar') %>"><%- icon('languages') %><%= locale === 'ar' ? 'English' : 'العربية' %></a>
@@ -20,9 +15,9 @@
       <% if (currentUser) { %>
         <a class="btn btn-dark btn-sm" href="/app"><%= t('site.open_app') %></a>
       <% } else { %>
-        <a class="btn btn-ghost btn-sm hide-sm" href="/login"><%= t('auth.login') %></a>
-        <a class="btn btn-secondary btn-sm hide-sm" href="/join"><%= t('talent.join_cta') %></a>
-        <a class="btn btn-primary btn-sm" href="/signup"><%= t('site.start_free') %></a>
+        <% if (!H || H.show_login !== 'no') { %><a class="btn btn-ghost btn-sm hide-sm" href="/login"><%= H ? L(H.login_label) : t('auth.login') %></a><% } %>
+        <% if (!H || H.show_join !== 'no') { %><a class="btn btn-secondary btn-sm hide-sm" href="/join"><%= H ? L(H.join_label) : t('talent.join_cta') %></a><% } %>
+        <% if (!H || L(H.signup_label)) { %><a class="btn btn-primary btn-sm" href="<%= H && H.signup_href ? H.signup_href : '/signup' %>"><%= H ? L(H.signup_label) : t('site.start_free') %></a><% } %>
       <% } %>
     </div>
   </div>
@@ -35,8 +30,9 @@
 <footer class="footer">
   <div class="container inner">
     <div class="row"><%- include('../partials/logo') %></div>
-    <div class="row wrap small"><span>© <%= new Date().getFullYear() %> RemoteWay</span><span>·</span><span><%= t('site.footer_tagline') %></span></div>
-    <nav class="row wrap small footer-links" aria-label="<%= t('legal.nav') %>"><a href="/privacy"><%= t('legal.privacy_title') %></a><a href="/terms"><%= t('legal.terms_title') %></a><a href="/demo"><%= t('legal.contact') %></a></nav>
+    <% var F = (typeof site !== 'undefined' && site) ? site.footer : null; %>
+    <div class="row wrap small"><span>© <%= new Date().getFullYear() %> <%= F && F.copyright ? F.copyright : 'RemoteWay' %></span><% if (F ? L(F.tagline) : true) { %><span>·</span><span><%= F ? L(F.tagline) : t('site.footer_tagline') %></span><% } %></div>
+    <nav class="row wrap small footer-links" aria-label="<%= t('legal.nav') %>"><% (F ? F.items : []).forEach(function (n) { if (n.href && L(n.label)) { %><a href="<%= n.href %>"><%= L(n.label) %></a><% } }) %></nav>
   </div>
 </footer>
 <% if (!cookiesOk) { %>

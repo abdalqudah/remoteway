@@ -1114,3 +1114,27 @@ form.inline { display: inline; }
 .qr-hint { display: inline-flex; align-items: center; gap: 8px; padding: 8px 12px; border-radius: var(--radius); background: var(--surface-sunken); font-size: 13px; font-weight: 600; }
 .qr-tag.off { background: var(--warning-soft); color: var(--warning); }
 button.portal-choice { cursor: pointer; font-family: inherit; text-align: start; }
+
+/* ---------- Editable landing page blocks ---------- */
+.site-text p { margin: 0 0 14px; line-height: 1.9; font-size: 16px; color: var(--text-2); white-space: pre-line; }
+.site-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 16px; }
+.site-stat { padding: 22px; border: 1px solid var(--border); border-radius: var(--radius-lg, 12px); background: var(--surface); display: flex; flex-direction: column; gap: 6px; text-align: center; }
+.site-stat strong { font-size: 34px; font-weight: 800; letter-spacing: -.02em; }
+.site-stat span { color: var(--text-2); font-size: 14px; }
+.site-block { padding: 14px 16px; }
+.site-block.is-hidden { opacity: .6; border-style: dashed; }
+.site-sections { display: grid; gap: 10px; }
+.site-order { width: 28px; height: 28px; border-radius: 8px; display: inline-grid; place-items: center; background: var(--surface-sunken); font-weight: 700; font-size: 13px; }
+.site-actions form { display: inline; }
+.site-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px 18px; }
+.site-fields .full, .site-item-grid .full { grid-column: 1 / -1; }
+.bi-lang { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.site-item { border: 1px solid var(--border); border-radius: var(--radius); padding: 10px 12px; background: var(--surface-2); }
+.site-item-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+.site-item-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px 14px; }
+.icon-pick { display: flex; align-items: center; gap: 8px; }
+.icon-preview { width: 32px; height: 32px; display: inline-grid; place-items: center; border-radius: 8px; background: var(--surface); border: 1px solid var(--border); flex: none; }
+@media (max-width: 760px) { .site-fields, .bi-lang, .site-item-grid { grid-template-columns: 1fr; } }
+.site-item-sum { display: flex; align-items: center; gap: 8px; cursor: pointer; list-style: none; padding: 2px 0; }
+.site-item-sum::-webkit-details-marker { display: none; }
+.site-item[open] > .site-item-sum { margin-bottom: 8px; padding-bottom: 8px; border-bottom: 1px solid var(--border); }
