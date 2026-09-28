@@ -10,9 +10,17 @@ router.use((req, res, next) => {
 });
 // Editable landing page content (header, sections, footer), cached for a minute.
 const siteContent = require('../modules/site/content.service');
+const siteMedia = require('../modules/site/media.service');
 router.use((req, res, next) => {
-  siteContent.get().then((c) => { res.locals.site = c; next(); }, next);
+  Promise.all([siteContent.get(), siteMedia.map()]).then(([c, m]) => { res.locals.site = c; res.locals.siteMedia = m; next(); }, next);
 });
+// Website images and videos (range requests work, so videos can be skipped through).
+router.get('/site-media/:id/:sha', require('./helpers').wrap(async (req, res, next) => {
+  const f = await siteMedia.file(req.params.id, req.params.sha);
+  if (!f) return next();
+  res.set({ 'X-Content-Type-Options': 'nosniff', 'Cache-Control': 'public, max-age=31536000, immutable' });
+  return res.sendFile(f.path, { headers: { 'Content-Type': f.mime } });
+}));
 router.use('/', require('../modules/site/web'));
 router.use('/', require('../modules/auth/web'));
 router.use('/sso', require('../modules/sso/web').router);

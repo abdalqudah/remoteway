@@ -1,6 +1,6 @@
-<section class="section" id="<%= s.anchor %>">
-  <div class="container">
+<section class="section <%= secCls(s) %>" id="<%= s.anchor %>"><%- include('bg', { s: s }) %>
+  <div class="container"><%- include('slot-open', { s: s }) %>
     <%- include('head', { s: s }) %>
     <%- include('../pricing-cards') %>
-  </div>
+  <%- include('slot-close', { s: s }) %></div>
 </section>

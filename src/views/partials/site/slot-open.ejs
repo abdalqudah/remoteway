@@ -1,0 +1,3 @@
+<% var D = s.design || {}; var pos = D.media ? (D.media_pos || 'top') : null; if (pos === 'panel' && s.type !== 'hero') pos = 'top'; %>
+<% if (pos === 'top') { %><div class="sec-media sz-<%= D.media_size || 'medium' %> mb-6"><%- include('media', { mid: D.media, mode: D.video_mode }) %></div><% } %>
+<% if (pos === 'start' || pos === 'end') { %><div class="sec-split media-<%= pos %>"><div class="sec-media sz-<%= D.media_size || 'medium' %>"><%- include('media', { mid: D.media, mode: D.video_mode }) %></div><div class="sec-body"><% } %>

@@ -1,5 +1,11 @@
 # RemoteWay — Changelog
 
+## 1.2.0 — Website media and alignment
+
+- **Media library** (Super Admin → Website → Media library): upload images (JPG, PNG, WebP, GIF up to 8 MB) and videos (MP4, WebM up to 30 MB), or add YouTube/Vimeo links. Files are checked by their content (no SVG), stored outside the app folder and served with range support.
+- **Every section** gets title alignment (start/center/end), text alignment (start/center/end/justified) and an image or video: above, below, beside (either side), as a background with a dark layer, or — in the hero — instead of the green panel. Sizes small/medium/large/full; videos with controls or auto-play (muted, looping).
+- **Cards and feature-grid items** can show an image instead of an icon.
+
 ## 1.1.0 — Editable website
 
 - **Landing page editor** (Super Admin → Website): every text on the public site, in Arabic and English, from the header to the footer. Add, delete, hide, duplicate and reorder sections; edit, add, remove and reorder the items inside each section (cards, modules, list items, questions, numbers, menu and footer links); choose icons from 169; restore the original page at any time.

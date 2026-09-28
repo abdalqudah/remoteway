@@ -34,15 +34,24 @@ const TYPES = {
   stats: { fields: [['title', 'text']], items: [['value', 'plain'], ['label', 'text']] },
   jobs: { dynamic: true, fields: [['title', 'text'], ['lead', 'text'], ['button_label', 'text'], ['button_href', 'link']] },
   talent: { dynamic: true, fields: [['title', 'text'], ['lead', 'text'], ['button_label', 'text'], ['button_href', 'link']] },
-  cards: { fields: [['title', 'text'], ['lead', 'text']], items: [['icon', 'icon'], ['title', 'text'], ['text', 'textarea'], ['button_label', 'text'], ['button_href', 'link'], ['style', 'select', BTN_STYLES]] },
+  cards: { fields: [['title', 'text'], ['lead', 'text']], items: [['icon', 'icon'], ['image', 'media'], ['title', 'text'], ['text', 'textarea'], ['button_label', 'text'], ['button_href', 'link'], ['style', 'select', BTN_STYLES]] },
   modules: { fields: [['title', 'text'], ['lead', 'textarea']], items: [['icon', 'icon'], ['title', 'text'], ['text', 'textarea'], ['badge', 'select', BADGES], ['feature', 'feature']] },
   list: { fields: [['title', 'text'], ['lead', 'textarea']], items: [['icon', 'icon'], ['title', 'text'], ['text', 'text'], ['badge', 'select', BADGES.slice(0, 3)]] },
-  grid: { fields: [['title', 'text'], ['lead', 'textarea']], items: [['icon', 'icon'], ['title', 'text'], ['text', 'textarea']] },
+  grid: { fields: [['title', 'text'], ['lead', 'textarea']], items: [['icon', 'icon'], ['image', 'media'], ['title', 'text'], ['text', 'textarea']] },
   pricing: { dynamic: true, fields: [['title', 'text'], ['lead', 'text']] },
   faq: { fields: [['title', 'text']], items: [['q', 'text'], ['a', 'textarea']] },
   text: { fields: [['title', 'text'], ['body', 'textarea']] },
   cta: { fields: [['title_1', 'text'], ['title_2', 'text'], ['btn1_label', 'text'], ['btn1_href', 'link'], ['btn2_label', 'text'], ['btn2_href', 'link']] },
 };
+// Layout settings every section has: alignment of titles and texts, and an image or video.
+const DESIGN = [
+  ['title_align', 'select', ['default', 'start', 'center', 'end']],
+  ['text_align', 'select', ['default', 'start', 'center', 'end', 'justify']],
+  ['media', 'media'],
+  ['media_pos', 'select', ['top', 'bottom', 'start', 'end', 'background', 'panel']],
+  ['media_size', 'select', ['medium', 'small', 'large', 'full']],
+  ['video_mode', 'select', ['controls', 'autoplay']],
+];
 const HEADER = { items: [['label', 'text'], ['href', 'link']], fields: [['login_label', 'text'], ['join_label', 'text'], ['signup_label', 'text'], ['signup_href', 'link'], ['show_login', 'select', ['yes', 'no']], ['show_join', 'select', ['yes', 'no']]] };
 const FOOTER = { items: [['label', 'text'], ['href', 'link']], fields: [['tagline', 'text'], ['copyright', 'plain']] };
 const isI18n = (kind) => ['text', 'textarea'].includes(kind);
@@ -136,6 +145,7 @@ function parseField(body, prefix, [key, kind, options]) {
   if (kind === 'link') return safeHref(body[`${prefix}${key}`]);
   if (kind === 'icon') return ICONS.includes(body[`${prefix}${key}`]) ? body[`${prefix}${key}`] : '';
   if (kind === 'select') return options.includes(body[`${prefix}${key}`]) ? body[`${prefix}${key}`] : options[0];
+  if (kind === 'media') return /^\d{1,10}$/.test(String(body[`${prefix}${key}`] || '')) ? String(body[`${prefix}${key}`]) : '';
   return clip(body[`${prefix}${key}`], 200); // plain / feature
 }
 
@@ -151,6 +161,7 @@ function parseItems(body, fields) {
       else if (kind === 'link') row[key] = safeHref(arr(body, `it_${key}`)[i]);
       else if (kind === 'icon') row[key] = ICONS.includes(arr(body, `it_${key}`)[i]) ? arr(body, `it_${key}`)[i] : '';
       else if (kind === 'select') row[key] = options.includes(arr(body, `it_${key}`)[i]) ? arr(body, `it_${key}`)[i] : options[0];
+      else if (kind === 'media') row[key] = /^\d{1,10}$/.test(String(arr(body, `it_${key}`)[i] || '')) ? String(arr(body, `it_${key}`)[i]) : '';
       else row[key] = clip(arr(body, `it_${key}`)[i], 200);
     }
     const empty = Object.values(row).every((v) => (typeof v === 'object' ? !v.ar && !v.en : !v || ['no', 'none', 'primary', 'yes', 'available'].includes(v)));
@@ -171,6 +182,7 @@ async function updateSection(ctx, id, body) {
   for (const f of schema.fields) data[f[0]] = parseField(body, 'f_', f);
   if (schema.items) data.items = parseItems(body, schema.items);
   s.data = data;
+  s.design = Object.fromEntries(DESIGN.map((f) => [f[0], parseField(body, 'd_', f)]));
   s.anchor = cleanAnchor(body.anchor) || s.anchor;
   s.hidden = body.hidden === '1';
   await save(ctx, content, `section:${id}`);
@@ -246,6 +258,6 @@ async function duplicateSection(ctx, id) {
 }
 
 module.exports = {
-  ICONS, TYPES, HEADER, FOOTER, BADGES, isI18n, defaults, get, isCustomised, reset, safeHref,
+  DESIGN, ICONS, TYPES, HEADER, FOOTER, BADGES, isI18n, defaults, get, isCustomised, reset, safeHref,
   updateSection, updateBlock, addSection, removeSection, moveSection, toggleSection, duplicateSection,
 };

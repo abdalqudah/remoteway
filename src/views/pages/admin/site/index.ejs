@@ -1,6 +1,6 @@
 <% var preview = function (s) { var d = s.data || {}; return L(d.title) || L(d.title_1) || L(d.eyebrow) || ''; }; %>
 <div class="page-head"><div><h1><%= t('siteed.title') %></h1><p><%= t('siteed.sub') %></p></div>
-  <div class="page-actions"><a class="btn btn-secondary" href="/" target="_blank" rel="noopener"><%- icon('external-link') %><%= t('siteed.view') %></a></div></div>
+  <div class="page-actions"><a class="btn btn-secondary" href="/admin/site/media"><%- icon('image') %><%= t('siteed.media') %></a><a class="btn btn-secondary" href="/" target="_blank" rel="noopener"><%- icon('external-link') %><%= t('siteed.view') %></a></div></div>
 
 <section class="panel site-block">
   <div class="row between"><div class="row-sm"><span class="icon-wrap"><%- icon('menu') %></span><div><strong><%= t('siteed.header') %></strong><div class="small muted"><%= content.header.items.map(function (n) { return L(n.label); }).filter(Boolean).join(' · ') %></div></div></div>

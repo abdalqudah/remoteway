@@ -24,6 +24,7 @@
     var cur = val(obj, key);
     if (kind === 'icon') return iconSelect(name + key, cur);
     if (kind === 'select') { var h = '<select class="select" name="' + name + key + '">'; opts.forEach(function (o) { h += '<option value="' + o + '"' + (o === cur ? ' selected' : '') + '>' + esc(optLabel(key, o)) + '</option>'; }); return h + '</select>'; }
+    if (kind === 'media') { var hm = '<select class="select" name="' + name + key + '" data-media-select><option value="">' + esc(t('siteed.no_media')) + '</option>'; media.forEach(function (m) { hm += '<option value="' + m.id + '"' + (String(m.id) === String(cur) ? ' selected' : '') + '>' + esc((m.kind === 'image' ? '🖼 ' : '🎬 ') + m.name + ' (#' + m.id + ')') + '</option>'; }); return hm + '</select>'; }
     if (kind === 'feature') { var hf = '<select class="select" name="' + name + key + '"><option value="">—</option>'; features.forEach(function (x) { hf += '<option value="' + x.key + '"' + (x.key === cur ? ' selected' : '') + '>' + esc(x.name) + '</option>'; }); return hf + '</select>'; }
     return '<input class="input" name="' + name + key + '" value="' + esc(cur) + '" dir="ltr"' + (kind === 'link' ? ' placeholder="/signup  ·  /#faq  ·  https://…"' : '') + '>';
   };
@@ -61,6 +62,18 @@
     </div>
   </section>
 
+  <% if (kind === 'section') { %>
+  <section class="panel">
+    <div class="panel-head"><div><h2><%- icon('layout-grid') %> <%= t('siteed.design') %></h2><div class="panel-sub"><%= t('siteed.design_sub') %></div></div><a class="btn btn-ghost btn-sm" href="/admin/site/media" target="_blank" rel="noopener"><%- icon('image', 'icon-sm') %><%= t('siteed.media') %></a></div>
+    <div class="panel-body site-fields">
+      <% DESIGN.forEach(function (f) { if (f[0] === 'media_pos' && s.type !== 'hero') f = [f[0], f[1], f[2].filter(function (o) { return o !== 'panel'; })]; %>
+        <div class="field"><span class="label"><%= label(f[0]) %></span><%- input(f, 'd_', design) %></div>
+      <% }) %>
+    </div>
+    <div class="panel-body small muted" style="padding-top:0"><%= t('siteed.media_hint') %></div>
+  </section>
+  <% } %>
+
   <% if (schema.items) { %>
   <section class="panel" data-repeater>
     <div class="panel-head"><h2><%= t('siteed.items_' + (kind === 'section' ? s.type : kind)) %></h2><span class="badge"><%= (data.items || []).length %></span></div>
@@ -80,3 +93,9 @@
     <a class="btn btn-ghost" href="/admin/site"><%= t('common.cancel') %></a>
   </div>
 </form>
+
+<% if (kind === 'section') { %>
+<h2 class="mt-6 mb-4" style="font-size:18px"><%= t('siteed.quick_upload') %></h2>
+<p class="small muted mb-4"><%= t('siteed.quick_upload_hint') %></p>
+<%- include('_upload', { back: '/admin/site/sections/' + s.id }) %>
+<% } %>

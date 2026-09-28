@@ -1,0 +1,2 @@
+<% var D = s.design || {}; var m = D.media && D.media_pos === 'background' && typeof siteMedia !== 'undefined' ? siteMedia[String(D.media)] : null; %>
+<% if (m && m.kind === 'image') { %><div class="sec-bg" style="background-image:url('<%= m.url %>')"></div><% } else if (m && m.kind === 'video') { %><video class="sec-bg" src="<%= m.url %>" autoplay muted loop playsinline aria-hidden="true"></video><% } %>

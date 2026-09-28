@@ -1,0 +1,16 @@
+<% var sz = function (b) { return b > 1048576 ? (b / 1048576).toFixed(1) + ' MB' : Math.max(1, Math.ceil(b / 1024)) + ' KB'; }; %>
+<div class="page-head"><div><div class="eyebrow"><a href="/admin/site"><%= t('siteed.title') %></a><%- icon('chevron-right', 'icon-sm flip-rtl') %></div><h1><%= t('siteed.media') %></h1><p><%= t('siteed.media_sub') %></p></div></div>
+<%- include('_upload', { back: '/admin/site/media' }) %>
+<section class="panel mt-6">
+  <div class="panel-head"><h2><%= t('siteed.media_all') %></h2><span class="badge"><%= fmt.number(list.length) %></span></div>
+  <% if (!list.length) { %><div class="empty"><%- icon('image') %><p><%= t('siteed.media_empty') %></p></div><% } else { %>
+  <div class="media-grid">
+    <% list.forEach(function (m) { var url = m.kind === 'embed' ? m.embed_url : '/site-media/' + m.id + '/' + m.sha; %>
+    <div class="media-tile">
+      <div class="media-thumb"><% if (m.kind === 'image') { %><img src="<%= url %>" alt="<%= m.name %>" loading="lazy"><% } else if (m.kind === 'video') { %><video src="<%= url %>" preload="metadata" muted></video><span class="media-kind"><%- icon('circle-play') %></span><% } else { %><span class="media-kind big"><%- icon('circle-play') %></span><% } %></div>
+      <div class="media-meta"><strong class="truncate"><%= m.name %></strong><span class="small muted">#<%= m.id %> · <%= t('siteed.kind_' + m.kind) %><%= m.size ? ' · ' + sz(m.size) : '' %></span></div>
+      <form method="post" action="/admin/site/media/<%= m.id %>/delete" data-confirm="<%= t('siteed.media_delete_confirm') %>"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><button class="btn btn-danger-ghost btn-sm" type="submit"><%- icon('trash-2', 'icon-sm') %><%= t('common.delete') %></button></form>
+    </div>
+    <% }) %>
+  </div><% } %>
+</section>

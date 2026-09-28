@@ -1,7 +1,7 @@
 <% var d = s.data; %>
-<section class="section" id="<%= s.anchor %>">
-  <div class="container" style="max-width:820px">
+<section class="section <%= secCls(s) %>" id="<%= s.anchor %>"><%- include('bg', { s: s }) %>
+  <div class="container" style="max-width:820px"><%- include('slot-open', { s: s }) %>
     <% if (L(d.title)) { %><div class="section-head"><h2><%= L(d.title) %></h2></div><% } %>
     <div class="site-text"><% String(L(d.body)).split(/\n{2,}/).forEach(function (para) { if (para.trim()) { %><p><%= para %></p><% } }) %></div>
-  </div>
+  <%- include('slot-close', { s: s }) %></div>
 </section>

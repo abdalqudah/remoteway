@@ -1,11 +1,11 @@
 <% var d = s.data; %>
-<section class="section" id="<%= s.anchor %>">
-  <div class="container">
+<section class="section <%= secCls(s) %>" id="<%= s.anchor %>"><%- include('bg', { s: s }) %>
+  <div class="container"><%- include('slot-open', { s: s }) %>
     <%- include('head', { s: s }) %>
     <div class="grid grid-3">
       <% (d.items || []).forEach(function (g) { %>
-      <div class="panel panel-body"><% if (g.icon) { %><span class="icon-wrap" style="width:36px;height:36px;border-radius:10px;background:var(--accent-soft);display:inline-flex;align-items:center;justify-content:center"><%- icon(g.icon) %></span><% } %><h3 class="mt-3"><%= L(g.title) %></h3><% if (L(g.text)) { %><p class="muted small mt-1"><%= L(g.text) %></p><% } %></div>
+      <div class="panel panel-body"><% if (g.image) { %><div class="card-media"><%- include('media', { mid: g.image, alt: L(g.title) }) %></div><% } else if (g.icon) { %><span class="icon-wrap" style="width:36px;height:36px;border-radius:10px;background:var(--accent-soft);display:inline-flex;align-items:center;justify-content:center"><%- icon(g.icon) %></span><% } %><h3 class="mt-3"><%= L(g.title) %></h3><% if (L(g.text)) { %><p class="muted small mt-1"><%= L(g.text) %></p><% } %></div>
       <% }) %>
     </div>
-  </div>
+  <%- include('slot-close', { s: s }) %></div>
 </section>

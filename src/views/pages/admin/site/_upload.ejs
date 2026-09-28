@@ -1,0 +1,20 @@
+<div class="grid grid-2">
+  <form class="panel" method="post" action="/admin/site/media" enctype="multipart/form-data" novalidate>
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>"><input type="hidden" name="back" value="<%= back %>">
+    <div class="panel-head"><div><h2><%- icon('upload') %> <%= t('siteed.upload_title') %></h2><div class="panel-sub"><%= t('siteed.upload_sub') %></div></div></div>
+    <div class="panel-body stack">
+      <input class="file-input" type="file" name="file" accept="image/jpeg,image/png,image/webp,image/gif,video/mp4,video/webm" required aria-label="<%= t('siteed.upload_title') %>">
+      <input class="input" name="name" placeholder="<%= t('siteed.media_name') %>" maxlength="150">
+    </div>
+    <div class="panel-foot"><button class="btn btn-dark" type="submit" data-busy-label="<%= t('siteed.uploading') %>"><%- icon('upload') %><%= t('siteed.upload_go') %></button></div>
+  </form>
+  <form class="panel" method="post" action="/admin/site/media/embed" novalidate>
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>"><input type="hidden" name="back" value="<%= back %>">
+    <div class="panel-head"><div><h2><%- icon('circle-play') %> <%= t('siteed.embed_title') %></h2><div class="panel-sub"><%= t('siteed.embed_sub') %></div></div></div>
+    <div class="panel-body stack">
+      <input class="input" name="url" dir="ltr" placeholder="https://www.youtube.com/watch?v=…" required>
+      <input class="input" name="name" placeholder="<%= t('siteed.media_name') %>" maxlength="150">
+    </div>
+    <div class="panel-foot"><button class="btn btn-dark" type="submit"><%- icon('plus') %><%= t('siteed.embed_go') %></button></div>
+  </form>
+</div>

@@ -391,7 +391,7 @@ const renderSection = async (req, res, extra = {}) => {
   const content = await site.get();
   const s = content.sections.find((x) => x.id === req.params.id);
   if (!s) throw E.notFound('Section');
-  res.page('pages/admin/site/edit', { layout: 'admin', title: req.t('siteed.edit_section'), kind: 'section', s, schema: site.TYPES[s.type], data: s.data, icons: site.ICONS, features: await siteFeatures(), action: `/admin/site/sections/${s.id}`, ...extra });
+  res.page('pages/admin/site/edit', { layout: 'admin', title: req.t('siteed.edit_section'), kind: 'section', s, schema: site.TYPES[s.type], data: s.data, design: s.design || {}, DESIGN: site.DESIGN, media: await require('../site/media.service').list(), icons: site.ICONS, features: await siteFeatures(), action: `/admin/site/sections/${s.id}`, ...extra }); // eslint-disable-line global-require
 };
 router.get('/site/sections/:id', wrap((req, res) => renderSection(req, res)));
 router.post('/site/sections/:id', wrap(async (req, res) => {
@@ -409,7 +409,7 @@ for (const [path, fn] of [['move', (ctx, id, b) => site.moveSection(ctx, id, b.d
 for (const which of ['header', 'footer']) {
   router.get(`/site/${which}`, wrap(async (req, res) => {
     const content = await site.get();
-    res.page('pages/admin/site/edit', { layout: 'admin', title: req.t(`siteed.${which}`), kind: which, s: null, schema: which === 'header' ? site.HEADER : site.FOOTER, data: content[which], icons: site.ICONS, features: [], action: `/admin/site/${which}` });
+    res.page('pages/admin/site/edit', { layout: 'admin', title: req.t(`siteed.${which}`), kind: which, s: null, schema: which === 'header' ? site.HEADER : site.FOOTER, data: content[which], design: {}, DESIGN: [], media: [], icons: site.ICONS, features: [], action: `/admin/site/${which}` });
   }));
   router.post(`/site/${which}`, wrap(async (req, res) => {
     await site.updateBlock(req.ctx, which, req.body);
@@ -417,6 +417,37 @@ for (const which of ['header', 'footer']) {
     res.redirect('/admin/site');
   }));
 }
+// Media library (images, videos, YouTube/Vimeo links)
+const siteMediaSvc = require('../site/media.service');
+const mediaBack = (req) => (/^\/admin\/site(\/sections\/[a-z0-9-]+|\/media|\/header|\/footer)?$/.test(String(req.body.back || '')) ? req.body.back : '/admin/site/media');
+router.get('/site/media', wrap(async (req, res) => {
+  res.page('pages/admin/site/media', { layout: 'admin', title: req.t('siteed.media'), list: await siteMediaSvc.list() });
+}));
+router.post('/site/media', ...singleFile('file', { big: true }), wrap(async (req, res) => {
+  try {
+    await siteMediaSvc.upload(req.ctx, req.file, req.body.name);
+    flash(req, 'success', req.t('siteed.media_uploaded'));
+  } catch (e) {
+    if (!(e instanceof AppError)) throw e;
+    flash(req, 'error', Object.values(e.details || {})[0] ? require('../../core/i18n').translateMessage(req.locale, Object.values(e.details)[0]) : e.message); // eslint-disable-line global-require
+  }
+  res.redirect(mediaBack(req));
+}));
+router.post('/site/media/embed', wrap(async (req, res) => {
+  try {
+    await siteMediaSvc.addEmbed(req.ctx, req.body.url, req.body.name);
+    flash(req, 'success', req.t('siteed.media_uploaded'));
+  } catch (e) {
+    if (!(e instanceof AppError)) throw e;
+    flash(req, 'error', req.t('siteed.embed_invalid'));
+  }
+  res.redirect(mediaBack(req));
+}));
+router.post('/site/media/:id/delete', wrap(async (req, res) => {
+  await siteMediaSvc.remove(req.ctx, req.params.id);
+  flash(req, 'success', req.t('siteed.media_deleted'));
+  res.redirect('/admin/site/media');
+}));
 router.post('/site/reset', wrap(async (req, res) => {
   await site.reset(req.ctx);
   flash(req, 'success', req.t('siteed.reset_done'));

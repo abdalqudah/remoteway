@@ -1,10 +1,10 @@
 <% var d = s.data; var isJobs = s.type === 'jobs'; var list = isJobs ? latestJobs : talents; var cid = s.id + '-carousel'; %>
 <% if (list && list.length) { %>
-<section class="section" id="<%= s.anchor %>">
-  <div class="container">
+<section class="section <%= secCls(s) %>" id="<%= s.anchor %>"><%- include('bg', { s: s }) %>
+  <div class="container"><%- include('slot-open', { s: s }) %>
     <div class="row between wrap mb-6"><div class="section-head" style="margin:0"><h2><%= L(d.title) %></h2><% if (L(d.lead)) { %><p><%= L(d.lead) %></p><% } %></div>
       <div class="row-sm"><button class="btn btn-secondary btn-icon" type="button" data-carousel-prev="<%= cid %>" aria-label="<%= t('common.previous') %>"><%- icon('chevron-left', 'flip-rtl') %></button><button class="btn btn-secondary btn-icon" type="button" data-carousel-next="<%= cid %>" aria-label="<%= t('common.next') %>"><%- icon('chevron-right', 'flip-rtl') %></button><% if (L(d.button_label) && d.button_href) { %><a class="btn btn-dark" href="<%= d.button_href %>"><%= L(d.button_label) %></a><% } %></div></div>
     <div class="carousel" id="<%= cid %>" tabindex="0" aria-label="<%= L(d.title) %>"><% list.forEach(function (x) { %><div class="carousel-item"><% if (isJobs) { %><%- include('../talent/job-card', { job: x }) %><% } else { %><%- include('../talent/person-card', { p: x }) %><% } %></div><% }) %></div>
-  </div>
+  <%- include('slot-close', { s: s }) %></div>
 </section>
 <% } %>

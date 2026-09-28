@@ -1,9 +1,9 @@
 <% var d = s.data; %>
-<section class="section faq" id="<%= s.anchor %>">
-  <div class="container" style="max-width:820px">
+<section class="section faq <%= secCls(s) %>" id="<%= s.anchor %>"><%- include('bg', { s: s }) %>
+  <div class="container" style="max-width:820px"><%- include('slot-open', { s: s }) %>
     <% if (L(d.title)) { %><div class="section-head"><h2><%= L(d.title) %></h2></div><% } %>
     <% (d.items || []).forEach(function (f) { %>
       <details><summary><%= L(f.q) %><%- icon('plus', 'icon-sm') %></summary><p><%= L(f.a) %></p></details>
     <% }) %>
-  </div>
+  <%- include('slot-close', { s: s }) %></div>
 </section>

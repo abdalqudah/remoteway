@@ -21,6 +21,15 @@ function locals(req, res, next) {
     locale,
     // Editable site texts are { ar, en }: show the visitor's language, else the other one.
     L: (v) => (v && typeof v === 'object' ? (v[locale] || v[locale === 'ar' ? 'en' : 'ar'] || '') : (v || '')),
+    // Layout classes of an editable website section (alignment, background media).
+    secCls: (s) => {
+      const d = (s && s.design) || {};
+      const c = [];
+      if (d.title_align && d.title_align !== 'default') c.push(`al-t-${d.title_align}`);
+      if (d.text_align && d.text_align !== 'default') c.push(`al-x-${d.text_align}`);
+      if (d.media && d.media_pos === 'background') c.push('has-bg');
+      return c.join(' ');
+    },
     dir: locale === 'ar' ? 'rtl' : 'ltr',
     theme,
     csrfToken: req.session?.csrf,
@@ -79,7 +88,7 @@ function flash(req, type, message) {
 // (verifyCsrfAfterUpload). Multipart sent anywhere else is refused so it can never skip the check.
 const MULTIPART_ROUTES = [/^\/app\/documents(\/\d+\/versions)?\/?$/, /^\/app\/employees\/import\/?$/, /^\/api\/v1\/documents\/?$/, /^\/admin\/system\/update\/?$/,
   /^\/app\/recruitment\/candidates(\/\d+)?\/?$/, /^\/careers\/[a-z0-9-]+\/jobs\/[a-z0-9-]+\/apply\/?$/,
-  /^\/app\/learning\/manage\/courses\/\d+\/lessons(\/\d+)?\/?$/, /^\/app\/settings\/branding\/logo\/?$/, /^\/me\/profile\/(photo|cv)\/?$/, /^\/admin\/backups\/import\/?$/];
+  /^\/app\/learning\/manage\/courses\/\d+\/lessons(\/\d+)?\/?$/, /^\/app\/settings\/branding\/logo\/?$/, /^\/me\/profile\/(photo|cv)\/?$/, /^\/admin\/backups\/import\/?$/, /^\/admin\/site\/media\/?$/];
 
 function tokenValid(req, sent) {
   return Boolean(req.session?.csrf && sent && safeEqual(sent, req.session.csrf));

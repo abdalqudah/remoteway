@@ -1,0 +1,6 @@
+<% var m = (typeof siteMedia !== 'undefined' && siteMedia) ? siteMedia[String(mid || '')] : null; var autoplay = typeof mode !== 'undefined' && mode === 'autoplay'; %>
+<% if (m) { %>
+  <% if (m.kind === 'image') { %><img class="site-img" src="<%= m.url %>" alt="<%= typeof alt !== 'undefined' ? alt : m.name %>" loading="lazy">
+  <% } else if (m.kind === 'video') { %><video class="site-video" src="<%= m.url %>" playsinline preload="metadata"<%= autoplay ? ' autoplay muted loop' : ' controls' %>></video>
+  <% } else { %><div class="site-embed"><iframe src="<%= m.url %><%= autoplay ? (m.url.indexOf('vimeo') !== -1 ? '?autoplay=1&muted=1&loop=1&background=1' : '?autoplay=1&mute=1&loop=1&playlist=' + m.url.split('/').pop()) : '' %>" title="<%= m.name %>" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen loading="lazy"></iframe></div><% } %>
+<% } %>

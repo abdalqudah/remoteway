@@ -1,0 +1,3 @@
+<% var D = s.design || {}; var pos = D.media ? (D.media_pos || 'top') : null; if (pos === 'panel' && s.type !== 'hero') pos = 'top'; %>
+<% if (pos === 'start' || pos === 'end') { %></div></div><% } %>
+<% if (pos === 'bottom') { %><div class="sec-media sz-<%= D.media_size || 'medium' %> mt-6"><%- include('media', { mid: D.media, mode: D.video_mode }) %></div><% } %>
