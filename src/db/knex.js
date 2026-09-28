@@ -15,7 +15,13 @@ const knex = knexFactory({
     decimalNumbers: true,
     supportBigNumbers: true,
   },
-  pool: { min: 0, max: Number(process.env.DB_POOL_MAX || 10) },
+  pool: {
+    min: 0,
+    max: Number(process.env.DB_POOL_MAX || 10),
+    // Some shared hosts default to MyISAM (no transactions, no foreign keys, 1000-byte keys).
+    // Force InnoDB for every table this connection creates.
+    afterCreate: (conn, done) => conn.query("SET SESSION default_storage_engine = 'InnoDB'", (err) => done(err, conn)),
+  },
   migrations: { directory: require('path').join(__dirname, 'migrations'), tableName: 'knex_migrations' },
 });
 

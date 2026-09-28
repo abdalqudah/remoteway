@@ -11,7 +11,28 @@ const HINTS = {
   ENOENT: ['MySQL socket not found.', 'ملف socket غير موجود. احذف متغير DB_SOCKET واستخدم DB_HOST=localhost'],
   MISSING_ENV: ['A required environment variable is missing.', 'متغير مطلوب غير موجود في إعدادات التطبيق.'],
   MODULE_NOT_FOUND: ['Dependencies are not installed.', 'الحزم غير مثبتة. اضغط Run NPM Install ثم RESTART.'],
+  MYISAM_TABLES: ['Some tables use the MyISAM engine and the database already has data.',
+    'بعض الجداول تستخدم محرك MyISAM والقاعدة فيها بيانات. من phpMyAdmin حوّل الجداول إلى InnoDB أو تواصل مع الدعم الفني.'],
+  ER_TOO_LONG_KEY: ['Database engine is MyISAM.', 'محرك قاعدة البيانات MyISAM. اضغط RESTART، وإذا تكرر الخطأ احذف كل الجداول من phpMyAdmin ثم RESTART.'],
 };
+
+/**
+ * A first run on a host that defaults to MyISAM leaves half-created MyISAM tables. If the database
+ * holds no organizations yet (fresh install, nothing to lose), drop them so migrations rebuild as InnoDB.
+ */
+async function repairFreshMyIsamInstall(knex) {
+  const [rows] = await knex.raw(
+    "SELECT TABLE_NAME AS name, ENGINE AS engine FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_TYPE = 'BASE TABLE'",
+  );
+  if (!rows.some((r) => String(r.engine).toLowerCase() === 'myisam')) return;
+  const hasOrgs = rows.some((r) => r.name === 'organizations')
+    && Number((await knex('organizations').count({ n: '*' }))[0].n) > 0;
+  if (hasOrgs) throw Object.assign(new Error('MyISAM tables with existing data'), { code: 'MYISAM_TABLES' });
+  console.warn('[db] fresh install with MyISAM tables detected: rebuilding all tables as InnoDB');
+  await knex.raw('SET FOREIGN_KEY_CHECKS = 0');
+  for (const r of rows) await knex.schema.dropTableIfExists(r.name);
+  await knex.raw('SET FOREIGN_KEY_CHECKS = 1');
+}
 
 function escapeHtml(s) {
   return String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -46,6 +67,7 @@ async function start() {
 
   await knex.raw('select 1'); // fail fast with a clear code if the database is unreachable
   if (config.autoMigrate) {
+    await repairFreshMyIsamInstall(knex);
     const [, applied] = await knex.migrate.latest();
     if (applied.length) console.log(`[db] applied migrations: ${applied.join(', ')}`);
     await seedReference(knex);

@@ -2,7 +2,7 @@
 exports.up = async (knex) => {
   if (await knex.schema.hasTable('sessions')) return;
   await knex.schema.createTable('sessions', (t) => {
-    t.string('sid', 255).primary();
+    t.string('sid', 128).primary();
     t.json('sess').notNullable();
     t.dateTime('expired').notNullable().index();
   });
