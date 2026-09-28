@@ -86,6 +86,8 @@ function splitName(name) {
 }
 
 async function apply(user, job, { cover_note: coverNote } = {}) {
+  // Companies receive a reachable, confirmed email with every application.
+  require('../auth/verify.service').assertVerified(await knex('users').where({ id: user.id }).first()); // eslint-disable-line global-require
   const p = await profiles.forUser(user.id);
   if (!p) throw E.conflict('PROFILE_REQUIRED', 'Create your profile before applying.');
   if (p.completion < 40) throw E.conflict('PROFILE_INCOMPLETE', 'Complete at least 40% of your profile before applying.');

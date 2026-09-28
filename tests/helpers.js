@@ -36,6 +36,7 @@ async function createCompany({ plan = 'business', name } = {}) {
     planKey: plan,
   });
   await orgs.completeOnboarding({ organizationId });
+  await knex('users').where({ id: userId }).update({ email_verified_at: new Date() }); // an established account
   return { userId, organizationId, email, password };
 }
 
@@ -43,7 +44,7 @@ async function addMember(organizationId, roleKey, { email } = {}) {
   seq += 1;
   const bcrypt = require('bcryptjs');
   const mail = email || `${roleKey}${seq}-${Date.now()}@test.local`;
-  const [userId] = await knex('users').insert({ name: `${roleKey} ${seq}`, email: mail, password_hash: await bcrypt.hash('Password#123', 4) });
+  const [userId] = await knex('users').insert({ name: `${roleKey} ${seq}`, email: mail, password_hash: await bcrypt.hash('Password#123', 4), email_verified_at: new Date() });
   await knex('memberships').insert({ organization_id: organizationId, user_id: userId });
   const role = await knex('roles').whereNull('organization_id').where({ key: roleKey }).first();
   await knex('user_roles').insert({ organization_id: organizationId, user_id: userId, role_id: role.id });

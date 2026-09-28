@@ -1,0 +1,6 @@
+<% if (typeof emailUnverified !== 'undefined' && emailUnverified) { %>
+<div class="verify-banner" role="status">
+  <span><%- icon('mail-check', 'icon-sm') %> <%= t('verify.banner', { email: currentUser.email }) %></span>
+  <form method="post" action="/verify-email/resend"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><button class="btn btn-secondary btn-sm" type="submit"><%= t('verify.send_new') %></button></form>
+</div>
+<% } %>

@@ -405,6 +405,7 @@ async function seedTalent(organizationId) {
     if (existing) {
       if (process.argv.includes('--talent')) {
         await seedTalent(existing.last_organization_id || (await knex('organizations').orderBy('id').first('id')).id);
+        await knex('users').where('email', 'like', '%remoteway.local').whereNull('email_verified_at').update({ email_verified_at: new Date() });
         console.log('Talent marketplace demo data added.');
         return;
       }
@@ -472,6 +473,7 @@ async function seedTalent(organizationId) {
     await knex('ai_settings').insert({ organization_id: organizationId, enabled: true, features: JSON.stringify(['recruitment', 'documents', 'performance', 'learning', 'analytics']) });
     await seedTalent(organizationId);
 
+    await knex('users').where('email', 'like', '%remoteway.local').whereNull('email_verified_at').update({ email_verified_at: new Date() }); // demo accounts need no email check
     console.log('\nRemoteWay Demo Company is ready.');
     console.log(`Password for all demo users: ${PASSWORD}\n`);
     for (const [slug, , roleKey] of DEMO_USERS) console.log(`  ${roleKey.padEnd(20)} ${slug}@${DOMAIN}`);

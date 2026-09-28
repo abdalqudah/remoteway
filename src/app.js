@@ -63,6 +63,8 @@ function createApp() {
       const print = data.printable && req.query.print === '1';
       const layout = print ? 'print' : data.layout || 'app';
       if (print) data.letterhead = true;
+      // Page data must never replace the layout's core values (a page passing `dir` once flipped RTL pages to LTR).
+      for (const k of ['dir', 'locale', 't', 'theme', 'csrfToken', 'currentUser']) if (k in data && k in res.locals) delete data[k];
       res.render(view, data, (err, body) => {
         if (err) return next(err);
         return res.render(`layouts/${layout}`, { ...data, body }, (err2, html) => (err2 ? next(err2) : res.send(html)));

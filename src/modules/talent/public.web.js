@@ -28,6 +28,7 @@ router.get('/join', (req, res) => (req.user ? res.redirect('/me') : renderJoin(r
 router.post('/join', limiter, form(async (req, res) => {
   const user = await profiles.signup(req.body, { ip: req.ip });
   await require('../auth/web').signIn(req, user, null); // eslint-disable-line global-require
+  await require('../auth/verify.service').send(await require('../../db/knex')('users').where({ id: user.id }).first(), { locale: req.locale }).catch(() => {}); // eslint-disable-line global-require
   const next = String(req.body.next || '');
   res.redirect(next.startsWith('/jobs/') && !next.startsWith('//') ? next : '/me/profile');
 }, renderJoin));

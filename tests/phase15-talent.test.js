@@ -22,6 +22,10 @@ async function join(name, email) {
   const csrf = page.text.match(/name="csrf-token" content="([^"]+)"/)[1];
   const r = await agent.post('/join').type('form').send({ _csrf: csrf, name, email, password: 'Password#123', terms: 'on' });
   assert.equal(r.status, 302, r.text.slice(0, 300));
+  // Confirm the email with the link that was sent
+  const mail = require('../src/core/mailer').testOutbox.filter((m) => m.to === email).pop();
+  const link = mail.html.match(/\/verify-email\/([a-f0-9]{64})/)[1];
+  assert.equal((await agent.get(`/verify-email/${link}`)).status, 302);
   const home = await agent.get('/me');
   const token = home.text.match(/name="csrf-token" content="([^"]+)"/)[1];
   return { agent, csrf: token, get: (u) => agent.get(u), form: (u, b) => agent.post(u).type('form').send({ _csrf: token, ...b }) };

@@ -63,7 +63,7 @@ async function ensureSuperAdmin(knex, { email, password, name }, rounds = 12) {
     return existing.id;
   }
   const [id] = await knex('users').insert({
-    name: name || 'Platform Admin', email: email.toLowerCase(), password_hash: await bcrypt.hash(password, rounds), is_super_admin: true, platform_role: 'owner',
+    name: name || 'Platform Admin', email: email.toLowerCase(), password_hash: await bcrypt.hash(password, rounds), is_super_admin: true, platform_role: 'owner', email_verified_at: new Date(),
   });
   return id;
 }

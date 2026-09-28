@@ -23,6 +23,8 @@ function locals(req, res, next) {
     theme,
     csrfToken: req.session?.csrf,
     currentUser: req.user || null,
+    // Shows the "confirm your email" banner (only when the platform can send email).
+    emailUnverified: Boolean(req.user && !req.apiToken && !require('../modules/auth/verify.service').isVerified(req.user) && require('../modules/auth/verify.service').required()), // eslint-disable-line global-require
     path: req.path,
     fullPath: req.originalUrl,
     query: req.query,

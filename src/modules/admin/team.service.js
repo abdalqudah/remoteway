@@ -26,7 +26,7 @@ async function add(ctx, { name, email, role, password }) {
   let userId;
   if (existing) {
     if (existing.is_super_admin) throw E.conflict('ALREADY_ON_TEAM', 'This person is already on the platform team.');
-    await knex('users').where({ id: existing.id }).update({ is_super_admin: true, platform_role: role });
+    await knex('users').where({ id: existing.id }).update({ is_super_admin: true, platform_role: role, email_verified_at: new Date() });
     userId = existing.id;
   } else {
     const cleanName = String(name || '').trim().slice(0, 120);

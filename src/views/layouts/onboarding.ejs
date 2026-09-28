@@ -17,6 +17,7 @@
         <div class="step <%= i < idx ? 'done' : i === idx ? 'current' : '' %>"><div class="bar"></div><div class="step-label"><%= t('onboarding.step_' + s) %></div></div>
       <% }) %>
     </div>
+    <%- include('../partials/verify-banner') %>
     <%- include('../partials/flash') %>
     <%- body %>
   </div>

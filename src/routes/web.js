@@ -12,13 +12,20 @@ router.use('/', require('../modules/site/web'));
 router.use('/', require('../modules/auth/web'));
 router.use('/sso', require('../modules/sso/web').router);
 router.use('/', require('../modules/talent/public.web').router); // jobs board, discover talent, profiles, individual sign-up
-router.use('/me', requireAuth, require('../modules/talent/me.web')); // individual dashboard
+router.use('/me', requireAuth, emailGate, require('../modules/talent/me.web')); // individual dashboard
 router.use('/careers', require('../modules/recruitment/careers.web'));
 router.use('/verify', require('../modules/learning/verify.web'));
 router.use('/calendar', require('../modules/integrations/web').feedRouter);
 router.use('/payments', require('../modules/payments/web'));
 router.use('/', require('../modules/crm/public.web')); // demo requests + WhatsApp webhook (internal CRM)
 router.use('/admin', requireAuth, requireSuperAdmin, require('../modules/admin/web'));
-router.use('/app', requireAuth, resolveTenant, require('./app'));
+router.use('/app', requireAuth, emailGate, resolveTenant, require('./app'));
+
+// After the grace period an account must confirm its email before using the app (API tokens excepted).
+function emailGate(req, res, next) {
+  if (req.apiToken || !require('../modules/auth/verify.service').mustVerifyNow(req.user)) return next(); // eslint-disable-line global-require
+  if (req.originalUrl.startsWith('/api/')) return next(require('../core/errors').E.forbidden('email.verify')); // eslint-disable-line global-require
+  return res.redirect('/verify-email');
+}
 
 module.exports = router;

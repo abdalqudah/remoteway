@@ -1,0 +1,13 @@
+<h1><%= t('verify.title') %></h1>
+<% if (invalid) { %>
+<div class="alert alert-warning mt-4" role="alert"><%- icon('triangle-alert') %><div><%= t('verify.invalid') %></div></div>
+<a class="btn btn-dark btn-block mt-6" href="<%= currentUser ? '/verify-email' : '/login' %>"><%= currentUser ? t('verify.send_new') : t('auth.back_to_login') %></a>
+<% } else { %>
+<p class="lead"><%= t('verify.lead', { email: currentUser.email }) %></p>
+<div class="alert alert-info mt-4" role="note"><%- icon('mail-check') %><div><%= t('verify.hint', { hours: 48 }) %></div></div>
+<form method="post" action="/verify-email/resend" class="mt-6">
+  <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+  <button class="btn btn-dark btn-lg btn-block" type="submit"><%- icon('send') %><%= t('verify.send_new') %></button>
+</form>
+<form method="post" action="/logout" class="mt-4"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><button class="btn btn-ghost btn-block" type="submit"><%= t('auth.logout') %></button></form>
+<% } %>

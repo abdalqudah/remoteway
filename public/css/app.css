@@ -1069,3 +1069,5 @@ form.inline { display: inline; }
 .check-row.is-ok .check-icon { color: var(--success); }
 .check-row.is-warn .check-icon { color: var(--warning); }
 .check-row.is-fail .check-icon { color: var(--danger); }
+.verify-banner { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; padding: 10px 16px; margin: 0 0 16px; background: var(--warning-soft); border-radius: var(--radius); font-size: 13px; }
+.verify-banner .icon { color: var(--warning); }

@@ -10,6 +10,7 @@ const members = require('../organizations/members.service');
 const subscriptions = require('../billing/subscription.service');
 const security = require('./security.service');
 const privacy = require('./privacy.service');
+const verify = require('./verify.service');
 
 const router = express.Router();
 
@@ -94,6 +95,37 @@ router.post('/reset/:token', loginLimiter, form(async (req, res) => {
   flash(req, 'success', req.t('auth.reset_done'));
   return res.redirect('/login');
 }, renderReset));
+
+// ---------- Email verification ----------
+router.get('/verify-email/:token', wrap(async (req, res) => {
+  try {
+    const user = await verify.confirm(req.params.token);
+    flash(req, 'success', req.t('verify.done'));
+    if (req.user && req.user.id === user.id) return res.redirect(req.session.organizationId ? '/app' : '/me');
+    return res.redirect('/login');
+  } catch (e) {
+    if (e.code !== 'VERIFY_INVALID') throw e;
+    res.status(404);
+    return res.page('pages/auth/verify', { layout: 'auth', title: req.t('verify.title'), invalid: true, sent: false });
+  }
+}));
+router.get('/verify-email', requireAuth, (req, res) => {
+  if (verify.isVerified(req.user)) return res.redirect('/app');
+  return res.page('pages/auth/verify', { layout: 'auth', title: req.t('verify.title'), invalid: false, sent: req.query.sent === '1' });
+});
+router.post('/verify-email/resend', requireAuth, wrap(async (req, res) => {
+  try {
+    await verify.send(req.user, { locale: req.locale });
+    flash(req, 'success', req.t('verify.resent', { email: req.user.email }));
+  } catch (e) {
+    if (e.status !== 429) throw e;
+    flash(req, 'error', req.t('verify.too_many'));
+  }
+  const back = String(req.get('referer') || '');
+  let path = '/verify-email';
+  try { const p = new URL(back, 'http://x').pathname; if (/^\/(app|me|verify-email)(\/[\w\-/]*)?$/.test(p)) path = p; } catch { /* keep default */ }
+  return res.redirect(path);
+}));
 
 // ---------- Security settings (every signed-in user) ----------
 router.get('/security/export', requireAuth, wrap(async (req, res) => {
@@ -181,6 +213,7 @@ router.post('/signup', loginLimiter, form(async (req, res) => {
     planKey: d.plan,
   }, { ip: req.ip, userAgent: req.get('user-agent') });
   await signIn(req, { id: userId }, organizationId);
+  await verify.send(await authService.findUser(userId), { locale: req.locale }).catch(() => {});
   return res.redirect('/app/onboarding');
 }, (req, res, extra) => renderSignup(req, res, extra)));
 

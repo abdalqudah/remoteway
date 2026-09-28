@@ -1850,6 +1850,7 @@
   "CYCLE_LAUNCHED": "This cycle was already launched.",
   "CYCLE_NOT_ACTIVE": "Only an active cycle can be closed.",
   "DEPARTMENT_NOT_EMPTY": "Move employees out of this department before deleting it.",
+  "EMAIL_NOT_VERIFIED": "Confirm your email address first — we sent you a link. You can send a new one from the banner at the top.",
   "EMAIL_TAKEN": "An account with this email already exists.",
   "EMPLOYEE_LIMIT_REACHED": "You've reached your employee limit.",
   "EMPLOYEE_RECORD_REQUIRED": "Your account is not linked to an employee record. Ask HR to add you.",
@@ -4240,6 +4241,20 @@
   "subtitle": "Plan, assign and track work across your team.",
   "title_label": "Title",
   "unassigned": "Unassigned"
+ },
+ "verify": {
+  "banner": "Confirm your email ({email}) to invite your team and apply to jobs.",
+  "done": "Your email is confirmed. Thank you!",
+  "hint": "The link works once and expires in {hours} hours. Check your spam folder if it does not arrive.",
+  "invalid": "This link has expired or was already used. Sign in and send a new one.",
+  "lead": "We sent a confirmation link to {email}. Open it to finish setting up your account.",
+  "mail_body": "Hello {name}, welcome to RemoteWay. Please confirm this is your email address. The link works once and expires in {hours} hours. If you did not create an account, ignore this email.",
+  "mail_cta": "Confirm my email",
+  "mail_subject": "Confirm your email",
+  "resent": "A new confirmation link was sent to {email}.",
+  "send_new": "Send a new link",
+  "title": "Confirm your email",
+  "too_many": "We already sent several links. Check your inbox (and spam) or try again in an hour."
  },
  "work_modes": {
   "hybrid": "Hybrid",

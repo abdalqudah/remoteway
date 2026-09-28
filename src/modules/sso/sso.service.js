@@ -130,7 +130,7 @@ async function resolveUser(conn, claims, email) {
       await ent.assertWithinLimit(orgId, 'users', 1, trx);
       if (!user) {
         const name = String(claims.name || [claims.given_name, claims.family_name].filter(Boolean).join(' ') || email.split('@')[0]).slice(0, 120);
-        const [id] = await trx('users').insert({ name, email, password_hash: `!sso:${crypto.randomBytes(16).toString('hex')}`, locale: 'en', last_organization_id: orgId });
+        const [id] = await trx('users').insert({ name, email, password_hash: `!sso:${crypto.randomBytes(16).toString('hex')}`, locale: 'en', last_organization_id: orgId, email_verified_at: new Date() });
         user = await trx('users').where({ id }).first();
       }
       await trx('memberships').insert({ organization_id: orgId, user_id: user.id });
@@ -139,6 +139,8 @@ async function resolveUser(conn, claims, email) {
       membership = { status: 'active' };
       await audit.record({ organizationId: orgId, userId: user.id }, 'sso.user_provisioned', { entityType: 'user', entityId: user.id, newValues: { email, role: conn.default_role } }, trx);
     }
+    // The company's identity provider confirmed this address.
+    await require('../auth/verify.service').markVerified(user.id, 'sso', trx); // eslint-disable-line global-require
     if (identity) {
       await trx('user_identities').where({ id: identity.id }).update({ email, last_login_at: new Date() });
     } else {

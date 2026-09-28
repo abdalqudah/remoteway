@@ -402,3 +402,70 @@ describe('security review fixes', () => {
     assert.match(ok.text, /href="\/app\/leave"/);
   });
 });
+
+describe('email verification', () => {
+  const linkFor = (email) => { const m = mailer.testOutbox.filter((x) => x.to === email).pop(); return m && (m.html.match(/\/verify-email\/([a-f0-9]{64})/) || [])[1]; };
+  async function signup(email) {
+    const a = pub();
+    const page = await a.get('/signup');
+    const r = await a.post('/signup').type('form').send({ _csrf: csrfOf(page.text), name: 'New Owner', email, password: 'Password#123', company_name: `Co ${Date.now()}`, country_code: 'SA', plan: 'business', terms: 'on' });
+    assert.equal(r.status, 302, r.text.slice(0, 400));
+    return a;
+  }
+
+  test('a new company owner gets a link; unconfirmed accounts cannot invite; the link confirms', async () => {
+    const email = `verify${Date.now()}@test.local`;
+    const a = await signup(email);
+    const token = linkFor(email);
+    assert.ok(token, 'verification email sent');
+    const app = await a.get('/app').redirects(2);
+    assert.match(app.text, /verify-banner/);
+    const csrf = csrfOf(app.text);
+    const role = await h.knex('roles').whereNull('organization_id').where({ key: 'employee' }).first();
+    const inv = await a.post('/app/settings/users/invite').type('form').send({ _csrf: csrf, email: 'x@test.local', role_id: role.id });
+    assert.ok([409, 302].includes(inv.status));
+    assert.equal(await h.knex('invitations').where({ email: 'x@test.local' }).first(), undefined, 'no invitation before confirming');
+
+    assert.equal((await a.get(`/verify-email/${token}`)).status, 302);
+    const u = await h.knex('users').where({ email }).first();
+    assert.ok(u.email_verified_at);
+    assert.ok(!/verify-banner/.test((await a.get('/app').redirects(2)).text));
+    assert.equal((await pub().get(`/verify-email/${token}`)).status, 404, 'a link works once');
+  });
+
+  test('resend is limited; after 7 days the app asks to confirm first', async () => {
+    const email = `late${Date.now()}@test.local`;
+    const a = await signup(email);
+    const csrf = csrfOf((await a.get('/app').redirects(2)).text);
+    for (let i = 0; i < 4; i += 1) await a.post('/verify-email/resend').type('form').send({ _csrf: csrf });
+    assert.equal(mailer.testOutbox.filter((m) => m.to === email).length, 3);
+    await h.knex('users').where({ email }).update({ created_at: new Date(Date.now() - 8 * 86400_000) });
+    const gated = await a.get('/app');
+    assert.equal(gated.status, 302);
+    assert.equal(gated.headers.location, '/verify-email');
+    assert.match((await a.get('/verify-email')).text, /Confirm your email/);
+    // A password reset link also proves the address
+    await h.knex('email_verifications').del();
+    const f = await pub().get('/forgot');
+    await pub().post('/forgot').type('form').send({ _csrf: csrfOf(f.text), email });
+  });
+
+  test('accepting an invitation confirms the email', async () => {
+    const co = await h.createCompany();
+    const verifyService = require('../src/modules/auth/verify.service');
+    const u = await h.knex('users').where({ id: co.userId }).first();
+    assert.ok(verifyService.isVerified(u));
+    const members = require('../src/modules/organizations/members.service');
+    const role = await h.knex('roles').whereNull('organization_id').where({ key: 'employee' }).first();
+    const { token } = await members.invite({ organizationId: co.organizationId, userId: co.userId }, { email: 'invitee@test.local', roleId: role.id });
+    const r = await members.acceptInvitation(token, { account: { name: 'Invitee', password: 'Password#123' } });
+    assert.ok((await h.knex('users').where({ id: r.userId }).first()).email_verified_at);
+  });
+
+  test('the backups page keeps the Arabic right-to-left direction', async () => {
+    const owner = await superAdmin('owner');
+    const o = await h.login(owner.email, 'Password#123');
+    const page = await o.get('/admin/backups?lang=ar');
+    assert.match(page.text, /<html lang="ar" dir="rtl"/);
+  });
+});

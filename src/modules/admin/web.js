@@ -303,7 +303,7 @@ router.use('/crm', require('../crm/web'));
 const backups = require('./backup.service');
 const errorLog = require('./errors.service');
 const renderBackups = async (req, res, extra = {}) => res.page('pages/admin/backups', {
-  layout: 'admin', title: req.t('admin.backups'), list: backups.list(), settings: await backups.settings(), dir: backups.DIR, inlineFormError: true, ...extra,
+  layout: 'admin', title: req.t('admin.backups'), list: backups.list(), settings: await backups.settings(), backupDir: backups.DIR, inlineFormError: true, ...extra,
 });
 router.get('/backups', wrap((req, res) => renderBackups(req, res)));
 router.post('/backups', form(async (req, res) => {

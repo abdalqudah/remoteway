@@ -29,6 +29,8 @@ async function listInvitations(organizationId) {
 /** Returns the plain invite token once so the admin can share the link (email delivery is Phase 7). */
 async function invite(ctx, { email, roleId }) {
   await ent.assertCanWrite(ctx.organizationId);
+  // Invitations send email in the company's name: the inviter must have confirmed their own address.
+  if (ctx.userId) require('../auth/verify.service').assertVerified(await knex('users').where({ id: ctx.userId }).first()); // eslint-disable-line global-require
   return knex.transaction(async (trx) => {
     await ent.lockSubscription(ctx.organizationId, trx);
     const already = await trx('memberships as m').join('users as u', 'u.id', 'm.user_id')
@@ -89,6 +91,8 @@ async function acceptInvitation(token, { userId, account }, ctx = {}) {
     // Link to an existing employee record with the same email, if any.
     await trx('employees').where({ organization_id: inv.organization_id, email: inv.email }).whereNull('user_id').update({ user_id: uid });
     await trx('users').where({ id: uid }).update({ last_organization_id: inv.organization_id });
+    // The invitation was sent to this address: following it confirms the email.
+    await require('../auth/verify.service').markVerified(uid, 'invitation', trx); // eslint-disable-line global-require
     await audit.record({ ...ctx, organizationId: inv.organization_id, userId: uid }, 'invitation.accepted', { entityType: 'invitation', entityId: inv.id }, trx);
     rbac.invalidate(inv.organization_id);
     return { userId: uid, organizationId: inv.organization_id };
