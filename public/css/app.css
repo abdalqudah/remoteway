@@ -913,3 +913,19 @@ fieldset.field > legend { padding: 0; margin-bottom: 6px; }
 .an-wide { grid-column: 1 / -1; }
 .an-note { font-size: 12px; color: var(--text-3); margin-top: 8px; }
 .kpi-value { font-variant-numeric: normal; }
+
+/* ---------- Compliance ---------- */
+.cmp-hero { font-size: 56px; font-weight: 700; letter-spacing: -.03em; line-height: 1.1; margin: 6px 0 8px; }
+.cmp-hero span { font-size: 28px; color: var(--text-3); margin-inline-start: 2px; }
+.cmp-checks { display: grid; }
+.cmp-check { border-top: 1px solid var(--border); }
+.cmp-check:first-child { border-top: 0; }
+.cmp-check > summary { display: flex; align-items: center; gap: 12px; padding: 14px 20px; cursor: pointer; list-style: none; }
+.cmp-check > summary::-webkit-details-marker { display: none; }
+.cmp-check > summary:hover { background: var(--surface-2); }
+.cmp-check[open] > summary { background: var(--surface-2); }
+.cmp-desc { display: block; margin-top: 2px; }
+.cmp-body { padding: 4px 20px 16px; }
+.cmp-items { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; max-height: 360px; overflow: auto; }
+.cmp-items li { display: flex; flex-wrap: wrap; gap: 4px 12px; align-items: baseline; font-size: 13px; padding: 6px 0; border-bottom: 1px solid var(--border); }
+@media (max-width: 640px) { .cmp-check > summary { flex-wrap: wrap; } .cmp-check > summary .grow { flex-basis: 100%; order: 3; } }

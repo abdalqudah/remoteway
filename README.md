@@ -9,11 +9,17 @@
 | Runtime | Node.js ≥ 20 (Express 4, server-rendered EJS, no build step) |
 | Database | MySQL 8 / MariaDB ≥ 10.3 (all data, including sessions, lives in the database) |
 | Hosting | Any cPanel host with **Setup Node.js App** (e.g. Orange Host), or any VPS |
-| Status | **Phases 1–9 + Advanced Analytics** (SaaS Core, Workforce, Talent, Payroll, Performance, Learning, Integrations, AI, Enterprise, Analytics) complete and tested (see `docs/ARCHITECTURE.md`) |
+| Status | **Phases 1–9 + Advanced Analytics + Compliance** (SaaS Core, Workforce, Talent, Payroll, Performance, Learning, Integrations, AI, Enterprise, Analytics, Compliance) complete and tested (see `docs/ARCHITECTURE.md`) |
 
 ---
 
 ## What works today
+
+**Compliance** (Business plan and above — Insights → Compliance):
+- Ten checks on live data, each with who is affected and why: expired documents, required documents per nationality (e.g. contract for everyone, national ID for Saudis, Iqama and passport for non-Saudis — editable), documents expiring soon, Wage Protection readiness (pay details / IBAN / cash pay), GOSI registration, annual leave entitlement (21 days, 30 after five years — Labor Law Art. 109), probation beyond the maximum (Art. 53), weekly hours above 48 (Art. 98), policy acknowledgements, nationality recorded. Saudi-specific checks run for Saudi companies.
+- Weighted compliance score (critical/high/medium/low) with daily history, upcoming expiries (documents and training certificates), CSV export, and a one-click fix that raises annual leave to the legal minimum (each change audited).
+- **Policy acknowledgements:** mark a company policy as requiring acknowledgement; everyone is notified and sees it in "My work"; progress and pending names on the policy; a new version asks again.
+- Rules page: turn checks on/off, required documents, expiry warning days, maximum probation, weekly hours limit. Guidance, not legal advice (stated on the page).
 
 **Advanced Analytics** (Professional, Enterprise or the Advanced Analytics add-on — Insights → Analytics):
 - Six sections, one filter row (last 6/12/24 months, department) scoping every KPI and chart: **Workforce** (headcount at month end, joiners/leavers, headcount and Saudization by department, length of service), **Turnover & retention** (monthly turnover, 12-month retention, early attrition, turnover by department, service at exit), **Absence** (absence rate against the company working week, leave days, by type, Bradford factor for sick leave), **Attendance** (on-time arrivals, average hours, overtime by department), **Hiring** (funnel from stage history, applications, time to hire, source effectiveness) and **Payroll cost** (full employer cost of approved runs, cost per employee, contributions share, cost by department).

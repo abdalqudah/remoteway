@@ -1,0 +1,37 @@
+<%
+  var o = old || {};
+  var on = function (k) { return o._csrf ? [].concat(o.checks || []).indexOf(k) >= 0 : s.checks[k]; };
+  var reqs = o._csrf ? [].concat(o.req_category || []).map(function (c, i) { return { category: c, applies_to: [].concat(o.req_applies || [])[i] }; }) : s.required_documents;
+  var row = function (r) {
+    var h = '<div class="row-sm" data-row><select class="select" name="req_category" aria-label="' + escapeHtml(t('compliance.doc_type')) + '">' + DOC_CATEGORIES.map(function (c) { return '<option value="' + c + '"' + (r && r.category === c ? ' selected' : '') + '>' + escapeHtml(t('documents.cat_' + c)) + '</option>'; }).join('') + '</select>';
+    h += '<select class="select" name="req_applies" aria-label="' + escapeHtml(t('compliance.applies_to')) + '">' + APPLIES.map(function (a) { return '<option value="' + a + '"' + (r && r.applies_to === a ? ' selected' : '') + '>' + escapeHtml(t('compliance.applies_' + a)) + '</option>'; }).join('') + '</select>';
+    return h + '<button class="btn btn-ghost btn-icon btn-sm" type="button" data-remove-row aria-label="' + escapeHtml(t('common.delete')) + '">' + icon('x', 'icon-sm') + '</button></div>';
+  };
+%>
+<div class="page-head"><div><div class="eyebrow"><a href="/app/compliance"><%= t('compliance.title') %></a></div><h1><%= t('compliance.settings') %></h1></div></div>
+<% if (formError) { %><div class="alert alert-error mb-4"><%= Object.values(errors)[0] || formError.message %></div><% } %>
+<form method="post" action="/app/compliance/settings" novalidate>
+  <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+  <div class="grid grid-2">
+    <section class="panel"><div class="panel-head"><h2><%= t('compliance.checks') %></h2></div><div class="panel-body stack-sm">
+      <% Object.keys(CHECKS).forEach(function (k) { var c = CHECKS[k]; var na = c.country && c.country !== s.country; %>
+        <label class="check"><input type="checkbox" name="checks" value="<%= k %>"<%= on(k) ? ' checked' : '' %><%= na ? ' disabled' : '' %>><span><%= t('compliance.check_' + k) %><% if (na) { %> <span class="muted tiny">(<%= t('compliance.saudi_only') %>)</span><% } %></span></label>
+      <% }) %>
+    </div></section>
+    <div class="stack-lg">
+      <section class="panel" data-repeater><div class="panel-head"><div><h2><%= t('compliance.required_docs') %></h2><div class="panel-sub"><%= t('compliance.required_docs_sub') %></div></div></div>
+        <div class="panel-body stack">
+          <div class="stack-sm" data-rows><% (reqs.length ? reqs : [null]).forEach(function (r) { %><%- row(r) %><% }) %></div>
+          <template data-row-template><%- row(null) %></template>
+          <div><button class="btn btn-ghost btn-sm" type="button" data-add-row><%- icon('plus', 'icon-sm') %><%= t('compliance.add_doc') %></button></div>
+          <% if (errors.required_documents) { %><span class="field-error"><%= errors.required_documents %></span><% } %>
+        </div></section>
+      <section class="panel"><div class="panel-body stack">
+        <%- include('../../partials/field', { name: 'expiry_warning_days', label: t('compliance.warn_days'), type: 'number', value: s.expiry_warning_days, attrs: 'min="7" max="365"' }) %>
+        <%- include('../../partials/field', { name: 'probation_max_days', label: t('compliance.probation_days'), type: 'number', value: s.probation_max_days, attrs: 'min="30" max="180"', help: t('compliance.probation_help') }) %>
+        <%- include('../../partials/field', { name: 'weekly_hours_limit', label: t('compliance.weekly_hours'), type: 'number', value: s.weekly_hours_limit, attrs: 'min="20" max="72"', help: t('compliance.weekly_hours_help') }) %>
+      </div></section>
+      <div class="form-actions"><a class="btn btn-ghost" href="/app/compliance"><%= t('common.cancel') %></a><button class="btn btn-dark" type="submit"><%= t('common.save') %></button></div>
+    </div>
+  </div>
+</form>

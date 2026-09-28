@@ -1,0 +1,77 @@
+<%
+  var r = result;
+  var statusIcon = { pass: 'circle-check', fail: 'circle-x', warn: 'triangle-alert', na: 'info', off: 'info' };
+  var statusCls = { pass: 'st-approved', fail: 'st-rejected', warn: 'st-pending', na: 'st-off', off: 'st-off' };
+  var tone = r.score >= 90 ? 'good' : r.score >= 70 ? 'warn' : 'bad';
+%>
+<div class="page-head"><div><h1><%= t('compliance.title') %></h1><p><%= t('compliance.sub') %></p></div>
+  <div class="page-actions">
+    <a class="btn btn-secondary" href="/app/compliance?format=csv"><%- icon('download') %><%= t('reports.export_csv') %></a>
+    <% if (can('compliance.manage')) { %><a class="btn btn-secondary" href="/app/compliance/settings"><%- icon('settings') %><%= t('compliance.settings') %></a><% } %>
+  </div></div>
+
+<div class="grid grid-3 mb-6">
+  <section class="panel">
+    <div class="panel-body">
+      <div class="kpi-label"><%= t('compliance.score') %></div>
+      <div class="cmp-hero"><%= fmt.number(r.score) %><span>%</span></div>
+      <span class="st <%= tone === 'good' ? 'st-approved' : tone === 'warn' ? 'st-pending' : 'st-rejected' %>"><%- icon(tone === 'good' ? 'circle-check' : 'triangle-alert', 'icon-sm') %><%= t('compliance.tone_' + tone) %></span>
+      <div class="row-sm wrap small mt-2">
+        <span class="st st-rejected"><%- icon('circle-x', 'icon-sm') %><%= t('compliance.n_issues', { n: fmt.number(r.issues) }) %></span>
+        <span class="st st-pending"><%- icon('triangle-alert', 'icon-sm') %><%= t('compliance.n_warnings', { n: fmt.number(r.warnings) }) %></span>
+      </div>
+      <p class="small muted mt-2"><%= t('compliance.n_passed', { n: r.passed, total: r.active }) %></p>
+    </div>
+  </section>
+  <section class="panel span-2">
+    <div class="panel-head"><div><h2><%= t('compliance.trend') %></h2><div class="panel-sub"><%= t('compliance.trend_sub') %></div></div></div>
+    <div class="panel-body">
+      <% if (trend) { %><%- trend %>
+        <details class="chart-table"><summary><%= t('analytics.show_table') %></summary><div class="table-wrap"><table class="table table-compact"><tbody><% hist.forEach(function (h) { %><tr><td><%= fmt.date(h.day) %></td><td class="num"><%= Number(h.score) %>%</td><td class="num muted"><%= t('compliance.n_issues', { n: h.issues }) %></td></tr><% }) %></tbody></table></div></details>
+      <% } else { %><p class="muted small"><%= t('compliance.trend_empty') %></p><% } %>
+    </div>
+  </section>
+</div>
+
+<section class="panel mb-6">
+  <div class="panel-head"><div><h2><%= t('compliance.checks') %></h2><div class="panel-sub"><%= t('compliance.checks_sub') %></div></div></div>
+  <div class="cmp-checks">
+    <% checks.forEach(function (ch) { %>
+    <details class="cmp-check" id="check-<%= ch.key %>"<%= ch.status === 'fail' && ch.severity === 'critical' ? ' open' : '' %>>
+      <summary>
+        <span class="st <%= statusCls[ch.status] %>"><%- icon(statusIcon[ch.status], 'icon-sm') %><%= t('compliance.status_' + ch.status) %></span>
+        <span class="grow"><strong><%= t('compliance.check_' + ch.key) %></strong><span class="muted small cmp-desc"><%= t('compliance.desc_' + ch.key) %></span></span>
+        <span class="small muted nowrap"><% if (ch.total) { %><%= t('compliance.affected', { n: fmt.number(ch.items.length), total: fmt.number(ch.total) }) %><% } %></span>
+        <span class="badge"><%= t('compliance.sev_' + ch.severity) %></span>
+      </summary>
+      <div class="cmp-body">
+        <% if (ch.law) { %><p class="small text-2"><%- icon('info', 'icon-sm') %> <%= t('compliance.law_' + ch.law) %></p><% } %>
+        <% if (ch.status === 'off') { %><p class="small muted"><%= t('compliance.off_text') %></p><% } %>
+        <% if (ch.lines.length) { %>
+        <% if (ch.key === 'annual_leave' && can('compliance.manage') && can('leave.approve')) { %>
+          <form method="post" action="/app/compliance/fix/annual-leave" class="mb-2" data-confirm="<%= t('compliance.fix_leave_confirm', { n: ch.items.length }) %>"><input type="hidden" name="_csrf" value="<%= csrfToken %>">
+            <button class="btn btn-dark btn-sm" type="submit"><%- icon('check', 'icon-sm') %><%= t('compliance.fix_leave_all', { n: ch.items.length }) %></button></form><% } %>
+        <ul class="cmp-items">
+          <% ch.lines.forEach(function (it) { %><li><a class="link" href="<%= it.link %>"><%= it.name %></a><span class="text-2 small" dir="auto"><%= it.text %></span></li><% }) %>
+        </ul>
+        <% if (ch.items.length > ch.lines.length) { %><p class="small muted"><%= t('compliance.more_in_csv', { n: ch.items.length - ch.lines.length }) %></p><% } %>
+        <% } else if (ch.status === 'pass') { %><p class="small muted"><%= t('compliance.all_good') %></p><% } else if (ch.status === 'na') { %><p class="small muted"><%= t('compliance.na_' + ch.key) %></p><% } %>
+      </div>
+    </details>
+    <% }) %>
+  </div>
+</section>
+
+<section class="panel">
+  <div class="panel-head"><div><h2><%= t('compliance.upcoming') %></h2><div class="panel-sub"><%= t('compliance.upcoming_sub') %></div></div></div>
+  <% if (!upcoming.length) { %><div class="empty"><p class="muted small"><%= t('compliance.upcoming_empty') %></p></div><% } else { %>
+  <div class="table-wrap"><table class="table">
+    <thead><tr><th><%= t('compliance.item') %></th><th><%= t('analytics.employee') %></th><th><%= t('compliance.expires') %></th></tr></thead>
+    <tbody><% upcoming.forEach(function (u) { %>
+      <tr><td><a class="link" href="<%= u.link %>"><%= u.title %></a><div class="muted tiny"><%= u.kind === 'document' ? t('documents.cat_' + u.category) : t('compliance.certificate') %></div></td>
+        <td><%= u.who || t('documents.company_wide') %></td>
+        <td class="nowrap"><span class="st <%= u.expired ? 'st-rejected' : 'st-pending' %>"><%- icon(u.expired ? 'circle-x' : 'clock', 'icon-sm') %><%= u.expired ? t('compliance.expired_on') : t('compliance.expires_on') %> <%= fmt.date(u.date) %></span></td></tr>
+    <% }) %></tbody>
+  </table></div><% } %>
+</section>
+<p class="an-note"><%= t('compliance.disclaimer') %></p>

@@ -5,6 +5,7 @@ const { singleFile } = require('../../middleware/upload');
 const documents = require('./document.service');
 const employees = require('../workforce/employee.service');
 const ai = require('../ai/ai.service');
+const compliance = require('../compliance/compliance.service');
 
 const router = express.Router();
 router.use(feature('documents'));
@@ -28,10 +29,23 @@ router.post('/', ...singleFile('file'), form(async (req, res) => {
 const renderShow = async (req, res, extra = {}) => {
   const doc = await documents.get(req.ctx, Number(req.params.id));
   const aiDoc = res.locals.aiOn('documents') ? await ai.latestInsight(req.ctx.organizationId, 'document_summary', 'document', doc.id) : null;
-  res.page('pages/documents/show', { title: doc.title, doc, categories: documents.CATEGORIES, aiDoc, ...extra });
+  const ack = req.entitlements.features.has('compliance') ? await compliance.ackStatus(req.ctx, doc) : null;
+  res.page('pages/documents/show', { title: doc.title, doc, categories: documents.CATEGORIES, aiDoc, ack, ...extra });
 };
 
 router.get('/:id', wrap((req, res) => renderShow(req, res)));
+
+// Policy acknowledgements (Compliance)
+router.post('/:id/require-ack', form(async (req, res) => {
+  await compliance.setRequiresAck(req.ctx, Number(req.params.id), req.body.on === '1');
+  flash(req, 'success', req.t(req.body.on === '1' ? 'compliance.ack_on' : 'compliance.ack_off'));
+  res.redirect(`/app/documents/${req.params.id}`);
+}, renderShow));
+router.post('/:id/acknowledge', form(async (req, res) => {
+  await compliance.acknowledge(req.ctx, Number(req.params.id), req.ip);
+  flash(req, 'success', req.t('compliance.ack_done'));
+  res.redirect(`/app/documents/${req.params.id}`);
+}, renderShow));
 
 router.post('/:id', form(async (req, res) => {
   await documents.updateMeta(req.ctx, Number(req.params.id), req.body);

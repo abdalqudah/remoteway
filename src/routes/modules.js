@@ -2,7 +2,6 @@
 // Built modules (employees, attendance, leave, documents, tasks) have their own links in the sidebar.
 const MODULES = [
   { key: 'payway', icon: 'credit-card', feature: 'payway', phase: 7, status: 'integration', group: 'finance' },
-  { key: 'compliance', icon: 'shield-check', feature: 'compliance', phase: 9, status: 'soon', group: 'insights' },
 ];
 
 module.exports = { MODULES };

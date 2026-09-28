@@ -48,6 +48,27 @@
     <% } %>
   </section>
 </div>
+<% if (ack) { %>
+<section class="panel mt-6">
+  <div class="panel-head"><div><h2><%= t('compliance.ack_title') %></h2><div class="panel-sub"><%= t('compliance.ack_sub', { v: ack.version }) %></div></div>
+    <% if (typeof ack.total === 'number') { %><span class="small"><strong class="num"><%= ack.done %></strong> / <span class="num"><%= ack.total %></span> <%= t('compliance.ack_count') %></span><% } %></div>
+  <div class="panel-body stack">
+    <% if (ack.mine) { %><div class="alert alert-success"><%- icon('circle-check') %><div><%= t('compliance.ack_yours', { date: fmt.date(ack.mine.acknowledged_at, { dateStyle: 'medium', timeStyle: 'short' }) }) %></div></div>
+    <% } else if (ack.canAck) { %>
+      <form method="post" action="/app/documents/<%= d.id %>/acknowledge" class="stack-sm"><input type="hidden" name="_csrf" value="<%= csrfToken %>">
+        <label class="check"><input type="checkbox" required><%= t('compliance.ack_statement') %></label>
+        <div><button class="btn btn-dark btn-sm" type="submit"><%- icon('check', 'icon-sm') %><%= t('compliance.ack_button') %></button></div></form>
+    <% } %>
+    <% if (ack.pending && ack.pending.length) { %><details><summary class="small link"><%= t('compliance.ack_pending', { n: ack.pending.length }) %></summary>
+      <div class="row-sm wrap mt-2"><% ack.pending.forEach(function (p) { %><a class="tag" href="/app/employees/<%= p.id %>"><%= p.first_name %> <%= p.last_name %></a><% }) %></div></details><% } %>
+  </div>
+</section>
+<% } %>
+<% if (hasFeature('compliance') && canManage && d.category === 'policy' && !d.employee_id) { %>
+<form method="post" action="/app/documents/<%= d.id %>/require-ack" class="mt-4 row-sm"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><input type="hidden" name="on" value="<%= d.requires_ack ? '0' : '1' %>">
+  <button class="btn <%= d.requires_ack ? 'btn-ghost' : 'btn-secondary' %> btn-sm" type="submit"><%- icon('shield-check', 'icon-sm') %><%= d.requires_ack ? t('compliance.ack_stop') : t('compliance.ack_require') %></button>
+  <span class="small muted"><%= d.requires_ack ? '' : t('compliance.ack_require_help') %></span></form>
+<% } %>
 <% if (aiOn('documents') && (can('documents.view') || canManage)) { %><div class="mt-6"><%- include('../../partials/ai/panel', { url: '/app/ai/documents/' + d.id + '/summary', title: t('ai.doc_title'), sub: t('ai.doc_sub'), button: t('ai.summarise'), initial: aiDoc ? include('../../partials/ai/document-summary', { out: aiDoc.output, insight: aiDoc }) : '' }) %></div><% } %>
 <% if (canManage) { %>
 <dialog class="dialog" id="version-dialog">

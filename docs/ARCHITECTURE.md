@@ -210,7 +210,7 @@ Auth is `Authorization: Bearer rw_…` (Settings → API; requires the `api` fea
 | Advanced Reports (`advanced_reports`) | available |  | ✓ | ✓ | ✓ |
 | Integrations (`integrations`) | available |  | ✓ | ✓ | ✓ |
 | Advanced Analytics (`analytics`) | available |  |  | ✓ | ✓ |
-| Compliance (`compliance`) | coming_soon |  | ✓ | ✓ | ✓ |
+| Compliance (`compliance`) | available |  | ✓ | ✓ | ✓ |
 | API Access (`api`) | available |  |  | ✓ | ✓ |
 | Advanced Permissions (`advanced_permissions`) | available |  |  | ✓ | ✓ |
 | Custom Roles (`custom_roles`) | available |  |  |  | ✓ |
@@ -282,6 +282,7 @@ Payroll / Employees ─► domain events (payroll.approved, employee.updated)
 | **8 — AI** | Provider adapters (Anthropic, OpenAI, Gemini, Azure OpenAI), Super Admin config (encrypted key, test, usage), company switches, metered `ai_requests`, schema-validated output, redaction; job drafts, candidate requirement match, document summaries & dates, review drafts, quiz generation, analytics assistant over SQL metrics | ✅ Done — 17 more tests (redaction, provider formats, governance, quota & refunds, invalid output, CV/PDF handling, access rules, tenant isolation, analytics scoping, admin key storage) — 153 total |
 | **9 — Enterprise** | SSO over OpenID Connect (PKCE, JWKS-verified ID tokens, domains, JIT, enforcement with owner break-glass); multi-step leave approval workflows; reports (templates, builder over 8 datasets, saved/shared, scheduled CSV email in the org time zone); support tickets with SLA targets and a Super Admin inbox. SAML is not included (all major IdPs offer OIDC) | ✅ Done — 15 more tests (token verification, SSO flows/JIT/domains/enforcement, workflow order/skip/reject/balance, report safety/tiers/schedules/time zones, tickets/SLA/internal notes/isolation) — 168 total |
 | **Advanced Analytics** | Workforce, retention, absence (incl. Bradford factor), attendance, hiring funnel and payroll-cost analytics with period/department filters, permission-scoped sections, server-rendered SVG charts with table views and CSV | ✅ Done — 9 more tests (figures against hand-counted data, funnel from stage history, approved-only costs, permissions, plan gating, rendering/CSV, chart escaping and ticks) — 177 total |
+| **Compliance** | Ten rule-based checks (documents, WPS, GOSI, Art. 109 leave, Art. 53 probation, Art. 98 hours, policies, nationality), weighted score with daily snapshots, upcoming expiries, configurable rules, annual-leave fix, policy acknowledgements per version | ✅ Done — 5 more tests (each check on crafted data, fix, rules, acknowledgements & versions, permissions/plan) — 182 total |
 
 **Definition of done per module:** migration + service + web UI + API + validation + permissions + tenant isolation + loading/empty/error states + responsive + Arabic + English + tests.
 

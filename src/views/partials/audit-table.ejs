@@ -2,7 +2,7 @@
   <form class="table-toolbar" method="get" data-autosubmit>
     <select class="select" name="action" aria-label="<%= t('settings.filter_action') %>">
       <option value=""><%= t('settings.all_actions') %></option>
-      <% ['auth','employee','department','location','leave','attendance','document','task','job','candidate','application','interview','onboarding','payroll','goal','review','course','webhook','integration','ai','sso','workflow','report','support','member','invitation','role','organization','subscription','invoice','api_token','platform'].forEach(function (a) { %><option value="<%= a %>"<%= query.action === a ? ' selected' : '' %>><%= t('audit.group_' + a) %></option><% }) %>
+      <% ['auth','employee','department','location','leave','attendance','document','task','job','candidate','application','interview','onboarding','payroll','goal','review','course','webhook','integration','ai','sso','workflow','report','support','policy','member','invitation','role','organization','subscription','invoice','api_token','platform'].forEach(function (a) { %><option value="<%= a %>"<%= query.action === a ? ' selected' : '' %>><%= t('audit.group_' + a) %></option><% }) %>
     </select>
   </form>
   <% if (!result.data.length) { %><div class="empty"><span class="empty-icon"><%- icon('history') %></span><p><%= t('settings.no_audit') %></p></div><% } else { %>

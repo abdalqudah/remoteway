@@ -35,6 +35,8 @@ async function todayData(req) {
   if (has('performance')) out.reviews = await perfReviews.myQueue(ctx);
   if (has('learning')) out.training = await learning.myDue(ctx);
   if (has('payroll') && ctx.permissions.has('payroll.view')) out.payroll = await payroll.summary(ctx.organizationId);
+  // eslint-disable-next-line global-require
+  if (has('compliance')) out.policies = await require('../compliance/compliance.service').pendingPolicies(ctx);
   return out;
 }
 
