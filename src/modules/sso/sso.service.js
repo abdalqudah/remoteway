@@ -56,6 +56,12 @@ async function save(ctx, input) {
   }
   const changed = !before || before.issuer !== issuer || before.client_id !== clientId || Boolean(secret);
   const enabled = input.enabled === 'on' || input.enabled === true;
+  // Turning SSO on is for paying customers only (not trials or unpaid sign-ups): a company's identity
+  // provider decides who can sign in, so the company must be a known, billed customer.
+  if (enabled) {
+    const sub = await knex('subscriptions').where({ organization_id: ctx.organizationId }).first('status');
+    if (!sub || sub.status !== 'active') throw E.conflict('SSO_NEEDS_ACTIVE', 'Single sign-on can be turned on once the subscription is active (paid). Contact us if you need it during a trial.');
+  }
   const verifiedAt = changed ? null : before.verified_at;
   let enforce = input.enforce === 'on' || input.enforce === true;
   if (enforce && (!verifiedAt || !enabled)) throw E.validation({ enforce: 'Run a successful test sign-in before requiring SSO.' });
@@ -111,7 +117,12 @@ async function resolveUser(conn, claims, email) {
     const identity = await trx('user_identities').where({ issuer: claims.iss, subject: String(claims.sub) }).first();
     let user = identity ? await trx('users').where({ id: identity.user_id }).first() : await trx('users').where({ email }).first();
     if (user && user.status !== 'active') throw new AppError('ACCOUNT_DISABLED', 'This account is disabled.', 403);
+    // A company's identity provider must never be able to sign in as the platform team.
+    if (user && user.is_super_admin) throw new AppError('SSO_NOT_ALLOWED', 'Platform team accounts cannot use company single sign-on.', 403);
     let membership = user ? await trx('memberships').where({ organization_id: orgId, user_id: user.id }).first() : null;
+    // An existing RemoteWay account is only linked when it already belongs to this company (it accepted an
+    // invitation). Otherwise any company could claim a domain and take over other people's accounts.
+    if (user && !identity && !membership) throw new AppError('SSO_ACCOUNT_EXISTS', 'An account with this email already exists. Ask your administrator for an invitation, accept it, then sign in with single sign-on.', 403);
     if (membership && membership.status !== 'active') throw new AppError('SSO_NOT_MEMBER', 'Your access to this company is disabled. Ask your administrator.', 403);
     if (!membership) {
       if (!conn.jit) throw new AppError('SSO_NOT_MEMBER', 'You do not have an account in this company yet. Ask your administrator for an invitation.', 403);

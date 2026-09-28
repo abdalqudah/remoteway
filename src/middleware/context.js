@@ -39,13 +39,18 @@ function requireAuth(req, res, next) {
 }
 
 function requireSuperAdmin(req, res, next) {
-  if (req.user?.is_super_admin) return next();
+  if (req.user?.is_super_admin && !req.session?.ssoOrg) return next();
   return next(E.forbidden('platform.admin'));
 }
 
 async function resolveTenant(req, res, next) {
   try {
     let organizationId = req.apiToken ? req.apiToken.organizationId : req.session.organizationId;
+    if (!req.apiToken && req.session.ssoOrg) {
+      // Signed in through a company's SSO: only that company is reachable in this session.
+      organizationId = req.session.ssoOrg;
+      if (!(await orgs.isMember(req.user.id, organizationId))) { req.session.destroy(() => {}); return res.redirect('/login'); }
+    }
     if (!organizationId || !(await orgs.isMember(req.user.id, organizationId))) {
       organizationId = null;
       if (!req.apiToken) {

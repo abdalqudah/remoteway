@@ -486,7 +486,11 @@ const applySchema = z.object({
   consent: z.literal('on', { message: 'Please accept the privacy notice.' }),
 });
 
-/** A candidate applies from the public careers page. Re-applying updates their profile. */
+/**
+ * A candidate applies from the public careers page. The form is anonymous, so an existing candidate
+ * with the same email is never overwritten: only empty details are filled in, the CV on file is kept
+ * (a new one is attached only when none exists), and what was submitted is kept on the application.
+ */
 async function publicApply(org, job, input, file) {
   const data = validate(applySchema, input);
   if (!file) throw E.validation({ file: 'Attach your CV (PDF or Word).' });
@@ -497,14 +501,19 @@ async function publicApply(org, job, input, file) {
   try {
     let candidate = await knex('candidates').where({ organization_id: org.id, email: data.email }).first();
     const profile = { first_name: data.first_name, last_name: data.last_name, phone: data.phone ?? null, city: data.city ?? null, linkedin_url: data.linkedin_url ?? null, consent: true };
+    let coverNote = data.cover_note;
     if (candidate) {
-      await knex('candidates').where({ id: candidate.id }).update({ ...profile, ...cv });
-      if (candidate.cv_storage_key) await storage.remove(candidate.cv_storage_key);
+      const fill = {};
+      for (const k of ['phone', 'city', 'linkedin_url']) if (!candidate[k] && profile[k]) fill[k] = profile[k];
+      if (!candidate.cv_storage_key) Object.assign(fill, cv); else await storage.remove(cv.cv_storage_key).catch(() => {});
+      if (Object.keys(fill).length) await knex('candidates').where({ id: candidate.id }).update(fill);
+      const submitted = [`${data.first_name} ${data.last_name}`, data.phone, data.city, data.linkedin_url].filter(Boolean).join(' · ');
+      coverNote = [data.cover_note, `Submitted on the careers page: ${submitted}`].filter(Boolean).join('\n\n').slice(0, 5000);
     } else {
       const [id] = await knex('candidates').insert({ ...profile, ...cv, email: data.email, organization_id: org.id, source: 'careers', skills: JSON.stringify([]) });
       candidate = { id };
     }
-    return await addToJob(ctx, candidate.id, job.id, { coverNote: data.cover_note, source: 'careers' });
+    return await addToJob(ctx, candidate.id, job.id, { coverNote, source: 'careers' });
   } catch (err) {
     if (err.code === 'ALREADY_APPLIED') return null; // idempotent for the applicant; CV already refreshed
     throw err;

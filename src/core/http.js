@@ -15,9 +15,14 @@ function isPrivateIp(ip) {
     return a === 0 || a === 10 || a === 127 || (a === 100 && b >= 64 && b <= 127) || (a === 169 && b === 254)
       || (a === 172 && b >= 16 && b <= 31) || (a === 192 && b === 168) || (a === 192 && b === 0) || (a === 198 && (b === 18 || b === 19)) || a >= 224;
   }
+  if (!net.isIPv6(ip)) return true; // not an address we understand: treat as private
   const v = ip.toLowerCase();
-  if (v.startsWith('::ffff:')) return isPrivateIp(v.slice(7));
-  return v === '::' || v === '::1' || v.startsWith('fc') || v.startsWith('fd') || v.startsWith('fe8') || v.startsWith('fe9') || v.startsWith('fea') || v.startsWith('feb') || v.startsWith('ff');
+  const m = v.match(/^::ffff:(?:0:)?([0-9a-f]{1,4}):([0-9a-f]{1,4})$/); // IPv4-mapped written in hex (::ffff:7f00:1)
+  if (m) { const hi = parseInt(m[1], 16); const lo = parseInt(m[2], 16); return isPrivateIp(`${hi >> 8}.${hi & 255}.${lo >> 8}.${lo & 255}`); }
+  if (/^::ffff:(0:)?\d/.test(v)) return isPrivateIp(v.replace(/^::ffff:(0:)?/, ''));
+  // Only global unicast (2000::/3) is public; NAT64 (64:ff9b::) and 6to4 (2002::) can reach IPv4 internals.
+  if (v.startsWith('64:ff9b:') || v.startsWith('2002:')) return true;
+  return !/^[23][0-9a-f]{0,3}:/.test(v);
 }
 
 class BlockedError extends Error {}
@@ -27,7 +32,8 @@ function validateUrl(raw) {
   try { u = new URL(String(raw || '').trim()); } catch { return { error: 'Enter a valid URL.' }; }
   if (u.protocol !== 'https:' && !(allowPrivate() && u.protocol === 'http:')) return { error: 'Use an https:// URL.' };
   if (u.username || u.password) return { error: 'Do not put credentials in the URL.' };
-  if (net.isIP(u.hostname) && isPrivateIp(u.hostname) && !allowPrivate()) return { error: 'This address is not reachable from RemoteWay.' };
+  const host = u.hostname.replace(/^\[|\]$/g, ''); // IPv6 literals come wrapped in brackets
+  if (net.isIP(host) && isPrivateIp(host) && !allowPrivate()) return { error: 'This address is not reachable from RemoteWay.' };
   if (/^(localhost|.*\.local|.*\.internal)$/i.test(u.hostname) && !allowPrivate()) return { error: 'This address is not reachable from RemoteWay.' };
   return { url: u };
 }

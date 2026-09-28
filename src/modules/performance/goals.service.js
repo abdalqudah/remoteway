@@ -132,7 +132,9 @@ async function save(ctx, id, input) {
   if (Object.keys(errors).length) throw E.validation(errors);
 
   const shape = { scope, employee_id: employeeId, department_id: departmentId };
-  if (!(await canEdit(ctx, shape))) throw E.forbidden('performance.manage');
+  // Editing needs rights over the goal as it is now and as it will be (a manager cannot pull another
+  // department's goal into their own).
+  if (!(await canEdit(ctx, shape)) || (existing && !(await canEdit(ctx, existing)))) throw E.forbidden('performance.manage');
   const row = {
     title: title.slice(0, 200), description: input.description ? String(input.description).slice(0, 5000) : null,
     start_date: input.start_date || null, due_date: input.due_date || null, parent_id: parentId, department_id: departmentId,

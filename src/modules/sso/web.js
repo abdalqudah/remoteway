@@ -40,7 +40,9 @@ router.get('/callback', limiter, wrap(async (req, res) => {
       return res.redirect('/app/settings/sso');
     }
     await signIn(req, result.user, result.organizationId);
-    return res.redirect('/app');
+    // This session only opens the company whose identity provider signed it in.
+    req.session.ssoOrg = result.organizationId;
+    return req.session.save(() => res.redirect('/app'));
   } catch (e) {
     if (!(e instanceof AppError)) throw e;
     if (pending && pending.test && req.user) {

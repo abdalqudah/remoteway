@@ -96,6 +96,13 @@ async function apply(user, job, { cover_note: coverNote } = {}) {
     experience_years: p.years ?? null, skills: JSON.stringify((p.skills || []).slice(0, 30)), linkedin_url: p.linkedin_url || null, consent: true, user_id: user.id,
   };
   let candidate = await knex('candidates').where({ organization_id: orgId }).where((w) => w.where('user_id', user.id).orWhere('email', user.email)).first();
+  // Email addresses are not verified, so a candidate the company already has is only taken over by this
+  // account when it is already linked to it, or has no applications yet (nothing of anyone else's to see).
+  let linked = candidate && candidate.user_id === user.id;
+  if (candidate && !linked && !candidate.user_id) {
+    const prior = await knex('applications').where({ candidate_id: candidate.id }).first('id');
+    linked = !prior;
+  }
   // The company gets its own copy of the CV (counted in its storage, removed with its data)
   let cv = {};
   if (p.cv_storage_key) {
@@ -107,9 +114,12 @@ async function apply(user, job, { cover_note: coverNote } = {}) {
       cv = { cv_storage_key: key, cv_name: p.cv_name, cv_mime: p.cv_mime, cv_size: p.cv_size };
     } catch (e) { if (e.status) throw e; }
   }
-  if (candidate) {
+  if (candidate && linked) {
     await knex('candidates').where({ id: candidate.id }).update({ ...fields, ...cv });
     if (cv.cv_storage_key && candidate.cv_storage_key) await storage.remove(candidate.cv_storage_key).catch(() => {});
+  } else if (candidate) {
+    // Someone else's record: add the application without changing their details or linking the account.
+    if (cv.cv_storage_key) await storage.remove(cv.cv_storage_key).catch(() => {});
   } else {
     const [id] = await knex('candidates').insert({ ...fields, ...cv, organization_id: orgId, email: user.email, source: 'remoteway' });
     candidate = { id };

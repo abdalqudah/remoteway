@@ -363,3 +363,42 @@ describe('launch readiness', () => {
     assert.equal((await sales.get('/admin/launch')).status, 403);
   });
 });
+
+describe('security review fixes', () => {
+  test('SSRF guard blocks IPv6 literals and IPv4-mapped forms', () => {
+    const saved = process.env.INTEGRATIONS_ALLOW_PRIVATE;
+    delete process.env.INTEGRATIONS_ALLOW_PRIVATE;
+    const { validateUrl } = require('../src/core/http');
+    for (const u of ['https://[::1]/', 'https://[::ffff:7f00:1]:9/', 'https://[::ffff:127.0.0.1]/', 'https://[fd00::1]/', 'https://[64:ff9b::a00:1]/', 'https://169.254.169.254/']) {
+      assert.ok(validateUrl(u).error, u);
+    }
+    assert.equal(validateUrl('https://[2606:4700::1111]/').error, undefined);
+    if (saved !== undefined) process.env.INTEGRATIONS_ALLOW_PRIVATE = saved;
+  });
+
+  test('five wrong 2FA codes lock the second step; ten wrong passwords pause the account', async () => {
+    const co = await h.createCompany();
+    const s = await h.login(co.email, co.password);
+    await s.form('/security/2fa/start', {});
+    const sec = (await s.get('/security')).text.match(/<code dir="ltr" class="select-all">([A-Z2-7 ]+)<\/code>/)[1].replace(/ /g, '');
+    await s.form('/security/2fa/enable', { code: nextCode(sec) });
+    const { agent, csrf } = await startLogin(co.email, co.password);
+    for (let i = 0; i < 5; i += 1) await agent.post('/login/2fa').type('form').send({ _csrf: csrf, code: '000000' });
+    const locked = await agent.post('/login/2fa').type('form').send({ _csrf: csrf, code: nextCode(sec, 1) });
+    assert.equal(locked.status, 429);
+
+    const c2 = await h.createCompany();
+    for (let i = 0; i < 10; i += 1) await startLogin(c2.email, 'wrong-password');
+    const paused = await startLogin(c2.email, c2.password);
+    assert.equal(paused.res.status, 429);
+  });
+
+  test('the Back link on /security only accepts in-app paths', async () => {
+    const co = await h.createCompany();
+    const s = await h.login(co.email, co.password);
+    const evil = await s.agent.get('/security').set('referer', 'https://evil.com//evil.com/app/');
+    assert.ok(!/href="\/\/evil/.test(evil.text));
+    const ok = await s.agent.get('/security').set('referer', 'http://localhost/app/leave');
+    assert.match(ok.text, /href="\/app\/leave"/);
+  });
+});

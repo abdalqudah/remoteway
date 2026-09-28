@@ -19,6 +19,11 @@ async function createUser(trx, { name, email, password, locale }) {
 
 async function authenticate({ email, password }, ctx = {}) {
   const user = await knex('users').where({ email: String(email).toLowerCase().trim() }).first();
+  if (user) {
+    // Per account (the route also limits per IP): 10 wrong passwords in 15 minutes pause sign-in for this account.
+    const [{ n }] = await knex('audit_logs').where({ user_id: user.id, action: 'auth.login_failed' }).where('created_at', '>=', new Date(Date.now() - 15 * 60_000)).count({ n: '*' });
+    if (Number(n) >= 10) throw new AppError('TOO_MANY_ATTEMPTS', 'Too many failed sign-in attempts. Wait 15 minutes or reset your password.', 429);
+  }
   const ok = await bcrypt.compare(String(password), user ? user.password_hash : DUMMY_HASH);
   if (!user || !ok) {
     await audit.record({ ...ctx, userId: user?.id }, 'auth.login_failed', { entityType: 'user', entityId: user?.id, newValues: { email } });

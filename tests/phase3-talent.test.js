@@ -243,6 +243,18 @@ describe('Phase 3 — recruitment, careers page, onboarding', () => {
       const again = await apply(s, `${path}/apply`, { first_name: 'Ali', last_name: 'Hasan', email: 'ali@example.com', consent: 'on' });
       assert.equal(again.status, 200);
       assert.equal((await h.knex('applications').where({ candidate_id: c.id }).count({ n: '*' }))[0].n, 1);
+      // An anonymous form never overwrites an existing candidate's details or CV
+      const job2 = await h.knex('jobs').where({ organization_id: C.organizationId, status: 'open' }).whereNot({ id: openJob.id }).first();
+      if (job2) {
+        const p2 = `/careers/${orgSlug}/jobs/${job2.slug}`;
+        const s2 = await anon(p2);
+        await apply(s2, `${p2}/apply`, { first_name: 'Mallory', last_name: 'X', email: 'ali@example.com', phone: '+966500000000', consent: 'on' });
+      } else {
+        await require('../src/modules/recruitment/recruitment.service').publicApply({ id: C.organizationId }, openJob, { first_name: 'Mallory', last_name: 'X', email: 'ali@example.com', phone: '+966500000000', consent: 'on' }, { buffer: PDF, originalname: 'cv.pdf', mimetype: 'application/pdf', size: PDF.length });
+      }
+      const after = await h.knex('candidates').where({ id: c.id }).first();
+      assert.equal(after.first_name, 'Ali');
+      assert.equal(after.cv_storage_key, c.cv_storage_key);
     });
 
     test('the honeypot silently drops bots and CSRF is required', async () => {

@@ -169,6 +169,43 @@ describe('Phase 9 — SSO (OIDC)', () => {
     assert.equal(none.status, 404);
   });
 
+  test('SSO never takes over accounts outside the company, the platform team, or other companies', async () => {
+    // An existing account that never joined this company is not linked by email
+    const stranger = await h.createCompany({ plan: 'business' });
+    const strangerEmail = `boss${Date.now()}@test.local`;
+    await h.knex('users').where({ id: stranger.userId }).update({ email: strangerEmail });
+    let s = await anonymous();
+    let cb = await ssoLogin(s.agent, s.csrf, strangerEmail, provider, { sub: 'sub-stranger' });
+    assert.equal(cb.status, 403);
+    assert.equal(await h.knex('memberships').where({ organization_id: co.organizationId, user_id: stranger.userId }).first(), undefined);
+    // Platform team accounts are refused
+    const [adminId] = await h.knex('users').insert({ name: 'Plat', email: `plat${Date.now()}@test.local`, password_hash: 'x', is_super_admin: true });
+    const adminUser = await h.knex('users').where({ id: adminId }).first();
+    s = await anonymous();
+    cb = await ssoLogin(s.agent, s.csrf, adminUser.email, provider, { sub: 'sub-plat' });
+    assert.equal(cb.status, 403);
+    // A member who also belongs to another company only reaches this company in an SSO session
+    const second = await h.createCompany({ plan: 'business' });
+    await h.knex('memberships').insert({ organization_id: second.organizationId, user_id: member.userId });
+    s = await anonymous();
+    cb = await ssoLogin(s.agent, s.csrf, member.email, provider, { sub: 'sub-member' });
+    assert.equal(cb.status, 302);
+    const home = await s.agent.get('/app');
+    const tok = home.text.match(/name="csrf-token" content="([^"]+)"/)[1];
+    await s.agent.post('/organizations/switch').type('form').send({ _csrf: tok, organization_id: second.organizationId });
+    const org = await s.agent.get('/app');
+    const coName = (await h.knex('organizations').where({ id: co.organizationId }).first('name')).name;
+    const shown = (org.text.match(/class="org-name[^"]*"[^>]*>([^<]*)</) || [])[1];
+    assert.equal(shown, coName, 'stays in the SSO company');
+    // SSO needs a paid (active) subscription to turn on
+    const trial = await h.createCompany({ plan: 'business' });
+    await h.knex('subscriptions').where({ organization_id: trial.organizationId }).update({ plan_id: (await h.knex('plans').where({ key: 'enterprise' }).first()).id, status: 'trial' });
+    h.cache.clear();
+    const ts = await h.login(trial.email, trial.password);
+    const r = await ts.form('/app/settings/sso', { issuer: provider.url, client_id: 'c', client_secret: 's', domains: 'trial-co.test', enabled: 'on', default_role: 'employee' });
+    assert.equal(r.status, 409);
+  });
+
   test('when SSO is required, members cannot use passwords but owners can', async () => {
     const r = await owner.form('/app/settings/sso', { issuer: provider.url, client_id: 'client-1', domains: 'test.local', enabled: 'on', enforce: 'on', jit: 'on', default_role: 'employee' });
     assert.equal(r.status, 302);

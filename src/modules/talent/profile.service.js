@@ -116,7 +116,8 @@ async function signup(input, { ip } = {}) {
 async function ensure(user) {
   const existing = await knex('talent_profiles').where({ user_id: user.id }).first('id');
   if (existing) return existing.id;
-  const [id] = await knex('talent_profiles').insert({ user_id: user.id, slug: await uniqueSlug(user.name), skills: '[]', education: '[]', experience: '[]', certifications: '[]', projects: '[]', languages: '[]', preferences: '{}' });
+  // Created on first visit to /me (e.g. an employee): hidden until the person chooses to show it.
+  const [id] = await knex('talent_profiles').insert({ user_id: user.id, visibility: 'private', slug: await uniqueSlug(user.name), skills: '[]', education: '[]', experience: '[]', certifications: '[]', projects: '[]', languages: '[]', preferences: '{}' });
   return id;
 }
 

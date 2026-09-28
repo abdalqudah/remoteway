@@ -114,8 +114,9 @@ const renderSecurity = async (req, res, extra = {}) => {
   res.page('pages/auth/security', { layout: 'auth', wide: true, title: req.t('auth.security_title'), on: security.hasTwoFactor(user), setup, owned: await privacy.ownedCompanies(user.id), required: req.query.required === '1', back: req.session.securityBack || '/app', ...extra });
 };
 router.get('/security', requireAuth, wrap(async (req, res) => {
-  const ref = String(req.get('referer') || '');
-  if (/\/(app|admin|me)(\/|$)/.test(ref)) req.session.securityBack = new URL(ref).pathname;
+  let back = '';
+  try { back = new URL(String(req.get('referer') || ''), 'http://x').pathname; } catch { /* ignore */ }
+  if (/^\/(app|admin|me)(\/[\w\-/]*)?$/.test(back)) req.session.securityBack = back;
   return renderSecurity(req, res);
 }));
 router.post('/security/2fa/start', requireAuth, wrap(async (req, res) => {

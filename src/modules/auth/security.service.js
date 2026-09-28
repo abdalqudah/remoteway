@@ -97,6 +97,9 @@ async function disable(user, password, { byAdmin } = {}) {
 async function verifyLogin(userId, input) {
   const user = await knex('users').where({ id: userId }).first();
   if (!hasTwoFactor(user)) return true;
+  // Per account (not only per IP): 5 wrong codes lock the second step for 15 minutes.
+  const [{ n }] = await knex('audit_logs').where({ user_id: user.id, action: 'auth.2fa_failed' }).where('created_at', '>=', new Date(Date.now() - 15 * 60_000)).count({ n: '*' });
+  if (Number(n) >= 5) throw new AppError('TOO_MANY_ATTEMPTS', 'Too many wrong codes. Wait 15 minutes and try again.', 429);
   const raw = String(input || '').trim();
   const secret = secrets.decrypt(user.two_factor_secret_enc);
   const step = secret ? totp.verify(secret, raw) : null;
