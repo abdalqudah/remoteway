@@ -40,6 +40,7 @@ npm run migrate               # schema + plans/permissions/roles + super admin f
 npm run seed:demo             # optional: "RemoteWay Demo Company"
 npm run dev                   # http://localhost:3000
 npm test                      # needs DB_NAME_TEST (a separate, empty database)
+npm run build                 # dist/ = production-only copy to upload to the server
 ```
 
 Demo logins (password `Demo@12345`, override with `DEMO_PASSWORD`):
@@ -51,8 +52,8 @@ Demo logins (password `Demo@12345`, override with `DEMO_PASSWORD`):
 
 1. **Database / قاعدة البيانات** — cPanel → *MySQL® Databases*:
    create a database (e.g. `user_remoteway`) and a user, then *Add User To Database* → **ALL PRIVILEGES**.
-2. **Upload the code / رفع الملفات** — either cPanel → *Git™ Version Control* → clone
-   `https://github.com/abdalqudah/remoteway.git`, or upload a zip with *File Manager*.
+2. **Upload the code / رفع الملفات** — run `npm run build` and upload the contents of **`dist/`**
+   (zip it, upload with *File Manager*, then *Extract*), or clone the repo with cPanel → *Git™ Version Control*.
    Put it **outside** `public_html`, e.g. `/home/USER/remoteway`. Do **not** upload `node_modules`.
 3. **Create the app / إنشاء التطبيق** — cPanel → *Setup Node.js App* → *Create Application*:
    - Node.js version: **20** (or the newest offered, minimum 18)
