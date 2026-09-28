@@ -1,0 +1,37 @@
+<% var tk = ticket; %>
+<div class="page-head">
+  <div><div class="eyebrow"><a href="/admin/support"><%= t('admin.support') %></a></div><h1>#<%= tk.id %> · <%= tk.subject %></h1>
+    <div class="row-sm wrap mt-2 small"><span class="st st-t-<%= tk.status %>"><%= t('support.status_' + tk.status) %></span><span class="st st-prio-<%= tk.priority %>"><%= t('support.prio_' + tk.priority) %></span>
+      <a class="link" href="/admin/organizations/<%= tk.organization_id %>"><%= tk.organization_name %></a><span class="muted"><%= tk.plan || '' %></span><span class="muted"><%= tk.created_by_name %> · <%= tk.created_by_email %></span></div></div>
+</div>
+<% if (formError) { %><div class="alert alert-error mb-4"><%= Object.values(errors)[0] || formError.message %></div><% } %>
+<div class="grid grid-3">
+  <div class="span-2 stack-lg">
+    <section class="panel"><div class="panel-body stack thread">
+      <% tk.messages.forEach(function (m) { %>
+      <div class="msg <%= m.is_staff ? 'msg-staff' : '' %> <%= m.is_internal ? 'msg-internal' : '' %>">
+        <div class="msg-head"><span class="avatar avatar-sm"><%= initials(m.user_name || '?') %></span><strong><%= m.user_name || '—' %></strong><% if (m.is_internal) { %><span class="badge"><%= t('admin.sup_internal') %></span><% } %><span class="muted tiny"><%= fmt.date(m.created_at, { dateStyle: 'medium', timeStyle: 'short' }) %></span></div>
+        <div class="msg-body" dir="auto"><%= m.body %></div>
+      </div>
+      <% }) %>
+    </div></section>
+    <form class="panel" method="post" action="/admin/support/<%= tk.id %>/reply" novalidate><input type="hidden" name="_csrf" value="<%= csrfToken %>">
+      <div class="panel-body stack"><textarea class="textarea" name="body" rows="5" maxlength="10000" placeholder="<%= t('admin.sup_reply_ph') %>" aria-label="<%= t('support.reply') %>"></textarea>
+        <div class="row-sm wrap"><label class="check"><input type="checkbox" name="internal"><%= t('admin.sup_internal_note') %></label>
+          <span class="grow"></span><label class="small" for="sup-status"><%= t('admin.sup_set_status') %></label>
+          <select class="select" id="sup-status" name="status" style="width:auto"><% STATUSES.forEach(function (s) { %><option value="<%= s %>"<%= s === (tk.status === 'open' || tk.status === 'in_progress' ? 'waiting_customer' : tk.status) ? ' selected' : '' %>><%= t('support.status_' + s) %></option><% }) %></select></div></div>
+      <div class="panel-foot" style="justify-content:flex-end"><button class="btn btn-dark btn-sm" type="submit"><%- icon('send', 'icon-sm') %><%= t('support.reply') %></button></div>
+    </form>
+  </div>
+  <section class="panel"><div class="panel-head"><h2><%= t('admin.sup_details') %></h2></div><div class="panel-body stack">
+    <dl class="dl" style="grid-template-columns:1fr auto">
+      <dt><%= t('admin.sup_target') %></dt><dd><%= t('support.within_h', { h: tk.sla_hours }) %></dd>
+      <dt><%= t('admin.sup_due') %></dt><dd class="<%= tk.breached ? 'field-error' : '' %>"><%= fmt.date(tk.first_response_due, { dateStyle: 'short', timeStyle: 'short' }) %></dd>
+      <dt><%= t('admin.sup_first_response') %></dt><dd><%= tk.first_response_at ? fmt.date(tk.first_response_at, { dateStyle: 'short', timeStyle: 'short' }) : '—' %></dd>
+      <dt><%= t('admin.sup_satisfaction') %></dt><dd><%= tk.satisfaction ? tk.satisfaction + ' / 5' : '—' %></dd>
+    </dl>
+    <form method="post" action="/admin/support/<%= tk.id %>/assign" class="row-sm"><input type="hidden" name="_csrf" value="<%= csrfToken %>">
+      <select class="select" name="user_id" aria-label="<%= t('admin.sup_assigned') %>"><option value=""><%= t('admin.sup_unassigned') %></option><% staff.forEach(function (s) { %><option value="<%= s.id %>"<%= tk.assigned_to === s.id ? ' selected' : '' %>><%= s.name %></option><% }) %></select>
+      <button class="btn btn-secondary btn-sm" type="submit"><%= t('admin.sup_assign') %></button></form>
+  </div></section>
+</div>

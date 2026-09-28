@@ -6,4 +6,5 @@
   <%- include('../../partials/field', { name: 'password', label: t('fields.password'), type: 'password', required: true, autocomplete: 'current-password' }) %>
   <button class="btn btn-dark btn-lg btn-block" type="submit"><%= t('auth.login') %><%- icon('arrow-right', 'flip-rtl') %></button>
 </form>
+<a class="btn btn-secondary btn-block mt-4" href="/sso"><%- icon('key-round') %><%= t('sso.sign_in') %></a>
 <p class="mt-6 text-2"><%= t('auth.no_account') %> <a class="link" href="/signup"><%= t('auth.create_company') %></a></p>

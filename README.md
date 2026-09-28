@@ -9,11 +9,17 @@
 | Runtime | Node.js ≥ 20 (Express 4, server-rendered EJS, no build step) |
 | Database | MySQL 8 / MariaDB ≥ 10.3 (all data, including sessions, lives in the database) |
 | Hosting | Any cPanel host with **Setup Node.js App** (e.g. Orange Host), or any VPS |
-| Status | **Phases 1–8** (SaaS Core, Workforce, Talent, Payroll, Performance, Learning, Integrations, AI) complete and tested (see `docs/ARCHITECTURE.md`) |
+| Status | **Phases 1–9** (SaaS Core, Workforce, Talent, Payroll, Performance, Learning, Integrations, AI, Enterprise) complete and tested (see `docs/ARCHITECTURE.md`) |
 
 ---
 
-## What works today (Phases 1–8)
+## What works today (Phases 1–9)
+
+**Phase 9 — Enterprise:**
+- **Single sign-on (OpenID Connect):** Microsoft Entra ID, Google Workspace, Okta or any OIDC provider (Settings → Single sign-on). Authorization Code + PKCE, ID tokens verified locally (JWKS signature, issuer, audience, expiry, nonce), allowed email domains, optional account creation on first sign-in (JIT) with a default role, and "require SSO" (owners keep a break-glass password). A successful test sign-in is required before enforcing. SAML-only providers are not supported yet.
+- **Approval workflows:** multi-step approval chains for leave (direct manager, department head, anyone with a role, a specific person), chosen by leave type and minimum days, with priorities. Steps without an approver are skipped, each approver is notified in turn, the balance is used only after the last approval, and progress is shown on every request.
+- **Reports:** 10 ready-made reports (Basic Reports); a report builder over 8 datasets (employees, leave, attendance, payroll, recruitment, learning, goals, documents) with columns, grouping (count/sum/average), period, department and status filters, sorting and CSV export (Advanced Reports); saved and shared reports; scheduled email delivery (daily/weekly/monthly in the company time zone) with the CSV attached, only to recipients allowed to see the data (Enterprise Reporting). Columns are fixed SQL expressions; salaries need `employees.view_salary`.
+- **Client success portal:** companies open support tickets (category, priority) and follow the conversation; Super Admin → Support is an inbox ordered by first-response deadline, with assignment, internal notes, status changes, overdue flags and satisfaction ratings. First-response targets: standard 8/24/48/72 h, Enterprise 2/4/8/24 h (urgent/high/normal/low).
 
 **Phase 8 — AI:**
 - **Providers:** Anthropic (Claude), OpenAI, Google Gemini or Azure OpenAI, chosen by the Super Admin (Super Admin → AI) with an encrypted API key, connection test, optional token prices for cost estimates, and platform usage (requests, tokens, cost, latency, failures).

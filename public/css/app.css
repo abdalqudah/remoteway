@@ -833,3 +833,44 @@ a.integration-card:hover { border-color: var(--accent); }
 .ai-history { border-bottom: 1px solid var(--border); padding-bottom: 8px; }
 .ai-metrics pre { margin: 8px 0 0; max-height: 240px; overflow: auto; white-space: pre-wrap; word-break: break-word; }
 .input-sm, .select-sm { height: 32px; font-size: 13px; }
+
+/* ---------- Approval workflows (Phase 9) ---------- */
+.wf-steps { list-style: none; margin: 6px 0 0; padding: 0; display: flex; flex-wrap: wrap; gap: 4px 10px; font-size: 11px; color: var(--text-3); }
+.wf-steps li { display: inline-flex; align-items: center; gap: 4px; }
+.wf-steps .n { width: 16px; height: 16px; border-radius: 50%; display: inline-grid; place-items: center; font-size: 10px; font-weight: 700; background: var(--surface-sunken); border: 1px solid var(--border); }
+.wf-steps .wf-approved .n { background: var(--success-soft); color: var(--success); border-color: transparent; }
+.wf-steps .wf-pending { color: var(--text); font-weight: 600; }
+.wf-steps .wf-pending .n { background: var(--rw-green); color: #000; border-color: transparent; }
+.wf-steps .wf-rejected .n { background: var(--danger-soft); color: var(--danger); border-color: transparent; }
+.wf-steps .wf-skipped, .wf-steps .wf-cancelled { text-decoration: line-through; }
+.wf-step-row { display: grid; grid-template-columns: 28px 1fr 1fr auto; gap: 8px; align-items: center; }
+@media (max-width: 640px) { .wf-step-row { grid-template-columns: 28px 1fr auto; } .wf-step-row .wf-ref { grid-column: 2 / 3; } }
+
+/* ---------- Reports (Phase 9) ---------- */
+.form-grid-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+@media (max-width: 900px) { .form-grid-4 { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 560px) { .form-grid-4 { grid-template-columns: 1fr; } }
+.report-card { display: block; color: inherit; text-decoration: none; transition: border-color .15s; }
+.report-card:hover { border-color: var(--rw-green-deep); }
+
+/* ---------- Support tickets (Phase 9) ---------- */
+.thread { gap: 14px; }
+.msg { border: 1px solid var(--border); border-radius: var(--radius-sm, 10px); padding: 12px 14px; }
+.msg-staff { border-color: color-mix(in srgb, var(--rw-green) 45%, var(--border)); background: color-mix(in srgb, var(--rw-green) 5%, var(--surface)); }
+.msg-internal { border-style: dashed; background: var(--warning-soft); }
+.msg-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 13px; margin-bottom: 8px; }
+.msg-body { white-space: pre-wrap; font-size: 14px; line-height: 1.7; }
+.avatar-sm { width: 26px; height: 26px; font-size: 10px; }
+.st-prio-low { background: var(--surface-sunken); color: var(--text-3); }
+.st-prio-normal { background: var(--info-soft); color: var(--info); }
+.st-prio-high { background: var(--warning-soft); color: var(--warning); }
+.st-prio-urgent { background: var(--danger-soft); color: var(--danger); }
+.st-t-open { background: var(--info-soft); color: var(--info); }
+.st-t-in_progress { background: var(--warning-soft); color: var(--warning); }
+.st-t-waiting_customer { background: var(--surface-sunken); color: var(--text-2); }
+.st-t-resolved, .st-t-closed { background: var(--success-soft); color: var(--success); }
+
+/* Fieldsets used as plain form groups (checkbox lists, whole form bodies) have no box of their own. */
+fieldset.field, fieldset.panel-body { border: 0; margin: 0; min-width: 0; }
+fieldset.field { padding: 0; }
+fieldset.field > legend { padding: 0; margin-bottom: 6px; }

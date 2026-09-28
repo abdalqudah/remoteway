@@ -1,0 +1,58 @@
+<%
+  var w = item || { steps: [{ type: 'manager', ref: null }], leave_type_ids: [], is_active: true, priority: 0 };
+  var o = old || {};
+  var typeName = function (x) { return locale === 'ar' ? (x.name_ar || x.name) : x.name; };
+  var val = function (s) { return s.type === 'role' || s.type === 'user' ? s.type + ':' + s.ref : s.type; };
+  var steps = o.step ? [].concat(o.step).map(function (v) { var p = String(v).split(':'); return { type: p[0], ref: p.slice(1).join(':') }; }) : w.steps;
+  var selectedTypes = o._csrf ? [].concat(o.leave_type_ids || []).map(Number) : w.leave_type_ids;
+  var stepSelect = function (s) {
+    var cur = s ? val(s) : 'manager';
+    var h = '<select class="select" name="step" aria-label="' + escapeHtml(t('workflows.approver')) + '">';
+    h += '<option value="manager"' + (cur === 'manager' ? ' selected' : '') + '>' + escapeHtml(t('workflows.type_manager')) + '</option>';
+    h += '<option value="department_head"' + (cur === 'department_head' ? ' selected' : '') + '>' + escapeHtml(t('workflows.type_department_head')) + '</option>';
+    h += '<optgroup label="' + escapeHtml(t('workflows.any_with_role')) + '">' + roles.map(function (r) { var v = 'role:' + r.key; return '<option value="' + escapeHtml(v) + '"' + (cur === v ? ' selected' : '') + '>' + escapeHtml(roleName(r)) + '</option>'; }).join('') + '</optgroup>';
+    h += '<optgroup label="' + escapeHtml(t('workflows.specific_person')) + '">' + people.map(function (p) { var v = 'user:' + p.id; return '<option value="' + v + '"' + (cur === v ? ' selected' : '') + '>' + escapeHtml(p.name) + '</option>'; }).join('') + '</optgroup>';
+    return h + '</select>';
+  };
+  var row = function (s, i) {
+    return '<div class="wf-step-row" data-row><span class="wf-steps"><span class="n" data-row-n>' + (i + 1) + '</span></span>' + stepSelect(s) + '<span></span><button class="btn btn-ghost btn-icon btn-sm" type="button" data-remove-row aria-label="' + escapeHtml(t('common.delete')) + '">' + icon('x', 'icon-sm') + '</button></div>';
+  };
+%>
+<div class="page-head">
+  <div><div class="eyebrow"><a href="/app/settings/workflows"><%= t('workflows.title') %></a></div><h1><%= item ? item.name : t('workflows.new') %></h1></div>
+  <% if (item) { %><div class="page-actions"><form method="post" action="/app/settings/workflows/<%= item.id %>/delete" data-confirm="<%= t('workflows.confirm_delete') %>"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><button class="btn btn-danger-ghost" type="submit"><%- icon('trash-2') %><%= t('common.delete') %></button></form></div><% } %>
+</div>
+<% if (formError) { %><div class="alert alert-error mb-4"><%= Object.values(errors)[0] || formError.message %></div><% } %>
+<form method="post" action="/app/settings/workflows<%= item ? '/' + item.id : '' %>" novalidate>
+  <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+  <div class="grid grid-3">
+    <div class="span-2 stack-lg">
+      <section class="panel"><div class="panel-body stack">
+        <%- include('../../partials/field', { name: 'name', label: t('workflows.name'), required: true, value: w.name, placeholder: t('workflows.name_ph') }) %>
+        <fieldset class="field"><legend class="label"><%= t('workflows.leave_types') %></legend>
+          <div class="row-sm wrap"><% types.forEach(function (x) { %><label class="check"><input type="checkbox" name="leave_type_ids" value="<%= x.id %>"<%= selectedTypes.indexOf(x.id) >= 0 ? ' checked' : '' %>><%= typeName(x) %></label><% }) %></div>
+          <% if (errors.leave_type_ids) { %><span class="field-error"><%= errors.leave_type_ids %></span><% } else { %><span class="help"><%= t('workflows.leave_types_help') %></span><% } %></fieldset>
+        <div class="form-grid">
+          <%- include('../../partials/field', { name: 'min_days', label: t('workflows.min_days'), type: 'number', value: w.min_days != null ? w.min_days : '', attrs: 'min="0" max="365" step="0.5"', help: t('workflows.min_days_help') }) %>
+          <%- include('../../partials/field', { name: 'priority', label: t('workflows.priority'), type: 'number', value: w.priority, attrs: 'min="-100" max="100"', help: t('workflows.priority_help') }) %>
+        </div>
+      </div></section>
+      <section class="panel" data-repeater>
+        <div class="panel-head"><div><h2><%= t('workflows.steps') %></h2><div class="panel-sub"><%= t('workflows.steps_sub') %></div></div></div>
+        <div class="panel-body stack">
+          <div class="stack-sm" data-rows><% steps.forEach(function (s, i) { %><%- row(s, i) %><% }) %></div>
+          <template data-row-template><%- row(null, 0) %></template>
+          <div><button class="btn btn-ghost btn-sm" type="button" data-add-row><%- icon('plus', 'icon-sm') %><%= t('workflows.add_step') %></button></div>
+          <% if (errors.steps) { %><span class="field-error"><%= errors.steps %></span><% } %>
+        </div>
+      </section>
+    </div>
+    <div class="stack-lg">
+      <section class="panel"><div class="panel-body stack">
+        <label class="check"><input type="checkbox" name="is_active"<%= (o._csrf ? o.is_active === 'on' : w.is_active) ? ' checked' : '' %>><%= t('workflows.active') %></label>
+        <p class="small text-2"><%= t('workflows.rules_1') %></p><p class="small text-2"><%= t('workflows.rules_2') %></p><p class="small text-2"><%= t('workflows.rules_3') %></p>
+      </div></section>
+      <div class="form-actions"><a class="btn btn-ghost" href="/app/settings/workflows"><%= t('common.cancel') %></a><button class="btn btn-dark" type="submit"><%= t('common.save') %></button></div>
+    </div>
+  </div>
+</form>

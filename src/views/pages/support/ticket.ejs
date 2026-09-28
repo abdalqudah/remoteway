@@ -1,0 +1,29 @@
+<% var tk = ticket; var done = tk.status === 'resolved' || tk.status === 'closed'; %>
+<div class="page-head">
+  <div><div class="eyebrow"><a href="/app/support"><%= t('support.title') %></a></div><h1>#<%= tk.id %> · <%= tk.subject %></h1>
+    <div class="row-sm wrap mt-2 small"><span class="st st-t-<%= tk.status %>"><%= t('support.status_' + tk.status) %></span><span class="st st-prio-<%= tk.priority %>"><%= t('support.prio_' + tk.priority) %></span><span class="muted"><%= t('support.cat_' + tk.category) %></span>
+      <span class="muted"><%= tk.first_response_at ? t('support.responded_at', { at: fmt.date(tk.first_response_at, { dateStyle: 'medium', timeStyle: 'short' }) }) : t('support.response_due', { at: fmt.date(tk.first_response_due, { dateStyle: 'medium', timeStyle: 'short' }) }) %></span></div></div>
+  <div class="page-actions"><form method="post" action="/app/support/<%= tk.id %>/status"><input type="hidden" name="_csrf" value="<%= csrfToken %>">
+    <% if (done) { %><button class="btn btn-secondary" type="submit" name="action" value="reopen"><%= t('support.reopen') %></button><% } else { %><button class="btn btn-secondary" type="submit" name="action" value="close"><%- icon('check') %><%= t('support.close') %></button><% } %></form></div>
+</div>
+<% if (formError) { %><div class="alert alert-error mb-4"><%= Object.values(errors)[0] || formError.message %></div><% } %>
+<section class="panel mb-6"><div class="panel-body stack thread">
+  <% tk.messages.forEach(function (m, i) { %>
+  <div class="msg <%= m.is_staff ? 'msg-staff' : '' %>"<%= i === tk.messages.length - 1 ? ' id="latest"' : '' %>>
+    <div class="msg-head"><span class="avatar avatar-sm"><%= m.is_staff ? 'RW' : initials(m.user_name || '?') %></span><strong><%= m.is_staff ? t('support.team') + (m.user_name ? ' · ' + m.user_name : '') : (m.user_name || '—') %></strong><span class="muted tiny"><%= fmt.date(m.created_at, { dateStyle: 'medium', timeStyle: 'short' }) %></span></div>
+    <div class="msg-body" dir="auto"><%= m.body %></div>
+  </div>
+  <% }) %>
+</div></section>
+<% if (tk.status !== 'closed') { %>
+<form class="panel mb-6" method="post" action="/app/support/<%= tk.id %>/reply" novalidate><input type="hidden" name="_csrf" value="<%= csrfToken %>">
+  <div class="panel-body"><textarea class="textarea" name="body" rows="4" maxlength="10000" required placeholder="<%= t('support.reply_ph') %>" aria-label="<%= t('support.reply') %>"></textarea></div>
+  <div class="panel-foot" style="justify-content:flex-end"><button class="btn btn-dark btn-sm" type="submit"><%- icon('send', 'icon-sm') %><%= t('support.reply') %></button></div>
+</form>
+<% } %>
+<% if (done) { %>
+<form class="panel" method="post" action="/app/support/<%= tk.id %>/rate"><input type="hidden" name="_csrf" value="<%= csrfToken %>">
+  <div class="panel-body row-sm wrap"><span class="small"><%= t('support.rate') %></span>
+    <span class="rate-form"><% for (var i = 1; i <= 5; i++) { %><button type="submit" name="satisfaction" value="<%= i %>" class="<%= tk.satisfaction >= i ? 'on' : '' %>" aria-label="<%= i %>/5">★</button><% } %></span></div>
+</form>
+<% } %>

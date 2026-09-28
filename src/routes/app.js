@@ -17,6 +17,8 @@ const aiWeb = require('../modules/ai/web');
 router.use(aiWeb.locals);
 router.use('/ai', aiWeb.actions);
 router.use('/insights', aiWeb.insights);
+router.use('/reports', require('../modules/reports/web'));
+router.use('/support', require('../modules/support/web'));
 router.use('/', require('../modules/dashboard/web'));
 router.use('/onboarding', require('../modules/onboarding/web'));
 router.use('/employees/import', require('../modules/workforce/import.web'));
@@ -35,6 +37,8 @@ const integrationsWeb = require('../modules/integrations/web');
 router.use('/settings/integrations', integrationsWeb.router);
 router.use('/settings/calendar', integrationsWeb.calendarRouter);
 router.use('/settings/ai', aiWeb.settings);
+router.use('/settings/sso', require('../modules/sso/web').settings);
+router.use('/settings/workflows', require('../modules/workflows/web'));
 router.use('/settings', require('../modules/settings/web'));
 router.use('/billing', require('../modules/billing/web'));
 

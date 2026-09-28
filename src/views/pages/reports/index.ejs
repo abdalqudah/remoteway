@@ -1,0 +1,33 @@
+<% var icons = { employees: 'users', leave: 'plane', attendance: 'calendar-check', payroll: 'wallet', recruitment: 'briefcase', learning: 'graduation-cap', goals: 'target', documents: 'file-text' }; %>
+<div class="page-head"><div><h1><%= t('reports.title') %></h1><p><%= t('reports.sub') %></p></div>
+  <% if (tiers.advanced && datasets.length) { %><div class="page-actions"><a class="btn btn-dark" href="/app/reports/builder"><%- icon('plus') %><%= t('reports.new') %></a></div><% } %></div>
+
+<% if (!datasets.length) { %><div class="alert alert-info mb-6"><%- icon('info') %><div class="small"><%= t('reports.no_datasets') %></div></div><% } %>
+<% if (!tiers.basic) { %><div class="alert alert-info mb-6"><%- icon('lock') %><div class="small"><%= t('reports.not_in_plan') %></div></div><% } %>
+
+<% if (saved.length) { %>
+<section class="panel mb-6">
+  <div class="panel-head"><h2><%= t('reports.saved') %></h2></div>
+  <div class="table-wrap"><table class="table">
+    <thead><tr><th><%= t('reports.name') %></th><th><%= t('reports.dataset') %></th><th><%= t('reports.owner') %></th><th><%= t('reports.schedule') %></th></tr></thead>
+    <tbody><% saved.forEach(function (r) { %>
+      <tr><td><a class="link" href="/app/reports/saved/<%= r.id %>"><strong><%= r.name %></strong></a><% if (r.is_shared) { %> <span class="badge"><%= t('reports.shared') %></span><% } %></td>
+        <td><span class="row-sm"><%- icon(icons[r.dataset] || 'chart-column', 'icon-sm') %><%= t('reports.ds_' + r.dataset) %></span></td>
+        <td class="muted"><%= r.created_by_name || '—' %></td>
+        <td class="small"><%= r.schedules.filter(function (s) { return s.is_active; }).map(function (s) { return t('reports.freq_' + s.frequency); }).join('، ') || '—' %></td></tr>
+    <% }) %></tbody>
+  </table></div>
+</section>
+<% } %>
+
+<% if (templates.length) { %>
+<h2 class="section-title mb-4"><%= t('reports.templates') %></h2>
+<div class="grid grid-3">
+  <% templates.forEach(function (tpl) { %>
+  <a class="panel report-card" href="/app/reports/templates/<%= tpl.key %>">
+    <div class="panel-body row"><span class="ai-area-icon"><%- icon(icons[tpl.dataset] || 'chart-column') %></span><div class="grow"><strong><%= t('reports.tpl_' + tpl.key) %></strong><div class="small muted"><%= t('reports.tpl_' + tpl.key + '_text') %></div></div><%- icon('chevron-right', 'icon-sm flip-rtl') %></div>
+  </a>
+  <% }) %>
+</div>
+<% } %>
+<% if (tiers.basic && !tiers.advanced) { %><p class="small muted mt-6"><%- icon('lock', 'icon-sm') %> <%= t('reports.builder_upgrade') %></p><% } %>

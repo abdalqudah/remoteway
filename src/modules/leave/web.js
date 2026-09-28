@@ -36,7 +36,7 @@ router.post('/', can('leave.request'), form(async (req, res) => {
   res.redirect(req.body.employee_id ? '/app/leave?tab=approvals' : '/app/leave');
 }, (req, res, extra) => render(req, res, { ...extra, openDialog: 'leave' })));
 
-router.post('/:id/decide', can('leave.approve'), form(async (req, res) => {
+router.post('/:id/decide', form(async (req, res) => {
   await leave.decide(req.ctx, Number(req.params.id), { decision: req.body.decision, note: req.body.note });
   flash(req, 'success', req.t(req.body.decision === 'approved' ? 'leave.approved_msg' : 'leave.rejected_msg'));
   res.redirect('/app/leave?tab=approvals');

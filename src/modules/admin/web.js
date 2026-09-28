@@ -246,6 +246,27 @@ router.post('/ai/test', form(async (req, res) => {
   res.redirect('/admin/ai');
 }, renderAi));
 
+// ---------- Support inbox (client success) ----------
+const support = require('../support/support.service');
+router.get('/support', wrap(async (req, res) => {
+  const [tickets, stats] = await Promise.all([support.adminList({ status: req.query.status || 'active', q: req.query.q }), support.adminStats()]);
+  res.page('pages/admin/support', { layout: 'admin', title: req.t('admin.support'), tickets, stats, status: req.query.status || 'active', q: req.query.q || '', STATUSES: support.STATUSES });
+}));
+const renderTicket = async (req, res, extra = {}) => {
+  const [ticket, staff] = await Promise.all([support.adminGet(Number(req.params.id)), knex('users').where({ is_super_admin: true, status: 'active' }).select('id', 'name')]);
+  res.page('pages/admin/support-ticket', { layout: 'admin', title: ticket.subject, ticket, staff, STATUSES: support.STATUSES, ...extra });
+};
+router.get('/support/:id', wrap((req, res) => renderTicket(req, res)));
+router.post('/support/:id/reply', form(async (req, res) => {
+  await support.adminReply(req.ctx, Number(req.params.id), req.body);
+  flash(req, 'success', req.t('common.saved'));
+  res.redirect(`/admin/support/${req.params.id}`);
+}, renderTicket));
+router.post('/support/:id/assign', wrap(async (req, res) => {
+  await support.assign(req.ctx, Number(req.params.id), Number(req.body.user_id) || null);
+  res.redirect(`/admin/support/${req.params.id}`);
+}));
+
 // ---------- Background jobs ----------
 router.get('/jobs', wrap(async (req, res) => {
   const [stat, failed, recent] = await Promise.all([

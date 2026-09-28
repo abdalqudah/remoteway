@@ -1,0 +1,3 @@
+<% if (r.steps && r.steps.length) { %><ol class="wf-steps" aria-label="<%= t('workflows.progress') %>"><% r.steps.forEach(function (s) { %>
+  <li class="wf-<%= s.status %>" title="<%= t('workflows.step_status_' + s.status) %><%= s.decided_by_name ? ' · ' + s.decided_by_name : '' %><%= s.note ? ' · ' + s.note : '' %>"><span class="n"><%= s.status === 'approved' ? '✓' : s.status === 'rejected' ? '✕' : s.step_no %></span><%= s.approver_label || t('workflows.type_' + s.approver_type) %></li>
+<% }) %></ol><% } %>

@@ -137,7 +137,7 @@ router.get('/leave/requests', feature('leave'), wrap(async (req, res) => {
   return ok(res, await leave.myRequests(req.ctx));
 }));
 router.post('/leave/requests', feature('leave'), can('leave.request'), wrap(async (req, res) => ok(res, { id: await leave.createRequest(req.ctx, req.body) }, undefined, 201)));
-router.post('/leave/requests/:id/decide', feature('leave'), can('leave.approve'), wrap(async (req, res) => {
+router.post('/leave/requests/:id/decide', feature('leave'), wrap(async (req, res) => {
   await leave.decide(req.ctx, Number(req.params.id), { decision: req.body.decision, note: req.body.note });
   ok(res, { id: Number(req.params.id), status: req.body.decision });
 }));

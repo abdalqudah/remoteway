@@ -43,6 +43,10 @@ const PERMISSIONS = [
   ['onboarding.manage', 'onboarding', 'Run onboarding plans and templates'],
   ['learning.manage', 'learning', 'Create courses, assign training and see learning reports'],
   ['ai.manage', 'ai', 'Turn AI features on or off and see AI usage'],
+  ['sso.manage', 'organization', 'Configure single sign-on'],
+  ['workflows.manage', 'organization', 'Create and edit approval workflows'],
+  ['reports.manage', 'reports', 'Build, save and schedule reports'],
+  ['support.manage', 'organization', 'Contact platform support and follow the company\'s tickets'],
 ];
 
 const ALL = PERMISSIONS.map((p) => p[0]);
@@ -58,7 +62,7 @@ const ROLE_TEMPLATES = [
     permissions: ['users.view', 'employees.view', 'employees.create', 'employees.edit', 'employees.delete', 'employees.view_salary',
       'departments.manage', 'locations.manage', 'attendance.view', 'attendance.manage', 'leave.view', 'leave.request', 'leave.approve',
       'performance.view', 'performance.manage', 'recruitment.view', 'recruitment.manage', 'documents.view', 'documents.manage', 'reports.view',
-      'tasks.view', 'tasks.manage', 'onboarding.manage', 'learning.manage'],
+      'tasks.view', 'tasks.manage', 'onboarding.manage', 'learning.manage', 'workflows.manage', 'reports.manage', 'support.manage'],
   },
   {
     key: 'recruiter', name: 'Recruiter', description: 'Runs hiring pipelines',
@@ -66,7 +70,7 @@ const ROLE_TEMPLATES = [
   },
   {
     key: 'finance_manager', name: 'Finance Manager', description: 'Financial visibility and billing',
-    permissions: ['employees.view', 'employees.view_salary', 'billing.view', 'payroll.view', 'payroll.approve', 'payway.view', 'reports.view', 'leave.request'],
+    permissions: ['employees.view', 'employees.view_salary', 'billing.view', 'payroll.view', 'payroll.approve', 'payway.view', 'reports.view', 'reports.manage', 'leave.request'],
   },
   {
     key: 'payroll_manager', name: 'Payroll Manager', description: 'Prepares and processes payroll',
@@ -93,14 +97,14 @@ const FEATURES = [
   ['leave', 'Leave', 'workforce', 'available'],
   ['documents', 'Documents', 'workforce', 'available'],
   ['tasks', 'Tasks', 'remote_work', 'available'],
-  ['basic_reports', 'Basic Reports', 'analytics', 'coming_soon'],
+  ['basic_reports', 'Basic Reports', 'analytics', 'available'],
   ['recruitment', 'Recruitment (ATS)', 'talent', 'available'],
   ['onboarding', 'Onboarding', 'talent', 'available'],
   ['payroll', 'Payroll', 'payroll', 'available'],
   ['performance', 'Performance', 'performance', 'available'],
   ['learning', 'Learning', 'learning', 'available'],
   ['projects', 'Projects', 'remote_work', 'available'],
-  ['advanced_reports', 'Advanced Reports', 'analytics', 'coming_soon'],
+  ['advanced_reports', 'Advanced Reports', 'analytics', 'available'],
   ['integrations', 'Integrations', 'integrations', 'available'],
   ['analytics', 'Advanced Analytics', 'analytics', 'coming_soon'],
   ['compliance', 'Compliance', 'compliance', 'coming_soon'],
@@ -108,16 +112,16 @@ const FEATURES = [
   ['advanced_permissions', 'Advanced Permissions', 'security', 'available'],
   ['custom_roles', 'Custom Roles', 'security', 'available'],
   ['automation', 'Advanced Automation', 'automation', 'coming_soon'],
-  ['sso', 'Single Sign-On', 'security', 'coming_soon'],
-  ['custom_workflows', 'Custom Workflows', 'automation', 'coming_soon'],
-  ['enterprise_reporting', 'Enterprise Reporting', 'analytics', 'coming_soon'],
+  ['sso', 'Single Sign-On', 'security', 'available'],
+  ['custom_workflows', 'Custom Workflows', 'automation', 'available'],
+  ['enterprise_reporting', 'Enterprise Reporting', 'analytics', 'available'],
   ['payway', 'PayWay Integration', 'integrations', 'integration_required'],
   ['ai_recruitment', 'AI Recruitment', 'ai', 'available'],
   ['ai_documents', 'AI Documents', 'ai', 'available'],
   ['ai_performance', 'AI Performance', 'ai', 'available'],
   ['ai_learning', 'AI Learning', 'ai', 'available'],
   ['ai_analytics', 'AI Analytics', 'ai', 'available'],
-  ['client_success', 'Client Success Portal', 'client_success', 'coming_soon'],
+  ['client_success', 'Client Success Portal', 'client_success', 'available'],
 ];
 
 const STARTER = ['employees', 'departments', 'attendance', 'leave', 'documents', 'tasks', 'basic_reports'];

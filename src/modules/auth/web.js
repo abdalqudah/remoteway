@@ -152,3 +152,4 @@ router.post('/invite/:token', loginLimiter, form(async (req, res) => {
 }, renderInvite));
 
 module.exports = router;
+module.exports.signIn = signIn;

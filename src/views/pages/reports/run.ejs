@@ -1,0 +1,130 @@
+<%
+  var ds = DATASETS[result.dataset]; var cfg = result.config;
+  var colLabel = function (c) { return c.key === 'count' ? t('reports.count') : t('reports.col_' + result.dataset + '_' + c.key) + (c.agg ? ' (' + t('reports.' + c.agg) + ')' : ''); };
+  var cell = function (v, c) {
+    if (v === null || v === undefined || v === '') return '<span class="muted">—</span>';
+    if (c.labels) { var l = t(c.labels + v); return escapeHtml(l === c.labels + v ? v : l); }
+    if (c.type === 'date') return escapeHtml(fmt.date(v));
+    if (c.type === 'datetime') return escapeHtml(fmt.date(v, { dateStyle: 'short', timeStyle: 'short' }));
+    if (c.type === 'money') return '<span class="num">' + escapeHtml(fmt.amount(v, result.currency)) + '</span>';
+    if (c.type === 'number') return '<span class="num">' + escapeHtml(fmt.number(v)) + '</span>';
+    return escapeHtml(v);
+  };
+  var qs = function (extra) {
+    var p = new URLSearchParams();
+    if (builder) { p.set('dataset', result.dataset); if (typeof editing !== 'undefined' && editing) p.set('report', editing.id); cfg.columns.forEach(function (c) { p.append('columns', c); }); if (cfg.group_by) p.set('group_by', cfg.group_by); p.set('period', cfg.filters.period);
+      if (cfg.filters.from) p.set('from', cfg.filters.from); if (cfg.filters.to) p.set('to', cfg.filters.to); if (cfg.filters.department_id) p.set('department_id', cfg.filters.department_id);
+      cfg.filters.status.forEach(function (s) { p.append('status', s); }); p.set('sort', cfg.sort); if (cfg.desc) p.set('desc', '1'); }
+    Object.keys(extra || {}).forEach(function (k) { p.set(k, extra[k]); });
+    return p.toString();
+  };
+  var builderLink = function () {
+    var p = new URLSearchParams(); p.set('dataset', result.dataset); cfg.columns.forEach(function (c) { p.append('columns', c); }); if (cfg.group_by) p.set('group_by', cfg.group_by);
+    p.set('period', cfg.filters.period); if (cfg.filters.from) p.set('from', cfg.filters.from); if (cfg.filters.to) p.set('to', cfg.filters.to);
+    if (cfg.filters.department_id) p.set('department_id', cfg.filters.department_id); cfg.filters.status.forEach(function (s) { p.append('status', s); }); p.set('sort', cfg.sort); if (cfg.desc) p.set('desc', '1');
+    if (report) p.set('report', report.id);
+    return '/app/reports/builder?' + p.toString();
+  };
+  var maxCount = cfg.group_by ? Math.max.apply(null, result.rows.map(function (r) { return r[1]; }).concat([1])) : 1;
+  var allowedCols = Object.keys(ds.columns).filter(function (k) { return !ds.columns[k].permission || can(ds.columns[k].permission); });
+  var days = [0, 1, 2, 3, 4, 5, 6];
+%>
+<div class="page-head">
+  <div><div class="eyebrow"><a href="/app/reports"><%= t('reports.title') %></a><%- icon('chevron-right', 'icon-sm flip-rtl') %><%= t('reports.ds_' + result.dataset) %></div><h1><%= title %></h1>
+    <% if (template) { %><p><%= t('reports.tpl_' + template.key + '_text') %></p><% } %></div>
+  <div class="page-actions">
+    <a class="btn btn-secondary" href="?<%= qs({ format: 'csv' }) %>"><%- icon('download') %><%= t('reports.export_csv') %></a>
+    <% if (!builder && tiers.advanced && can('reports.manage')) { %><a class="btn btn-secondary" href="<%= builderLink() %>"><%- icon('pencil') %><%= report ? t('reports.edit') : t('reports.customise') %></a><% } %>
+    <% if (builder && can('reports.manage')) { %><button class="btn btn-dark" type="button" data-open-dialog="save-dialog"><%- icon('check') %><%= typeof editing !== 'undefined' && editing ? t('reports.update') : t('reports.save') %></button><% } %>
+    <% if (report && canEdit) { %><form method="post" action="/app/reports/saved/<%= report.id %>/delete" data-confirm="<%= t('reports.confirm_delete') %>"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><button class="btn btn-danger-ghost" type="submit"><%- icon('trash-2') %></button></form><% } %>
+  </div>
+</div>
+
+<% if (builder) { %>
+<nav class="tabs mb-4" aria-label="<%= t('reports.dataset') %>"><% datasets.forEach(function (k) { %><a href="/app/reports/builder?dataset=<%= k %><%= typeof editing !== 'undefined' && editing ? '&report=' + editing.id : '' %>" class="<%= k === result.dataset ? 'active' : '' %>"><%= t('reports.ds_' + k) %></a><% }) %></nav>
+<form class="panel mb-6" method="get" action="/app/reports/builder">
+  <input type="hidden" name="dataset" value="<%= result.dataset %>"><% if (typeof editing !== 'undefined' && editing) { %><input type="hidden" name="report" value="<%= editing.id %>"><% } %>
+  <div class="panel-body stack">
+    <fieldset class="field"><legend class="label"><%= t('reports.columns') %></legend>
+      <div class="row-sm wrap"><% allowedCols.forEach(function (k) { if (ds.columns[k].groupOnly) return; %><label class="check"><input type="checkbox" name="columns" value="<%= k %>"<%= cfg.columns.indexOf(k) >= 0 ? ' checked' : '' %>><%= t('reports.col_' + result.dataset + '_' + k) %></label><% }) %></div></fieldset>
+    <div class="form-grid form-grid-4">
+      <div class="field"><label class="label" for="rb-group"><%= t('reports.group_by') %></label><select class="select" id="rb-group" name="group_by"><option value=""><%= t('reports.no_grouping') %></option><% allowedCols.filter(function (k) { return ['text', 'enum', 'date'].indexOf(ds.columns[k].type) >= 0; }).forEach(function (k) { %><option value="<%= k %>"<%= cfg.group_by === k ? ' selected' : '' %>><%= t('reports.col_' + result.dataset + '_' + k) %></option><% }) %></select></div>
+      <div class="field"><label class="label" for="rb-period"><%= t('reports.period') %> <span class="muted tiny">(<%= t('reports.col_' + result.dataset + '_date') %>)</span></label><select class="select" id="rb-period" name="period"><% PERIODS.forEach(function (p) { %><option value="<%= p %>"<%= cfg.filters.period === p ? ' selected' : '' %>><%= t('reports.period_' + p) %></option><% }) %></select></div>
+      <div class="field"><label class="label" for="rb-from"><%= t('reports.from') %></label><input class="input" id="rb-from" type="date" name="from" value="<%= cfg.filters.from || '' %>"></div>
+      <div class="field"><label class="label" for="rb-to"><%= t('reports.to') %></label><input class="input" id="rb-to" type="date" name="to" value="<%= cfg.filters.to || '' %>"></div>
+      <% if (ds.department) { %><div class="field"><label class="label" for="rb-dept"><%= t('fields.department') %></label><select class="select" id="rb-dept" name="department_id"><option value=""><%= t('reports.all') %></option><% departments.forEach(function (d) { %><option value="<%= d.id %>"<%= cfg.filters.department_id === d.id ? ' selected' : '' %>><%= d.name %></option><% }) %></select></div><% } %>
+      <div class="field"><label class="label" for="rb-sort"><%= t('reports.sort') %></label><select class="select" id="rb-sort" name="sort"><% allowedCols.filter(function (k) { return !ds.columns[k].groupOnly; }).forEach(function (k) { %><option value="<%= k %>"<%= cfg.sort === k ? ' selected' : '' %>><%= t('reports.col_' + result.dataset + '_' + k) %></option><% }) %></select>
+        <label class="check mt-1"><input type="checkbox" name="desc" value="1"<%= cfg.desc ? ' checked' : '' %>><%= t('reports.descending') %></label></div>
+    </div>
+    <% if (ds.status) { %><fieldset class="field"><legend class="label"><%= t('fields.status') %></legend><div class="row-sm wrap"><% ds.status.values.forEach(function (s) { %><label class="check"><input type="checkbox" name="status" value="<%= s %>"<%= cfg.filters.status.indexOf(s) >= 0 ? ' checked' : '' %>><%= t(ds.status.labels + s) %></label><% }) %></div></fieldset><% } %>
+  </div>
+  <div class="panel-foot" style="justify-content:flex-end"><button class="btn btn-dark btn-sm" type="submit"><%- icon('filter', 'icon-sm') %><%= t('reports.run') %></button></div>
+</form>
+<% } else { %>
+<div class="row-sm wrap mb-4 small muted"><span class="tag"><%= t('reports.period_' + cfg.filters.period) %><%= result.range[0] || result.range[1] ? ': ' + (result.range[0] ? fmt.date(result.range[0]) : '…') + ' – ' + (result.range[1] ? fmt.date(result.range[1]) : '…') : '' %></span>
+  <% cfg.filters.status.forEach(function (s) { %><span class="tag"><%= t(ds.status.labels + s) %></span><% }) %>
+  <% if (cfg.filters.department_id) { var dd = departments.find(function (d) { return d.id === cfg.filters.department_id; }); %><span class="tag"><%= dd ? dd.name : '' %></span><% } %></div>
+<% } %>
+
+<section class="panel">
+  <div class="panel-head"><div><h2><%= t('reports.results') %></h2><div class="panel-sub"><%= t('reports.n_rows', { n: fmt.number(result.rows.length) }) %><%= result.truncated ? ' · ' + t('reports.truncated', { n: fmt.number(result.rows.length) }) : '' %></div></div></div>
+  <% if (!result.rows.length) { %><div class="empty"><span class="empty-icon"><%- icon('chart-column') %></span><p><%= t('reports.no_rows') %></p></div><% } else { %>
+  <div class="table-wrap"><table class="table">
+    <thead><tr><% result.columns.forEach(function (c) { %><th class="<%= c.type === 'number' || c.type === 'money' ? 'text-end' : '' %>"><%= colLabel(c) %></th><% }) %><% if (cfg.group_by) { %><th style="width:28%"></th><% } %></tr></thead>
+    <tbody><% result.rows.forEach(function (r) { %><tr><% r.forEach(function (v, i) { var c = result.columns[i]; %><td class="<%= c.type === 'number' || c.type === 'money' ? 'text-end' : '' %>"><%- cell(v, c) %></td><% }) %>
+      <% if (cfg.group_by) { %><td><div class="meter"><span style="width:<%= Math.round(r[1] / maxCount * 100) %>%"></span></div></td><% } %></tr><% }) %></tbody>
+  </table></div><% } %>
+</section>
+
+<% if (report && tiers.scheduled) { %>
+<section class="panel mt-6" id="schedules">
+  <div class="panel-head"><div><h2><%= t('reports.schedules') %></h2><div class="panel-sub"><%= t('reports.schedules_sub', { tz: organization.timezone }) %></div></div>
+    <% if (can('reports.manage')) { %><button class="btn btn-secondary btn-sm" type="button" data-open-dialog="schedule-dialog"><%- icon('plus', 'icon-sm') %><%= t('reports.add_schedule') %></button><% } %></div>
+  <% if (!schedules.length) { %><div class="empty"><p><%= t('reports.no_schedules') %></p></div><% } else { %>
+  <div class="table-wrap"><table class="table"><tbody><% schedules.forEach(function (s) { var rc = typeof s.recipients === 'string' ? JSON.parse(s.recipients) : (s.recipients || []); %>
+    <tr><td><strong><%= t('reports.freq_' + s.frequency) %></strong> · <%= s.frequency === 'weekly' ? t('days.' + ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'][s.weekday]) + ' · ' : s.frequency === 'monthly' ? t('reports.day_n', { n: s.day_of_month }) + ' · ' : '' %><span class="num"><%= String(s.hour).padStart(2, '0') %>:00</span>
+      <div class="muted tiny"><%= t('reports.n_recipients', { n: rc.length }) %> · <%= t('reports.next_run', { at: fmt.date(s.next_run_at, { dateStyle: 'medium', timeStyle: 'short' }) }) %></div></td>
+      <td class="small"><% if (!s.is_active) { %><span class="st st-rejected"><%= t('reports.stopped') %></span> <% } %><span class="muted"><%= s.last_run_at ? fmt.date(s.last_run_at, { dateStyle: 'short', timeStyle: 'short' }) + ' · ' + (s.last_status || '') : t('reports.not_run_yet') %></span></td>
+      <td class="actions"><% if (canEdit) { %><form method="post" action="/app/reports/saved/<%= report.id %>/schedules/<%= s.id %>/delete"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><button class="btn btn-ghost btn-sm btn-icon" type="submit" aria-label="<%= t('common.delete') %>"><%- icon('trash-2', 'icon-sm') %></button></form><% } %></td></tr>
+  <% }) %></tbody></table></div><% } %>
+</section>
+<dialog class="dialog" id="schedule-dialog"<%= openDialog === 'schedule-dialog' ? ' data-open-on-load' : '' %>>
+  <form method="post" action="/app/reports/saved/<%= report.id %>/schedules" novalidate>
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+    <div class="dialog-head"><h2><%= t('reports.add_schedule') %></h2><button class="btn btn-ghost btn-icon btn-sm" type="button" data-close-dialog aria-label="<%= t('common.close') %>"><%- icon('x') %></button></div>
+    <div class="dialog-body stack">
+      <% if (openDialog === 'schedule-dialog' && formError) { %><div class="alert alert-error"><%= Object.values(errors)[0] || formError.message %></div><% } %>
+      <div class="form-grid">
+        <div class="field"><label class="label" for="sc-f"><%= t('reports.frequency') %></label><select class="select" id="sc-f" name="frequency"><% ['daily', 'weekly', 'monthly'].forEach(function (f) { %><option value="<%= f %>"<%= (old.frequency || 'weekly') === f ? ' selected' : '' %>><%= t('reports.freq_' + f) %></option><% }) %></select></div>
+        <div class="field"><label class="label" for="sc-h"><%= t('reports.hour') %></label><select class="select" id="sc-h" name="hour"><% for (var h = 0; h < 24; h++) { %><option value="<%= h %>"<%= Number(old.hour || 8) === h ? ' selected' : '' %>><%= String(h).padStart(2, '0') %>:00</option><% } %></select></div>
+        <div class="field"><label class="label" for="sc-w"><%= t('reports.weekday') %></label><select class="select" id="sc-w" name="weekday"><% days.forEach(function (d) { %><option value="<%= d %>"<%= Number(old.weekday || 0) === d ? ' selected' : '' %>><%= t('days.' + ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'][d]) %></option><% }) %></select><span class="help"><%= t('reports.weekday_help') %></span></div>
+        <div class="field"><label class="label" for="sc-d"><%= t('reports.day_of_month') %></label><input class="input" id="sc-d" type="number" name="day_of_month" min="1" max="31" value="<%= old.day_of_month || 1 %>"><span class="help"><%= t('reports.day_help') %></span></div>
+      </div>
+      <fieldset class="field"><legend class="label"><%= t('reports.recipients') %></legend>
+        <div class="stack-sm" style="max-height:220px;overflow:auto"><% members.forEach(function (m) { %><label class="check"><input type="checkbox" name="recipients" value="<%= m.id %>"<%= m.id === currentUser.id ? ' checked' : '' %>><%= m.name %> <span class="muted tiny"><%= m.email %></span></label><% }) %></div>
+        <span class="help"><%= t('reports.recipients_help') %></span></fieldset>
+    </div>
+    <div class="dialog-foot"><button class="btn btn-ghost" type="button" data-close-dialog><%= t('common.cancel') %></button><button class="btn btn-dark" type="submit"><%= t('common.save') %></button></div>
+  </form>
+</dialog>
+<% } else if (report && !tiers.scheduled) { %><p class="small muted mt-6"><%- icon('lock', 'icon-sm') %> <%= t('reports.schedule_upgrade') %></p><% } %>
+
+<% if (builder && can('reports.manage')) { %>
+<dialog class="dialog" id="save-dialog">
+  <% var ed = typeof editing !== 'undefined' && editing ? editing : null; %>
+  <form method="post" action="/app/reports/saved<%= ed ? '/' + ed.id : '' %>" novalidate>
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>"><input type="hidden" name="dataset" value="<%= result.dataset %>">
+    <% cfg.columns.forEach(function (c) { %><input type="hidden" name="columns" value="<%= c %>"><% }) %>
+    <% if (cfg.group_by) { %><input type="hidden" name="group_by" value="<%= cfg.group_by %>"><% } %>
+    <input type="hidden" name="period" value="<%= cfg.filters.period %>"><input type="hidden" name="from" value="<%= cfg.filters.from || '' %>"><input type="hidden" name="to" value="<%= cfg.filters.to || '' %>">
+    <input type="hidden" name="department_id" value="<%= cfg.filters.department_id || '' %>"><% cfg.filters.status.forEach(function (s) { %><input type="hidden" name="status" value="<%= s %>"><% }) %>
+    <input type="hidden" name="sort" value="<%= cfg.sort %>"><% if (cfg.desc) { %><input type="hidden" name="desc" value="1"><% } %>
+    <div class="dialog-head"><h2><%= t('reports.save') %></h2><button class="btn btn-ghost btn-icon btn-sm" type="button" data-close-dialog aria-label="<%= t('common.close') %>"><%- icon('x') %></button></div>
+    <div class="dialog-body stack">
+      <div class="field"><label class="label" for="sv-name"><%= t('reports.name') %></label><input class="input" id="sv-name" name="name" maxlength="150" required value="<%= ed ? ed.name : '' %>"></div>
+      <label class="check"><input type="checkbox" name="is_shared"<%= ed && ed.is_shared ? ' checked' : '' %>><%= t('reports.share') %></label><span class="help"><%= t('reports.share_help') %></span>
+    </div>
+    <div class="dialog-foot"><button class="btn btn-ghost" type="button" data-close-dialog><%= t('common.cancel') %></button><button class="btn btn-dark" type="submit"><%= t('common.save') %></button></div>
+  </form>
+</dialog>
+<% } %>

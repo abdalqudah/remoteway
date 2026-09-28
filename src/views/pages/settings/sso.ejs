@@ -1,0 +1,55 @@
+<%
+  var c = conn || {}; var o = old || {};
+  var v = function (k, d) { return o[k] !== undefined ? o[k] : (c[k] !== undefined && c[k] !== null ? c[k] : d); };
+  var domains = o.domains !== undefined ? o.domains : (c.domains || []).join(', ');
+  var chk = function (k) { return o._csrf ? o[k] === 'on' : Boolean(c[k]); };
+%>
+<div class="page-head"><div><h1><%= t('nav.settings') %></h1><p><%= t('sso.settings_sub') %></p></div></div>
+<%- include('../../partials/settings-nav') %>
+
+<% if (!inPlan) { %>
+<div class="alert alert-info mb-6"><%- icon('lock') %><div><div class="alert-title"><%= t('sso.not_in_plan') %></div><div class="small text-2"><%= t('sso.not_in_plan_text') %></div>
+  <% if (can('billing.manage')) { %><a class="btn btn-dark btn-sm mt-2" href="/app/billing"><%= t('billing.upgrade_plan') %></a><% } %></div></div>
+<% } else if (conn) { %>
+<div class="alert <%= c.enabled && c.verified_at ? 'alert-success' : 'alert-warning' %> mb-6"><%- icon(c.enabled && c.verified_at ? 'circle-check' : 'triangle-alert') %><div>
+  <div class="alert-title"><%= !c.verified_at ? t('sso.state_untested') : c.enabled ? (c.enforce ? t('sso.state_enforced') : t('sso.state_on')) : t('sso.state_off') %></div>
+  <div class="small text-2"><%= t('sso.linked', { n: stats.linked }) %><% if (c.last_login_at) { %> · <%= t('sso.last_login', { at: fmt.date(c.last_login_at, { dateStyle: 'medium', timeStyle: 'short' }) }) %><% } %></div></div></div>
+<% } %>
+
+<div class="grid grid-3">
+  <form class="panel span-2" method="post" action="/app/settings/sso" novalidate>
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+    <div class="panel-head"><div><h2><%= t('sso.provider') %></h2><div class="panel-sub"><%= t('sso.provider_sub') %></div></div></div>
+    <fieldset class="panel-body stack"<%= inPlan ? '' : ' disabled' %>>
+      <%- include('../../partials/field', { name: 'issuer', label: t('sso.issuer'), value: v('issuer', ''), placeholder: 'https://login.microsoftonline.com/<tenant-id>/v2.0', help: t('sso.issuer_help') }) %>
+      <div class="form-grid">
+        <%- include('../../partials/field', { name: 'client_id', label: t('sso.client_id'), value: v('client_id', ''), autocomplete: 'off' }) %>
+        <%- include('../../partials/field', { name: 'client_secret', label: t('sso.client_secret'), type: 'password', autocomplete: 'new-password', placeholder: c.hasSecret ? '••••••••' : '', help: c.hasSecret ? t('sso.secret_keep') : null }) %>
+      </div>
+      <%- include('../../partials/field', { name: 'domains', label: t('sso.domains'), value: domains, placeholder: 'company.com, company.sa', help: t('sso.domains_help') }) %>
+      <div class="field"><label class="label"><%= t('sso.redirect_uri') %></label>
+        <div class="row-sm"><code class="code-box grow" dir="ltr" data-copy-source><%= redirectUri %></code><button class="btn btn-secondary btn-sm" type="button" data-copy><%- icon('copy', 'icon-sm') %><%= t('common.copy') %></button></div>
+        <span class="help"><%= t('sso.redirect_help') %></span></div>
+      <div class="stack-sm">
+        <label class="check"><input type="checkbox" name="enabled"<%= chk('enabled') ? ' checked' : '' %>><%= t('sso.enabled') %></label>
+        <label class="check"><input type="checkbox" name="jit"<%= chk('jit') ? ' checked' : '' %>><%= t('sso.jit') %></label>
+        <div class="field" style="max-width:320px;margin-inline-start:24px"><label class="label" for="f-default_role"><%= t('sso.default_role') %></label>
+          <select class="select" id="f-default_role" name="default_role"><% roles.forEach(function (r) { %><option value="<%= r.key %>"<%= v('default_role', 'employee') === r.key ? ' selected' : '' %>><%= roleName(r) %></option><% }) %></select></div>
+        <label class="check"><input type="checkbox" name="enforce"<%= chk('enforce') ? ' checked' : '' %><%= c.verified_at ? '' : ' disabled' %>><%= t('sso.enforce') %></label>
+        <span class="help" style="margin-inline-start:24px"><%= c.verified_at ? t('sso.enforce_help') : t('sso.enforce_needs_test') %></span>
+        <% if (errors.enforce) { %><span class="field-error"><%= errors.enforce %></span><% } %>
+      </div>
+    </fieldset>
+    <div class="panel-foot row-sm" style="justify-content:flex-end">
+      <% if (conn) { %><button class="btn btn-danger-ghost btn-sm" type="submit" formaction="/app/settings/sso/delete" data-confirm-submit="<%= t('sso.confirm_remove') %>"><%= t('sso.remove') %></button>
+      <button class="btn btn-secondary btn-sm" type="submit" formaction="/app/settings/sso/test"><%- icon('key-round', 'icon-sm') %><%= t('sso.test') %></button><% } %>
+      <button class="btn btn-dark btn-sm" type="submit"<%= inPlan ? '' : ' disabled' %>><%= t('common.save') %></button>
+    </div>
+  </form>
+  <section class="panel"><div class="panel-head"><h2><%= t('sso.how') %></h2></div><div class="panel-body small text-2 stack-sm">
+    <p><%= t('sso.how_1') %></p><p><%= t('sso.how_2') %></p><p><%= t('sso.how_3') %></p><p><%= t('sso.how_4') %></p>
+    <div class="label mt-2"><%= t('sso.examples') %></div>
+    <ul class="ai-list" dir="ltr" style="text-align:start"><li>Microsoft Entra ID: https://login.microsoftonline.com/&lt;tenant-id&gt;/v2.0</li><li>Google Workspace: https://accounts.google.com</li><li>Okta: https://&lt;your-org&gt;.okta.com</li></ul>
+    <p class="tiny muted"><%= t('sso.saml_note') %></p>
+  </div></section>
+</div>

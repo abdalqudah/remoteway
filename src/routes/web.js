@@ -10,6 +10,7 @@ router.use((req, res, next) => {
 });
 router.use('/', require('../modules/site/web'));
 router.use('/', require('../modules/auth/web'));
+router.use('/sso', require('../modules/sso/web').router);
 router.use('/careers', require('../modules/recruitment/careers.web'));
 router.use('/verify', require('../modules/learning/verify.web'));
 router.use('/calendar', require('../modules/integrations/web').feedRouter);

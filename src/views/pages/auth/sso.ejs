@@ -1,0 +1,8 @@
+<h1><%= t('sso.sign_in') %></h1>
+<p class="lead"><%= t('sso.sign_in_lead') %></p>
+<form method="post" action="/sso" class="stack mt-6" novalidate>
+  <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+  <%- include('../../partials/field', { name: 'email', label: t('sso.work_email'), type: 'email', required: true, autocomplete: 'email', placeholder: 'name@company.com' }) %>
+  <button class="btn btn-dark btn-lg btn-block" type="submit"><%- icon('key-round') %><%= t('sso.continue') %></button>
+</form>
+<p class="mt-6 text-2"><a class="link" href="/login"><%= t('sso.use_password') %></a></p>

@@ -313,7 +313,8 @@
       var add = e.target.closest('[data-add-row]');
       var rm = e.target.closest('[data-remove-row]');
       if (add && rows && tpl) { rows.appendChild(tpl.content.cloneNode(true)); var inputs = rows.querySelectorAll('input[name="item_title"]'); if (inputs.length) inputs[inputs.length - 1].focus(); }
-      if (rm) { var row = rm.closest('[data-row]'); if (row && rows.querySelectorAll('[data-row]').length > 1) row.remove(); else if (row) row.querySelector('input').value = ''; }
+      if (rm) { var row = rm.closest('[data-row]'); if (row && rows.querySelectorAll('[data-row]').length > 1) row.remove(); else if (row && row.querySelector('input')) row.querySelector('input').value = ''; }
+      if ((add || rm) && rows) $$('[data-row-n]', rows).forEach(function (n, i) { n.textContent = String(i + 1); });
     });
   });
 

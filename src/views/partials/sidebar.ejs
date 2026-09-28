@@ -45,6 +45,7 @@
       <% if (can('payroll.view')) { %><a href="/app/payroll" class="<%= isActive('/app/payroll') && !isActive('/app/payroll/my') ? 'active' : '' %><%= hasFeature('payroll') ? '' : ' is-soon' %>"><%- icon('wallet') %><%= t('nav.payroll') %><% if (!hasFeature('payroll')) { %><span class="badge badge-soon"><%- icon('lock', 'icon-sm') %></span><% } %></a><% } %>
       <% if (hasFeature('payroll')) { %><a href="/app/payroll/my" class="<%= isActive('/app/payroll/my') ? 'active' : '' %>"><%- icon('receipt') %><%= t('payroll.my_payslips') %></a><% } %>
     <% } %>
+    <% if (g[0] === 'insights' && can('reports.view')) { %><a href="/app/reports" class="<%= isActive('/app/reports') ? 'active' : '' %>"><%- icon('chart-column') %><%= t('reports.title') %></a><% } %>
     <% if (g[0] === 'insights' && can('reports.view')) { %><a href="/app/insights" class="<%= isActive('/app/insights') ? 'active' : '' %>"><%- icon('sparkles') %><%= t('ai.insights') %><% if (!(typeof aiStatus !== 'undefined' && aiStatus && aiStatus.areas.analytics.usable)) { %><span class="badge badge-soon"><%- icon('lock', 'icon-sm') %></span><% } %></a><% } %>
     <% MODULES.filter(function (m) { return m.group === g[0]; }).forEach(function (m) { %>
       <a href="/app/modules/<%= m.key %>" class="is-soon <%= isActive('/app/modules/' + m.key) ? 'active' : '' %>"><%- icon(m.icon) %><%= t('nav.' + m.key) %><span class="badge badge-soon"><%= m.status === 'integration' ? t('common.setup_required') : t('common.soon') %></span></a>
@@ -54,6 +55,7 @@
   <div class="nav-group">
     <div class="nav-title"><%= t('nav.group_admin') %></div>
     <% if (can('billing.view')) { %><a href="/app/billing" class="<%= isActive('/app/billing') ? 'active' : '' %>"><%- icon('receipt') %><%= t('nav.billing') %></a><% } %>
+    <% if (can('support.manage')) { %><a href="/app/support" class="<%= isActive('/app/support') ? 'active' : '' %>"><%- icon('life-buoy') %><%= t('support.title') %></a><% } %>
     <a href="/app/settings" class="<%= isActive('/app/settings') ? 'active' : '' %>"><%- icon('settings') %><%= t('nav.settings') %></a>
     <% if (currentUser.is_super_admin) { %><a href="/admin"><%- icon('gauge') %><%= t('nav.super_admin') %></a><% } %>
   </div>

@@ -1,0 +1,25 @@
+<div class="page-head"><div><h1><%= t('admin.support') %></h1><p><%= t('admin.support_sub') %></p></div></div>
+<div class="kpis mb-6">
+  <div class="kpi"><div class="kpi-label"><%= t('admin.sup_open') %></div><div class="kpi-value"><%= stats.open %></div></div>
+  <div class="kpi"><div class="kpi-label"><%= t('admin.sup_unanswered') %></div><div class="kpi-value"><%= stats.unanswered %></div></div>
+  <div class="kpi"><div class="kpi-label"><%= t('admin.sup_breached') %></div><div class="kpi-value" style="<%= stats.breached ? 'color:var(--danger)' : '' %>"><%= stats.breached %></div></div>
+  <div class="kpi"><div class="kpi-label"><%= t('admin.sup_satisfaction') %></div><div class="kpi-value"><%= stats.satisfaction != null ? stats.satisfaction + ' / 5' : '—' %></div></div>
+</div>
+<form class="row-sm wrap mb-4" method="get" action="/admin/support">
+  <select class="select" name="status" style="width:auto"><option value="active"<%= status === 'active' ? ' selected' : '' %>><%= t('admin.sup_active') %></option><% STATUSES.forEach(function (s) { %><option value="<%= s %>"<%= status === s ? ' selected' : '' %>><%= t('support.status_' + s) %></option><% }) %><option value="all"<%= status === 'all' ? ' selected' : '' %>><%= t('admin.sup_all') %></option></select>
+  <input class="input" name="q" value="<%= q %>" placeholder="<%= t('admin.sup_search') %>" style="max-width:280px"><button class="btn btn-secondary btn-sm" type="submit"><%- icon('search', 'icon-sm') %></button>
+</form>
+<section class="panel">
+  <% if (!tickets.length) { %><div class="empty"><p><%= t('admin.sup_none') %></p></div><% } else { %>
+  <div class="table-wrap"><table class="table">
+    <thead><tr><th><%= t('support.subject') %></th><th><%= t('admin.organization') %></th><th><%= t('support.priority') %></th><th><%= t('fields.status') %></th><th><%= t('admin.sup_first_response') %></th><th><%= t('admin.sup_assigned') %></th></tr></thead>
+    <tbody><% tickets.forEach(function (tk) { %>
+      <tr><td><a class="link" href="/admin/support/<%= tk.id %>"><strong>#<%= tk.id %> · <%= tk.subject %></strong></a><div class="muted tiny"><%= t('support.cat_' + tk.category) %></div></td>
+        <td><%= tk.organization_name %><div class="muted tiny"><%= tk.created_by_name || '' %></div></td>
+        <td><span class="st st-prio-<%= tk.priority %>"><%= t('support.prio_' + tk.priority) %></span><div class="muted tiny"><%= t('support.within_h', { h: tk.sla_hours }) %></div></td>
+        <td><span class="st st-t-<%= tk.status %>"><%= t('support.status_' + tk.status) %></span></td>
+        <td class="nowrap small"><% if (tk.first_response_at) { %><span class="<%= tk.responded_late ? 'field-error' : 'muted' %>"><%= fmt.date(tk.first_response_at, { dateStyle: 'short', timeStyle: 'short' }) %></span><% } else { %><span class="<%= tk.breached ? 'st st-rejected' : 'muted' %>"><%= tk.breached ? t('admin.sup_overdue') + ' · ' : t('admin.sup_due') + ' ' %><%= fmt.date(tk.first_response_due, { dateStyle: 'short', timeStyle: 'short' }) %></span><% } %></td>
+        <td class="muted"><%= tk.assigned_name || '—' %></td></tr>
+    <% }) %></tbody>
+  </table></div><% } %>
+</section>

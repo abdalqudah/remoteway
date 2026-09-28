@@ -1,0 +1,30 @@
+<%
+  var typeName = function (x) { return locale === 'ar' ? (x.name_ar || x.name) : x.name; };
+  var stepText = function (s) {
+    if (s.type === 'role') { var r = roles.find(function (x) { return x.key === s.ref; }); return t('workflows.type_role_named', { role: r ? roleName(r) : s.ref }); }
+    if (s.type === 'user') { var p = people.find(function (x) { return String(x.id) === String(s.ref); }); return p ? p.name : t('workflows.type_user'); }
+    return t('workflows.type_' + s.type);
+  };
+%>
+<div class="page-head"><div><h1><%= t('nav.settings') %></h1><p><%= t('workflows.sub') %></p></div>
+  <% if (inPlan) { %><div class="page-actions"><a class="btn btn-dark" href="/app/settings/workflows/new"><%- icon('plus') %><%= t('workflows.new') %></a></div><% } %></div>
+<%- include('../../partials/settings-nav') %>
+<% if (!inPlan) { %>
+<div class="alert alert-info mb-6"><%- icon('lock') %><div><div class="alert-title"><%= t('workflows.not_in_plan') %></div><div class="small text-2"><%= t('workflows.not_in_plan_text') %></div>
+  <% if (can('billing.manage')) { %><a class="btn btn-dark btn-sm mt-2" href="/app/billing"><%= t('billing.upgrade_plan') %></a><% } %></div></div>
+<% } %>
+<div class="alert alert-info mb-6"><%- icon('info') %><div class="small"><%= t('workflows.how') %><% if (running) { %> <strong><%= t('workflows.running', { n: running }) %></strong><% } %></div></div>
+<section class="panel">
+  <% if (!list.length) { %><div class="empty"><span class="empty-icon"><%- icon('layers') %></span><p><%= t('workflows.empty') %></p></div><% } else { %>
+  <div class="table-wrap"><table class="table">
+    <thead><tr><th><%= t('workflows.name') %></th><th><%= t('workflows.applies_to') %></th><th><%= t('workflows.steps') %></th><th><%= t('workflows.priority') %></th><th><%= t('fields.status') %></th><th class="actions"></th></tr></thead>
+    <tbody><% list.forEach(function (w) { %>
+      <tr><td><a class="link" href="/app/settings/workflows/<%= w.id %>"><strong><%= w.name %></strong></a></td>
+        <td class="small"><%= w.leave_type_ids.length ? types.filter(function (x) { return w.leave_type_ids.indexOf(x.id) >= 0; }).map(typeName).join('، ') : t('workflows.all_types') %><% if (w.min_days != null) { %><div class="muted tiny"><%= t('workflows.min_days_is', { n: fmt.number(w.min_days) }) %></div><% } %></td>
+        <td><ol class="wf-steps"><% w.steps.forEach(function (s, i) { %><li><span class="n"><%= i + 1 %></span><%= stepText(s) %></li><% }) %></ol></td>
+        <td class="num"><%= w.priority %></td>
+        <td><span class="st <%= w.is_active ? 'st-active' : 'st-off' %>"><%= w.is_active ? t('workflows.active') : t('workflows.inactive') %></span></td>
+        <td class="actions"><a class="btn btn-ghost btn-sm" href="/app/settings/workflows/<%= w.id %>"><%- icon('pencil', 'icon-sm') %><%= t('common.edit') %></a></td></tr>
+    <% }) %></tbody>
+  </table></div><% } %>
+</section>

@@ -68,10 +68,13 @@ ${href ? `<a href="${escapeHtml(href)}" style="display:inline-block;background:#
 </div></div></body></html>`;
 }
 
-async function send({ to, subject, html }) {
+const testOutbox = []; // messages "sent" while running tests
+
+async function send({ to, subject, html, attachments }) {
+  if (config.isTest) { testOutbox.push({ to, subject, html, attachments }); return false; }
   const t = getTransport();
-  if (!t || config.isTest) return false;
-  await t.sendMail({ from: from(), to, subject, html });
+  if (!t) return false;
+  await t.sendMail({ from: from(), to, subject, html, attachments });
   return true;
 }
 
@@ -119,4 +122,4 @@ async function sendNotificationEmails(organizationId, userIds, type, data, link)
   }
 }
 
-module.exports = { enabled, send, sendInvitation, sendNotificationEmails, sendNotificationEmail, sendTest, refresh, currentConfig };
+module.exports = { testOutbox, layout, enabled, send, sendInvitation, sendNotificationEmails, sendNotificationEmail, sendTest, refresh, currentConfig };

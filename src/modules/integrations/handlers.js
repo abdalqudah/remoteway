@@ -17,4 +17,8 @@ jobs.register('maintenance.prune', async () => {
   await require('../../db/knex')('webhook_deliveries').where('created_at', '<', new Date(Date.now() - 30 * 86_400_000)).del();
 });
 
+// Scheduled report delivery (registers 'report.deliver').
+require('../reports/reports.service'); // eslint-disable-line import/no-unassigned-import
+require('../support/support.service'); // 'support.notify_staff'
+
 module.exports = jobs;

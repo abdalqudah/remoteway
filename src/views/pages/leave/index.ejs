@@ -2,7 +2,7 @@
   var typeName = function (x) { return locale === 'ar' ? (x.type_name_ar || x.name_ar || x.type_name || x.name) : (x.type_name || x.name); };
   var d = function (v) { return v instanceof Date ? v.toISOString().slice(0, 10) : String(v).slice(0, 10); };
   var tabs = [['mine', t('leave.tab_mine')]];
-  if (can('leave.approve')) tabs.push(['approvals', t('leave.tab_approvals') + (approvals.length ? ' (' + approvals.length + ')' : '')]);
+  if (can('leave.approve') || approvals.length) tabs.push(['approvals', t('leave.tab_approvals') + (approvals.length ? ' (' + approvals.length + ')' : '')]);
   if (can('leave.view') || can('employees.view') || can('team.view')) tabs.push(['calendar', t('leave.tab_calendar')]);
   if (can('settings.manage')) tabs.push(['types', t('leave.tab_types')]);
 %>
@@ -38,7 +38,7 @@
           <td><span class="balance" style="border:0;padding:0;background:none"><span class="swatch" style="background:<%= r.type_color %>"></span></span><%= typeName(r) %></td>
           <td class="nowrap"><%= fmt.date(r.start_date) %> → <%= fmt.date(r.end_date) %></td>
           <td class="text-end num"><%= fmt.number(r.days) %></td>
-          <td><span class="st st-<%= r.status %>"><%= t('leave.status_' + r.status) %></span><% if (r.decision_note) { %><div class="muted tiny"><%= r.decision_note %></div><% } %></td>
+          <td><span class="st st-<%= r.status %>"><%= t('leave.status_' + r.status) %></span><% if (r.decision_note) { %><div class="muted tiny"><%= r.decision_note %></div><% } %><%- include('../../partials/leave-steps', { r: r }) %></td>
           <td class="muted"><%= r.decided_by_name || '—' %></td>
           <td class="actions"><% if (r.status === 'pending' || r.status === 'approved') { %><form method="post" action="/app/leave/<%= r.id %>/cancel" data-confirm="<%= t('leave.confirm_cancel') %>"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><button class="btn btn-ghost btn-sm" type="submit"><%= t('common.cancel') %></button></form><% } %></td>
         </tr>
@@ -58,7 +58,7 @@
           <td><%= typeName(r) %></td>
           <td class="nowrap"><%= fmt.date(r.start_date) %> → <%= fmt.date(r.end_date) %></td>
           <td class="text-end num"><%= fmt.number(r.days) %></td>
-          <td class="small text-2" style="max-width:260px"><%= r.reason || '—' %></td>
+          <td class="small text-2" style="max-width:260px"><%= r.reason || '—' %><%- include('../../partials/leave-steps', { r: r }) %></td>
           <td class="actions">
             <form method="post" action="/app/leave/<%= r.id %>/decide" class="row-sm" style="justify-content:flex-end">
               <input type="hidden" name="_csrf" value="<%= csrfToken %>">

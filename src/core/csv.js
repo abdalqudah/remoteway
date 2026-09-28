@@ -14,4 +14,9 @@ function send(res, filename, header, rows) {
   res.send(`﻿${csv}`);
 }
 
-module.exports = { cell, send };
+/** CSV text (with BOM) for attachments. */
+function build(header, rows) {
+  return `\uFEFF${[header.map(cell).join(','), ...rows.map((r) => r.map(cell).join(','))].join('\r\n')}`;
+}
+
+module.exports = { cell, send, build };

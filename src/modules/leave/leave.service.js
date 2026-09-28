@@ -8,6 +8,7 @@ const ent = require('../billing/entitlements.service');
 const orgs = require('../organizations/organization.service');
 const employees = require('../workforce/employee.service');
 const notifications = require('../notifications/notification.service');
+const workflows = require('../workflows/workflows.service');
 
 const round2 = (n) => Math.round(Number(n) * 100) / 100;
 
@@ -163,7 +164,9 @@ async function createRequest(ctx, input) {
     await audit.record(ctx, 'leave.requested', {
       entityType: 'leave_request', entityId: id, newValues: { name: `${employee.first_name} ${employee.last_name}`, type: type.name, days, start_date: data.start_date },
     }, trx);
-    const approvers = await approversFor(trx, ctx.organizationId, employee);
+    // A matching approval workflow (Enterprise) decides who approves, step by step; otherwise the standard approvers.
+    const workflow = await workflows.match(trx, ctx.organizationId, { leaveTypeId: type.id, days });
+    const approvers = (workflow && await workflows.start(trx, ctx.organizationId, id, employee, workflow)) || await approversFor(trx, ctx.organizationId, employee);
     await notifications.notify(ctx.organizationId, approvers.filter((u) => u !== ctx.userId), 'leave_requested',
       { name: `${employee.first_name} ${employee.last_name}`, days, type: type.name }, '/app/leave?tab=approvals', trx);
     return id;
@@ -198,7 +201,32 @@ async function decide(ctx, id, { decision, note }) {
   return knex.transaction(async (trx) => {
     const req = await trx('leave_requests').where({ id, organization_id: ctx.organizationId }).forUpdate().first();
     if (!req) throw E.notFound('Leave request');
-    await assertCanDecide(ctx, req);
+    if (req.workflow_id) {
+      // Multi-step workflow: only the approvers of the active step decide; earlier steps only move it forward.
+      const employee = await trx('employees').where({ id: req.employee_id }).first();
+      if (!(await workflows.canDecide(trx, ctx, req, employee))) throw E.forbidden('leave.approve');
+      if (req.status !== 'pending') throw new AppError('LEAVE_NOT_PENDING', 'This request has already been decided.', 409);
+      if (decision === 'approved') {
+        const type0 = await trx('leave_types').where({ id: req.leave_type_id }).first();
+        if (type0.has_balance) {
+          const b0 = await balanceRow(trx, ctx.organizationId, req.employee_id, type0, new Date(req.start_date).getUTCFullYear());
+          if (Number(req.days) > available(b0)) throw new AppError('INSUFFICIENT_LEAVE_BALANCE', 'Not enough leave balance for this request.', 409);
+        }
+      }
+      const step = await workflows.decideStep(trx, ctx, req, employee, decision, note);
+      if (!step.final) {
+        await audit.record(ctx, 'leave.step_approved', {
+          entityType: 'leave_request', entityId: id, newValues: { step: step.step.step_no, name: `${employee.first_name} ${employee.last_name}` },
+        }, trx);
+        const t = await trx('leave_types').where({ id: req.leave_type_id }).first();
+        await notifications.notify(ctx.organizationId, step.next.filter((u) => u !== ctx.userId), 'leave_requested',
+          { name: `${employee.first_name} ${employee.last_name}`, days: Number(req.days), type: t.name }, '/app/leave?tab=approvals', trx);
+        return;
+      }
+    } else {
+      if (!ctx.permissions.has('leave.approve')) throw E.forbidden('leave.approve');
+      await assertCanDecide(ctx, req);
+    }
     if (req.status !== 'pending') throw new AppError('LEAVE_NOT_PENDING', 'This request has already been decided.', 409);
     const type = await trx('leave_types').where({ id: req.leave_type_id }).first();
     if (decision === 'approved' && type.has_balance) {
@@ -231,6 +259,7 @@ async function cancel(ctx, id) {
     if (req.status === 'approved' && start <= today && own && !ctx.permissions.has('leave.approve')) {
       throw new AppError('LEAVE_ALREADY_STARTED', 'Leave that has started can only be cancelled by an approver.', 409);
     }
+    if (req.workflow_id) await workflows.cancelSteps(trx, req.id);
     if (req.status === 'approved') {
       const type = await trx('leave_types').where({ id: req.leave_type_id }).first();
       if (type.has_balance) {
@@ -253,15 +282,22 @@ function baseRequests(organizationId) {
 async function myRequests(ctx) {
   const self = await employees.linkedEmployeeId(ctx);
   if (!self) return [];
-  return baseRequests(ctx.organizationId).where('r.employee_id', self).orderBy('r.start_date', 'desc').limit(50);
+  return workflows.attachSteps(await baseRequests(ctx.organizationId).where('r.employee_id', self).orderBy('r.start_date', 'desc').limit(50));
 }
 
 async function pendingApprovals(ctx) {
-  if (!ctx.permissions.has('leave.approve')) return [];
-  const scope = await employees.approvableIds(ctx);
-  const q = baseRequests(ctx.organizationId).where('r.status', 'pending').orderBy('r.start_date');
-  if (scope.all) { if (scope.exclude) q.whereNot('r.employee_id', scope.exclude); } else if (scope.ids.length) q.whereIn('r.employee_id', scope.ids); else return [];
-  return q;
+  let rows = [];
+  if (ctx.permissions.has('leave.approve')) {
+    const scope = await employees.approvableIds(ctx);
+    const q = baseRequests(ctx.organizationId).where('r.status', 'pending').whereNull('r.workflow_id').orderBy('r.start_date');
+    if (scope.all) { if (scope.exclude) q.whereNot('r.employee_id', scope.exclude); } else if (scope.ids.length) q.whereIn('r.employee_id', scope.ids); else q.whereRaw('1 = 0');
+    rows = await q;
+  }
+  // Workflow requests appear only for the approvers of their active step.
+  const wf = await workflows.pendingFor(ctx);
+  if (wf.length) rows = rows.concat(await baseRequests(ctx.organizationId).whereIn('r.id', wf));
+  rows.sort((a, b) => new Date(a.start_date) - new Date(b.start_date));
+  return workflows.attachSteps(rows);
 }
 
 /** Leave across the visible workforce (calendar / list), filtered by month or status. */

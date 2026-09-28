@@ -25,6 +25,7 @@ async function authenticate({ email, password }, ctx = {}) {
     throw E.invalidCredentials();
   }
   if (user.status !== 'active') throw new AppError('ACCOUNT_DISABLED', 'This account is disabled.', 403);
+  await require('../sso/sso.service').assertPasswordAllowed(user); // eslint-disable-line global-require
   await knex('users').where({ id: user.id }).update({ last_login_at: new Date() });
   await audit.record({ ...ctx, userId: user.id }, 'auth.login', { entityType: 'user', entityId: user.id });
   return user;

@@ -131,7 +131,7 @@ All of them carry `organization_id` and a composite index that starts with it.
 | 11 | Learning (Courses, lessons & quizzes, Paths, Assignments, Certificates) | 6 | **Built** |
 | 12 | Integration hub: Webhooks, SMS, Chat, Calendar feeds, Email (SMTP), background jobs; PayWay awaiting API docs; Accounting later | 7 | **Built** |
 | 13 | AI layer (providers, governance, metering; recruitment, documents, performance, learning, analytics assistant) | 8 | **Built** |
-| 14 | SSO, custom workflows, enterprise reporting, client success portal | 9 | Planned |
+| 14 | SSO (OIDC), approval workflows, reports (templates, builder, schedules), client success portal | 9 | **Built** |
 
 ### API map (v1)
 
@@ -200,14 +200,14 @@ Auth is `Authorization: Bearer rw_…` (Settings → API; requires the `api` fea
 | Leave (`leave`) | available | ✓ | ✓ | ✓ | ✓ |
 | Documents (`documents`) | available | ✓ | ✓ | ✓ | ✓ |
 | Tasks (`tasks`) | available | ✓ | ✓ | ✓ | ✓ |
-| Basic Reports (`basic_reports`) | coming_soon | ✓ | ✓ | ✓ | ✓ |
+| Basic Reports (`basic_reports`) | available | ✓ | ✓ | ✓ | ✓ |
 | Recruitment (ATS) (`recruitment`) | available |  | ✓ | ✓ | ✓ |
 | Onboarding (`onboarding`) | available |  | ✓ | ✓ | ✓ |
 | Payroll (`payroll`) | available |  | ✓ | ✓ | ✓ |
 | Performance (`performance`) | available |  | ✓ | ✓ | ✓ |
 | Learning (`learning`) | available |  | ✓ | ✓ | ✓ |
 | Projects (`projects`) | available |  | ✓ | ✓ | ✓ |
-| Advanced Reports (`advanced_reports`) | coming_soon |  | ✓ | ✓ | ✓ |
+| Advanced Reports (`advanced_reports`) | available |  | ✓ | ✓ | ✓ |
 | Integrations (`integrations`) | available |  | ✓ | ✓ | ✓ |
 | Advanced Analytics (`analytics`) | coming_soon |  |  | ✓ | ✓ |
 | Compliance (`compliance`) | coming_soon |  | ✓ | ✓ | ✓ |
@@ -215,16 +215,16 @@ Auth is `Authorization: Bearer rw_…` (Settings → API; requires the `api` fea
 | Advanced Permissions (`advanced_permissions`) | available |  |  | ✓ | ✓ |
 | Custom Roles (`custom_roles`) | available |  |  |  | ✓ |
 | Advanced Automation (`automation`) | coming_soon |  |  | ✓ | ✓ |
-| Single Sign-On (`sso`) | coming_soon |  |  |  | ✓ |
-| Custom Workflows (`custom_workflows`) | coming_soon |  |  |  | ✓ |
-| Enterprise Reporting (`enterprise_reporting`) | coming_soon |  |  |  | ✓ |
+| Single Sign-On (`sso`) | available |  |  |  | ✓ |
+| Custom Workflows (`custom_workflows`) | available |  |  |  | ✓ |
+| Enterprise Reporting (`enterprise_reporting`) | available |  |  |  | ✓ |
 | PayWay Integration (`payway`) | integration_required |  |  |  |  |
 | AI Recruitment (`ai_recruitment`) | available |  |  | ✓ | ✓ |
 | AI Documents (`ai_documents`) | available |  |  | ✓ | ✓ |
 | AI Performance (`ai_performance`) | available |  |  | ✓ | ✓ |
 | AI Learning (`ai_learning`) | available |  |  | ✓ | ✓ |
 | AI Analytics (`ai_analytics`) | available |  |  | ✓ | ✓ |
-| Client Success Portal (`client_success`) | coming_soon |  |  |  | ✓ |
+| Client Success Portal (`client_success`) | available |  |  |  | ✓ |
 
 | Limit | Starter | Business | Professional | Enterprise |
 |---|--:|--:|--:|--:|
@@ -280,7 +280,7 @@ Payroll / Employees ─► domain events (payroll.approved, employee.updated)
 | **6 — Learning** | Courses (text, video, file, link, quiz), catalog, assignments, paths, progress, certificates with public verification and expiry, reports | ✅ Done — 12 more tests (safe content, embeds, publishing rules, access to lessons/files, assignment scope, quiz scoring, certificates & verification, retake, paths) |
 | **7 — Integrations** | Integration hub, database job queue (retries, cron script), encrypted credentials, SSRF-safe HTTP, signed outbound webhooks, SMS (Taqnyat/Unifonic/Msegat), Slack/Google Chat, ICS calendar feeds, SMTP & jobs in Super Admin; PayWay adapter once docs are available | ✅ Done — 15 more tests (encryption, SSRF blocking, signatures, phone normalisation, ICS, webhook outbox/retry/auto-disable, SMS formats, chat, calendar feeds, queue) — 136 total |
 | **8 — AI** | Provider adapters (Anthropic, OpenAI, Gemini, Azure OpenAI), Super Admin config (encrypted key, test, usage), company switches, metered `ai_requests`, schema-validated output, redaction; job drafts, candidate requirement match, document summaries & dates, review drafts, quiz generation, analytics assistant over SQL metrics | ✅ Done — 17 more tests (redaction, provider formats, governance, quota & refunds, invalid output, CV/PDF handling, access rules, tenant isolation, analytics scoping, admin key storage) — 153 total |
-| 9 — Enterprise | SSO (SAML/OIDC), custom workflows, enterprise reporting, client success portal | |
+| **9 — Enterprise** | SSO over OpenID Connect (PKCE, JWKS-verified ID tokens, domains, JIT, enforcement with owner break-glass); multi-step leave approval workflows; reports (templates, builder over 8 datasets, saved/shared, scheduled CSV email in the org time zone); support tickets with SLA targets and a Super Admin inbox. SAML is not included (all major IdPs offer OIDC) | ✅ Done — 15 more tests (token verification, SSO flows/JIT/domains/enforcement, workflow order/skip/reject/balance, report safety/tiers/schedules/time zones, tickets/SLA/internal notes/isolation) — 168 total |
 
 **Definition of done per module:** migration + service + web UI + API + validation + permissions + tenant isolation + loading/empty/error states + responsive + Arabic + English + tests.
 
