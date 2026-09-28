@@ -46,7 +46,7 @@ Under the PDPL you have the right to be informed, to access your data, to get a 
 We use encrypted connections (HTTPS), hashed passwords, optional two-step verification, encrypted storage of secrets, role-based access and daily backups.
 
 ## Cookies
-We use only essential cookies: one to keep you signed in, and others to remember your language and theme. We do not use advertising or tracking cookies.
+{cookies}
 
 ## Contact
 For privacy questions or requests: {email}.
@@ -87,7 +87,7 @@ We may update this policy; the date below shows the latest version. Last updated
 نستخدم اتصالًا مشفّرًا (HTTPS) وتشفير كلمات المرور والتحقق بخطوتين الاختياري وتشفير البيانات السرية والصلاحيات حسب الدور ونسخًا احتياطية يومية.
 
 ## ملفات تعريف الارتباط
-نستخدم ملفات ضرورية فقط: واحد لإبقائك مسجلًا، وأخرى لتذكّر اللغة والمظهر. لا نستخدم ملفات إعلانية أو تتبعية.
+{cookies}
 
 ## التواصل
 للاستفسارات أو الطلبات المتعلقة بالخصوصية: {email}.
@@ -206,13 +206,28 @@ function toHtml(text) {
 }
 
 /** The text for one page in one language, with the details filled in. */
+/** The cookies paragraph follows the real set-up: essential only, or with advertising pixels after consent. */
+async function cookieText(lang) {
+  const m = await require('./seo.service').marketing().catch(() => ({ pixels: {} })); // eslint-disable-line global-require
+  const names = { ga4: 'Google Analytics', gtm: 'Google Tag Manager', meta: 'Meta (Facebook/Instagram)', tiktok: 'TikTok', snap: 'Snapchat', linkedin: 'LinkedIn', x: 'X (Twitter)' };
+  const on = Object.keys(m.pixels || {}).filter((k) => m.pixels[k]).map((k) => names[k] || k);
+  if (!on.length) {
+    return lang === 'ar' ? 'نستخدم ملفات ضرورية فقط: واحد لإبقائك مسجلًا، وأخرى لتذكّر اللغة والمظهر. لا نستخدم ملفات إعلانية أو تتبعية.'
+      : 'We use only essential cookies: one to keep you signed in, and others to remember your language and theme. We do not use advertising or tracking cookies.';
+  }
+  return lang === 'ar'
+    ? `نستخدم ملفات ضرورية لإبقائك مسجلًا ولتذكّر اللغة والمظهر. وعلى صفحات الموقع العامة فقط، وبعد موافقتك، نستخدم أدوات قياس وإعلان من: ${on.join('، ')} لقياس الزيارات وأداء الإعلانات. لا تُحمَّل هذه الأدوات داخل حسابك أو بيانات منشأتك، ويمكنك سحب الموافقة في أي وقت من أعلى هذه الصفحة.`
+    : `We use essential cookies to keep you signed in and remember your language and theme. On the public website pages only, and only after you accept, we use measurement and advertising tools from: ${on.join(', ')} to measure visits and ad performance. These tools never load inside your account or your company's data, and you can withdraw consent at any time at the top of this page.`;
+}
+
 async function page(kind, locale) {
   if (!KINDS.includes(kind)) throw E.notFound('Page');
   const d = await details();
   const lang = locale === 'ar' ? 'ar' : 'en';
   const raw = d.custom[kind][lang] || DEFAULTS[kind][lang];
   const updated = d.updated_at ? new Date(d.updated_at).toISOString().slice(0, 10) : '2026-10-01';
-  const text = raw.replace(/\{company\}/g, d.company).replace(/\{email\}/g, d.email || (lang === 'ar' ? 'نموذج التواصل في المنصة' : 'the contact form on the platform')).replace(/\{updated\}/g, updated);
+  const cookies = await cookieText(lang);
+  const text = raw.replace(/\{cookies\}/g, cookies).replace(/\{company\}/g, d.company).replace(/\{email\}/g, d.email || (lang === 'ar' ? 'نموذج التواصل في المنصة' : 'the contact form on the platform')).replace(/\{updated\}/g, updated);
   return { kind, html: toHtml(text), updated, customised: Boolean(d.custom[kind][lang]) };
 }
 

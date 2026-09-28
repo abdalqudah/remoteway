@@ -54,6 +54,13 @@
   </div>
 </section>
 
+<% if (googleLinked) { %>
+<section class="panel mt-6">
+  <div class="panel-head"><h2><%- brandIcon('google') %> <%= t('google.linked_title') %></h2></div>
+  <div class="panel-body row wrap between"><p class="text-2"><%= t('google.linked_text') %></p>
+    <form method="post" action="/security/google/unlink"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><button class="btn btn-secondary btn-sm" type="submit"><%= t('google.unlink') %></button></form></div>
+</section>
+<% } %>
 <section class="panel mt-6">
   <div class="panel-head"><h2><%- icon('download') %> <%= t('privacy.your_data') %></h2></div>
   <div class="panel-body stack">

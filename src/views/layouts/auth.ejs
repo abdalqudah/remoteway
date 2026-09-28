@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="<%= locale %>" dir="<%= dir %>" data-v="<%= assetV %>"<% if (theme !== 'system') { %> data-theme="<%= theme %>"<% } %>>
-<head><%- include('../partials/head') %></head>
+<head><%- include('../partials/head', { publicHead: true }) %></head>
 <body>
 <div class="auth">
   <div class="auth-side">

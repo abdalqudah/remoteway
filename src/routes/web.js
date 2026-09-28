@@ -11,8 +11,25 @@ router.use((req, res, next) => {
 // Editable landing page content (header, sections, footer), cached for a minute.
 const siteContent = require('../modules/site/content.service');
 const siteMedia = require('../modules/site/media.service');
+const seo = require('../modules/site/seo.service');
+const google = require('../modules/auth/google.service');
 router.use((req, res, next) => {
-  Promise.all([siteContent.get(), siteMedia.map()]).then(([c, m]) => { res.locals.site = c; res.locals.siteMedia = m; next(); }, next);
+  Promise.all([siteContent.get(), siteMedia.map(), seo.get(), seo.marketing(), google.enabled().catch(() => false)]).then(([c, m, s, mk, g]) => {
+    res.locals.googleOn = g;
+    res.locals.site = c; res.locals.siteMedia = m; res.locals.seo = s; res.locals.marketing = mk;
+    res.locals.pixelsOn = seo.hasPixels(mk);
+    seo.cspFrom(mk); // keeps the script policy in step when another process changed the pixels
+    // A conversion (sign-up, demo request) is reported once, on the next public page.
+    const pixelEvent = req.cookies && seo.EVENTS.includes(req.cookies.rw_px_ev) ? req.cookies.rw_px_ev : '';
+    if (pixelEvent && req.method === 'GET') res.clearCookie('rw_px_ev');
+    res.locals.pixelPending = Boolean(pixelEvent);
+    // Search tags, structured data and pixels for public pages (never on a company's own white-label domain).
+    res.locals.seoHead = (page = {}) => (res.locals.hostBrand ? null : seo.head({
+      seo: s, mkt: mk, base: res.locals.baseUrl, locale: req.locale, path: req.path, site: c, siteMedia: m, assetV: res.locals.assetV,
+      consent: req.cookies && req.cookies.rw_consent, pixelEvent: res.locals.pixelEventNow || pixelEvent, fallbackDescription: req.t('site.meta_description'), ...page,
+    }));
+    next();
+  }, next);
 });
 // Website images and videos (range requests work, so videos can be skipped through).
 router.get('/site-media/:id/:sha', require('./helpers').wrap(async (req, res, next) => {

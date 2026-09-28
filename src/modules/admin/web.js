@@ -370,6 +370,8 @@ router.post('/users/:id/reset-link', wrap(async (req, res) => {
   res.redirect(to);
 }));
 
+router.use('/', require('./growth.web')); // SEO/AEO/GEO, marketing, Google sign-in, custom domains
+
 // ---------- Landing page editor ----------
 const site = require('../site/content.service');
 const siteFeatures = () => knex('features').orderBy('sort_order').select('key', 'name');

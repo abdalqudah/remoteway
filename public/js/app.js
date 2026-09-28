@@ -580,6 +580,21 @@
     if (navigator.wakeLock && navigator.wakeLock.request) navigator.wakeLock.request('screen').catch(function () {});
   }
 
+  // Character counters for search titles and descriptions (data-count = recommended length).
+  document.querySelectorAll('[data-count]').forEach(function (el) {
+    var limit = Number(el.getAttribute('data-count'));
+    var out = document.createElement('span');
+    out.className = 'char-count';
+    el.insertAdjacentElement('afterend', out);
+    var update = function () {
+      var n = el.value.length;
+      out.textContent = n + ' / ' + limit;
+      out.classList.toggle('is-over', n > limit);
+    };
+    el.addEventListener('input', update);
+    update();
+  });
+
   // Keep csrf available for fetch-based features.
   window.RemoteWay = { csrf: csrf };
 })();

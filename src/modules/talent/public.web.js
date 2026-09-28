@@ -30,6 +30,7 @@ router.post('/join', limiter, form(async (req, res) => {
   await require('../auth/web').signIn(req, user, null); // eslint-disable-line global-require
   await require('../auth/verify.service').send(await require('../../db/knex')('users').where({ id: user.id }).first(), { locale: req.locale }).catch(() => {}); // eslint-disable-line global-require
   const next = String(req.body.next || '');
+  require('../site/seo.service').markConversion(res, 'join'); // eslint-disable-line global-require
   res.redirect(next.startsWith('/jobs/') && !next.startsWith('//') ? next : '/me/profile');
 }, renderJoin));
 

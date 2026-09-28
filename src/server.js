@@ -138,6 +138,7 @@ async function start() {
   setInterval(backupTick, 3600_000).unref();
   setInterval(() => require('./modules/admin/errors.service').prune(90).catch(() => {}), 24 * 3600_000).unref();
   process.on('unhandledRejection', (err) => { console.error('[unhandled]', err); require('./modules/admin/errors.service').record(err, { method: 'BG', originalUrl: '(background)' }); });
+  require('./modules/site/seo.service').refreshCsp().catch(() => {}); // pixel hosts for the script policy
   // Phusion Passenger / LiteSpeed (cPanel "Setup Node.js App") passes a socket path via PORT; listen() accepts both.
   const server = app.listen(PORT, () => console.log(`[remoteway] listening on ${PORT} (${config.env})`));
   const shutdown = () => server.close(() => knex.destroy().then(() => process.exit(0)));

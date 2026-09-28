@@ -5,5 +5,14 @@
   </nav>
   <h1><%= t('legal.' + doc.kind + '_title') %></h1>
   <p class="muted small"><%= t('legal.last_updated') %>: <span dir="ltr"><%= doc.updated %></span></p>
+  <% if (doc.kind === 'privacy' && typeof pixelsOn !== 'undefined' && pixelsOn) { %>
+  <div class="panel mb-6" id="cookie-choice"><div class="panel-body row wrap between">
+    <div><strong><%= t('seo.consent_title') %></strong><div class="small muted"><%= t('seo.consent_explain') %> — <%= consent === 'yes' ? t('seo.consent_now_yes') : consent === 'no' ? t('seo.consent_now_no') : t('seo.consent_now_none') %></div></div>
+    <div class="row nowrap">
+      <form method="post" action="/preferences/cookies"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><input type="hidden" name="choice" value="decline"><button class="btn btn-secondary btn-sm" type="submit"><%= t('seo.consent_decline') %></button></form>
+      <form method="post" action="/preferences/cookies"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><input type="hidden" name="choice" value="accept"><button class="btn btn-dark btn-sm" type="submit"><%= t('seo.consent_accept') %></button></form>
+    </div>
+  </div></div>
+  <% } %>
   <article class="legal-body"><%- doc.html %></article>
 </section>

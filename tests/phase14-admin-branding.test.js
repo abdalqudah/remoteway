@@ -150,7 +150,19 @@ describe('Phase 14 — platform team, company management, branding', () => {
     const inv = await h.knex('invoices').where({ organization_id: co.organizationId }).first();
     assert.match((await cs.get(`/app/billing/invoices/${inv.id}`)).text, /\/brand\/logo-primary\.png/);
 
-    // Sign-in on the company's own domain
+    // Sign-in on the company's own domain: only after its DNS proves ownership and points to the platform
+    assert.equal(row.domain_status, 'pending');
+    assert.doesNotMatch((await h.request(h.getApp()).get('/login').set('Host', 'hr.acme.test')).text, /Acme HR/);
+    const domains = require('../src/modules/branding/domain.service');
+    const { PLATFORM_HOST } = require('../src/modules/branding/branding.service');
+    const fake = (txt, cname) => ({
+      resolveTxt: async () => txt, resolveCname: async () => cname, resolve4: async (n) => (n === PLATFORM_HOST ? ['203.0.113.5'] : Promise.reject(Object.assign(new Error('x'), { code: 'ENODATA' }))),
+    });
+    let chk = await domains.check({ userId: co.userId }, co.organizationId, { resolver: fake([['remoteway-verify=wrong']], [PLATFORM_HOST]) });
+    assert.equal(chk.live, false);
+    assert.equal(chk.owned, false);
+    chk = await domains.check({ userId: co.userId }, co.organizationId, { resolver: fake([[domains.txtValue(row.domain_token)]], [`${PLATFORM_HOST}.`]) });
+    assert.equal(chk.live, true);
     const login = await h.request(h.getApp()).get('/login').set('Host', 'hr.acme.test');
     assert.equal(login.status, 200);
     assert.match(login.text, /<title>[^<]*Acme HR<\/title>/);

@@ -1,0 +1,110 @@
+<%
+  var o = old || {};
+  var has = Object.keys(o).length > 0;
+  var bv = function (obj, key, lc) { return has ? (o[key + '_' + lc] || '') : ((obj && obj[lc]) || ''); };
+  var val = function (key, cur) { return has ? (o[key] || '') : (cur || ''); };
+  var on = function (key, cur) { return has ? o[key] === '1' : Boolean(cur); };
+  var PATHS = {}; Object.keys(PATH_PAGE).forEach(function (p) { PATHS[PATH_PAGE[p]] = p; });
+%>
+<div class="page-head"><div><h1><%= t('seo.title') %></h1><p><%= t('seo.sub') %></p></div>
+  <div class="page-actions">
+    <a class="btn btn-secondary" href="/sitemap.xml" target="_blank" rel="noopener"><%- icon('external-link') %>sitemap.xml</a>
+    <a class="btn btn-secondary" href="/robots.txt" target="_blank" rel="noopener"><%- icon('external-link') %>robots.txt</a>
+    <a class="btn btn-secondary" href="/llms.txt" target="_blank" rel="noopener"><%- icon('external-link') %>llms.txt</a>
+  </div></div>
+
+<section class="panel mb-6">
+  <div class="panel-head"><h2><%= t('seo.health') %></h2><span class="badge <%= checks.every(function (c) { return c.ok; }) ? 'badge-success' : 'badge-warning' %>"><%= checks.filter(function (c) { return c.ok; }).length %> / <%= checks.length %></span></div>
+  <ul class="check-rows">
+    <% checks.forEach(function (c) { %><li class="check-row <%= c.ok ? 'is-ok' : 'is-bad' %>"><span class="check-icon"><%- icon(c.ok ? 'circle-check' : 'circle-alert') %></span><div><div class="check-title"><%= t('seo.check_' + c.key) %></div><% if (!c.ok) { %><div class="small muted"><%= t('seo.check_' + c.key + '_fix') %></div><% } %></div></li><% }) %>
+  </ul>
+</section>
+
+<form method="post" action="/admin/seo" class="stack" novalidate>
+  <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+
+  <section class="panel" id="general">
+    <div class="panel-head"><div><h2><%- icon('search') %> <%= t('seo.general') %></h2><div class="panel-sub"><%= t('seo.general_sub') %></div></div></div>
+    <div class="panel-body grid grid-2">
+      <div class="field"><label class="label" for="f-site_name_ar"><%= t('seo.site_name') %> — العربية</label><input class="input" id="f-site_name_ar" name="site_name_ar" dir="rtl" maxlength="80" value="<%= bv(s.site_name, 'site_name', 'ar') %>"></div>
+      <div class="field"><label class="label" for="f-site_name_en"><%= t('seo.site_name') %> — English</label><input class="input" id="f-site_name_en" name="site_name_en" dir="ltr" maxlength="80" value="<%= bv(s.site_name, 'site_name', 'en') %>"></div>
+      <div class="field"><label class="label" for="f-description_ar"><%= t('seo.description') %> — العربية</label><textarea class="textarea" id="f-description_ar" name="description_ar" dir="rtl" maxlength="320" rows="3"><%= bv(s.description, 'description', 'ar') %></textarea><span class="help"><%= t('seo.description_help') %></span></div>
+      <div class="field"><label class="label" for="f-description_en"><%= t('seo.description') %> — English</label><textarea class="textarea" id="f-description_en" name="description_en" dir="ltr" maxlength="320" rows="3"><%= bv(s.description, 'description', 'en') %></textarea></div>
+      <div class="field"><label class="label" for="f-keywords_ar"><%= t('seo.keywords') %> — العربية</label><input class="input" id="f-keywords_ar" name="keywords_ar" dir="rtl" maxlength="300" value="<%= bv(s.keywords, 'keywords', 'ar') %>"><span class="help"><%= t('seo.keywords_help') %></span></div>
+      <div class="field"><label class="label" for="f-keywords_en"><%= t('seo.keywords') %> — English</label><input class="input" id="f-keywords_en" name="keywords_en" dir="ltr" maxlength="300" value="<%= bv(s.keywords, 'keywords', 'en') %>"></div>
+      <div class="field"><label class="label" for="f-og_image"><%= t('seo.og_image') %></label>
+        <select class="select" id="f-og_image" name="og_image"><option value=""><%= t('seo.og_default') %></option>
+          <% images.forEach(function (m) { %><option value="<%= m.id %>"<%= String(val('og_image', s.og_image)) === String(m.id) ? ' selected' : '' %>><%= m.name %></option><% }) %></select>
+        <span class="help"><%= t('seo.og_help') %> <a class="link" href="/admin/site/media"><%= t('siteed.media') %></a></span></div>
+      <%- include('../../partials/field', { name: 'x_handle', label: t('seo.x_handle'), value: val('x_handle', s.x_handle), placeholder: 'remoteway', attrs: 'dir="ltr" maxlength="40"', help: t('seo.x_handle_help') }) %>
+    </div>
+  </section>
+
+  <section class="panel" id="pages">
+    <div class="panel-head"><div><h2><%- icon('file-text') %> <%= t('seo.pages') %></h2><div class="panel-sub"><%= t('seo.pages_sub') %></div></div></div>
+    <div class="panel-body stack-sm">
+      <% PAGES.forEach(function (p) { var pg = s.pages[p] || {}; var set = (pg.title && (pg.title.ar || pg.title.en)) || (pg.description && (pg.description.ar || pg.description.en)); %>
+      <details class="seo-page"<%= has && (o['p_' + p + '_title_ar'] || o['p_' + p + '_title_en']) ? ' open' : '' %>>
+        <summary><span class="mono" dir="ltr"><%= PATHS[p] %></span> <strong><%= t('seo.page_' + p) %></strong>
+          <% if (on('p_' + p + '_noindex', pg.noindex)) { %><span class="badge badge-warning"><%= t('seo.noindex_badge') %></span><% } else if (set) { %><span class="badge badge-success"><%= t('seo.custom') %></span><% } else { %><span class="badge"><%= t('seo.automatic') %></span><% } %></summary>
+        <div class="grid grid-2 mt-4">
+          <div class="field"><label class="label" for="f-p_<%= p %>_title_ar"><%= t('seo.page_title') %> — العربية</label><input class="input" id="f-p_<%= p %>_title_ar" name="p_<%= p %>_title_ar" dir="rtl" maxlength="120" value="<%= bv(pg.title, 'p_' + p + '_title', 'ar') %>" data-count="60"></div>
+          <div class="field"><label class="label" for="f-p_<%= p %>_title_en"><%= t('seo.page_title') %> — English</label><input class="input" id="f-p_<%= p %>_title_en" name="p_<%= p %>_title_en" dir="ltr" maxlength="120" value="<%= bv(pg.title, 'p_' + p + '_title', 'en') %>" data-count="60"></div>
+          <div class="field"><label class="label" for="f-p_<%= p %>_desc_ar"><%= t('seo.page_desc') %> — العربية</label><textarea class="textarea" id="f-p_<%= p %>_desc_ar" name="p_<%= p %>_desc_ar" dir="rtl" rows="2" maxlength="320" data-count="160"><%= bv(pg.description, 'p_' + p + '_desc', 'ar') %></textarea></div>
+          <div class="field"><label class="label" for="f-p_<%= p %>_desc_en"><%= t('seo.page_desc') %> — English</label><textarea class="textarea" id="f-p_<%= p %>_desc_en" name="p_<%= p %>_desc_en" dir="ltr" rows="2" maxlength="320" data-count="160"><%= bv(pg.description, 'p_' + p + '_desc', 'en') %></textarea></div>
+        </div>
+        <label class="check"><input type="checkbox" name="p_<%= p %>_noindex" value="1"<%= on('p_' + p + '_noindex', pg.noindex) ? ' checked' : '' %>><span><%= t('seo.noindex') %></span></label>
+      </details>
+      <% }) %>
+      <p class="small muted"><%= t('seo.pages_note') %></p>
+    </div>
+  </section>
+
+  <section class="panel" id="verify">
+    <div class="panel-head"><div><h2><%- icon('badge-check') %> <%= t('seo.verify') %></h2><div class="panel-sub"><%= t('seo.verify_sub') %></div></div></div>
+    <div class="panel-body grid grid-3">
+      <%- include('../../partials/field', { name: 'v_google', label: 'Google Search Console', value: val('v_google', s.verify.google), attrs: 'dir="ltr"', help: t('seo.verify_help') }) %>
+      <%- include('../../partials/field', { name: 'v_bing', label: 'Bing Webmaster', value: val('v_bing', s.verify.bing), attrs: 'dir="ltr"' }) %>
+      <%- include('../../partials/field', { name: 'v_yandex', label: 'Yandex', value: val('v_yandex', s.verify.yandex), attrs: 'dir="ltr"' }) %>
+    </div>
+  </section>
+
+  <section class="panel" id="aeo">
+    <div class="panel-head"><div><h2><%- icon('sparkles') %> <%= t('seo.aeo') %></h2><div class="panel-sub"><%= t('seo.aeo_sub') %></div></div></div>
+    <div class="panel-body stack">
+      <div class="check-grid">
+        <% ['organization', 'website', 'software', 'faq', 'jobs'].forEach(function (k) { %>
+        <label class="check"><input type="checkbox" name="s_<%= k %>" value="1"<%= on('s_' + k, s.schema[k]) ? ' checked' : '' %>><span><%= t('seo.schema_' + k) %></span></label>
+        <% }) %>
+      </div>
+      <div class="grid grid-3">
+        <%- include('../../partials/field', { name: 'o_legal_name', label: t('seo.org_legal_name'), value: val('o_legal_name', s.org.legal_name) }) %>
+        <%- include('../../partials/field', { name: 'o_email', label: t('fields.email'), type: 'email', value: val('o_email', s.org.email), attrs: 'dir="ltr"' }) %>
+        <%- include('../../partials/field', { name: 'o_phone', label: t('fields.phone'), value: val('o_phone', s.org.phone), attrs: 'dir="ltr"', placeholder: '+9665…' }) %>
+        <%- include('../../partials/field', { name: 'o_city', label: t('seo.org_city'), value: val('o_city', s.org.city) }) %>
+        <%- include('../../partials/field', { name: 'o_country', label: t('seo.org_country'), value: val('o_country', s.org.country) || 'SA', attrs: 'dir="ltr" maxlength="2"', help: t('seo.org_country_help') }) %>
+        <%- include('../../partials/field', { name: 'o_address', label: t('seo.org_address'), value: val('o_address', s.org.address) }) %>
+      </div>
+      <p class="small muted"><%= t('seo.aeo_note') %></p>
+    </div>
+  </section>
+
+  <section class="panel" id="geo">
+    <div class="panel-head"><div><h2><%- icon('bot') %> <%= t('seo.geo') %></h2><div class="panel-sub"><%= t('seo.geo_sub') %></div></div></div>
+    <div class="panel-body stack">
+      <div><div class="label"><%= t('seo.bots') %></div>
+        <div class="check-grid mt-2">
+          <% Object.keys(AI_BOTS).forEach(function (k) { %>
+          <label class="check"><input type="checkbox" name="b_<%= k %>" value="1"<%= on('b_' + k, s.bots[k]) ? ' checked' : '' %>><span class="mono" dir="ltr"><%= AI_BOTS[k] %></span></label>
+          <% }) %>
+        </div>
+        <span class="help"><%= t('seo.bots_help') %></span></div>
+      <div class="field"><label class="label" for="f-llms">llms.txt</label>
+        <textarea class="textarea mono" id="f-llms" name="llms" dir="auto" rows="12" maxlength="20000" placeholder="<%= t('seo.llms_placeholder') %>"><%= val('llms', s.llms) %></textarea>
+        <span class="help"><%= t('seo.llms_help') %> <a class="link" href="/admin/seo/llms-default" target="_blank" rel="noopener"><%= t('seo.llms_view_default') %></a></span></div>
+    </div>
+  </section>
+
+  <div class="row wrap"><button class="btn btn-dark" type="submit"><%= t('common.save_changes') %></button>
+    <% if (s.updated_at) { %><span class="small muted"><%= t('seo.updated') %>: <span dir="ltr"><%= s.updated_at.slice(0, 16).replace('T', ' ') %></span></span><% } %></div>
+</form>

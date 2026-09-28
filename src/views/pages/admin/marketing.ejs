@@ -1,0 +1,42 @@
+<%
+  var o = old || {};
+  var has = Object.keys(o).length > 0;
+  var val = function (key, cur) { return has ? (o[key] || '') : (cur || ''); };
+  var PH = { x: 'https://x.com/remoteway', linkedin: 'https://www.linkedin.com/company/remoteway', instagram: 'https://www.instagram.com/remoteway', facebook: 'https://www.facebook.com/remoteway',
+    youtube: 'https://www.youtube.com/@remoteway', tiktok: 'https://www.tiktok.com/@remoteway', snapchat: 'https://www.snapchat.com/add/remoteway', whatsapp: 'https://wa.me/9665XXXXXXXX',
+    telegram: 'https://t.me/remoteway', threads: 'https://www.threads.net/@remoteway' };
+  var PX = { ga4: 'G-XXXXXXXXXX', gtm: 'GTM-XXXXXXX', meta: '123456789012345', tiktok: 'CXXXXXXXXXXXXXXXXXXX', snap: 'xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx', linkedin: '1234567', x: 'o1abc' };
+  var PXI = { ga4: 'chart-column', gtm: 'chart-column', meta: 'facebook', tiktok: 'tiktok', snap: 'snapchat', linkedin: 'linkedin', x: 'x' };
+%>
+<div class="page-head"><div><h1><%= t('seo.marketing_title') %></h1><p><%= t('seo.marketing_sub') %></p></div></div>
+<form method="post" action="/admin/marketing" class="stack" novalidate>
+  <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+  <section class="panel">
+    <div class="panel-head"><div><h2><%- icon('share-2') %> <%= t('seo.social') %></h2><div class="panel-sub"><%= t('seo.social_sub') %></div></div></div>
+    <div class="panel-body grid grid-2">
+      <% SOCIAL.forEach(function (k) { var err = errors['social_' + k]; %>
+      <div class="field"><label class="label row-sm" for="f-social_<%= k %>"><%- brandIcon(k) %> <%= t('seo.social_' + k) %></label>
+        <input class="input<%= err ? ' is-invalid' : '' %>" id="f-social_<%= k %>" name="social_<%= k %>" type="url" dir="ltr" maxlength="300" placeholder="<%= PH[k] %>" value="<%= val('social_' + k, m.social[k]) %>">
+        <% if (err) { %><span class="field-error"><%= err %></span><% } %></div>
+      <% }) %>
+    </div>
+  </section>
+
+  <section class="panel">
+    <div class="panel-head"><div><h2><%- icon('target') %> <%= t('seo.pixels') %></h2><div class="panel-sub"><%= t('seo.pixels_sub') %></div></div></div>
+    <div class="panel-body stack">
+      <div class="alert alert-info"><%- icon('shield-check') %><div class="small"><%= t('seo.pixels_privacy') %></div></div>
+      <div class="grid grid-2">
+        <% PIXELS.forEach(function (k) { var err = errors['pixel_' + k]; %>
+        <div class="field"><label class="label row-sm" for="f-pixel_<%= k %>"><%- ['ga4', 'gtm'].indexOf(k) >= 0 ? icon(PXI[k]) : brandIcon(PXI[k]) %> <%= t('seo.pixel_' + k) %></label>
+          <input class="input<%= err ? ' is-invalid' : '' %>" id="f-pixel_<%= k %>" name="pixel_<%= k %>" dir="ltr" maxlength="60" placeholder="<%= PX[k] %>" value="<%= val('pixel_' + k, m.pixels[k]) %>">
+          <% if (err) { %><span class="field-error"><%= err %></span><% } else { %><span class="help"><%= t('seo.pixel_' + k + '_help') %></span><% } %></div>
+        <% }) %>
+      </div>
+      <label class="check"><input type="checkbox" name="events" value="1"<%= (has ? o.events === '1' : m.events) ? ' checked' : '' %>><span><%= t('seo.events') %></span></label>
+      <p class="small muted"><%= t('seo.events_help') %></p>
+      <p class="small muted"><%= t('seo.gtm_note') %></p>
+    </div>
+  </section>
+  <div><button class="btn btn-dark" type="submit"><%= t('common.save_changes') %></button></div>
+</form>

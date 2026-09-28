@@ -1,8 +1,12 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <% var _brand = typeof brand !== 'undefined' && brand ? brand : null; %>
-<title><%= typeof title !== 'undefined' && title ? title + ' · ' : '' %><%= _brand && _brand.whiteLabel ? _brand.appName : 'RemoteWay' %></title>
+<% var _seo = typeof publicHead !== 'undefined' && publicHead && typeof seoHead === 'function' ? seoHead({ title: typeof title !== 'undefined' ? title : '', plans: typeof plans !== 'undefined' ? plans : null, job: typeof job !== 'undefined' && job && job.org_slug ? job : null }) : null; %>
+<% if (_seo) { %><title><%= _seo.title %></title>
+<%- _seo.html %>
+<% } else { %><title><%= typeof title !== 'undefined' && title ? title + ' · ' : '' %><%= _brand && _brand.whiteLabel ? _brand.appName : 'RemoteWay' %></title>
 <meta name="description" content="<%= t('site.meta_description') %>">
+<% if (typeof pixelPending !== 'undefined' && pixelPending && typeof seoHead === 'function') { var _px = seoHead({}); if (_px) { %><%- _px.html %><% } } %><% } %>
 <meta name="theme-color" content="#1ACC6C">
 <link rel="icon" type="image/png" href="/brand/favicon.png">
 <link rel="apple-touch-icon" href="/brand/app-icon.png">

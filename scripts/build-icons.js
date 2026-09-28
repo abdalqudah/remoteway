@@ -4,7 +4,7 @@ const fs = require('fs');
 const path = require('path');
 
 const ICONS = [
-  'layout-dashboard', 'users', 'user', 'user-plus', 'user-check', 'user-x', 'building-2', 'map-pin',
+  'log-in', 'refresh-cw', 'bot', 'share-2', 'layout-dashboard', 'users', 'user', 'user-plus', 'user-check', 'user-x', 'building-2', 'map-pin',
   'briefcase', 'calendar-check', 'calendar-days', 'plane', 'wallet', 'target', 'graduation-cap',
   'list-checks', 'folder-kanban', 'file-text', 'shield-check', 'chart-column', 'life-buoy', 'plug',
   'sparkles', 'credit-card', 'settings', 'search', 'bell', 'log-out', 'chevron-down', 'chevron-right',
@@ -26,6 +26,11 @@ const symbols = ICONS.map((name) => {
   return `<symbol id="i-${name}" viewBox="0 0 24 24">${inner}</symbol>`;
 });
 
-const out = `<svg xmlns="http://www.w3.org/2000/svg" style="display:none"><!-- Lucide icons (ISC license) -->${symbols.join('')}</svg>\n`;
+// Brand marks for social links and "Sign in with Google" (Simple Icons, CC0), drawn filled.
+const BRANDS = { x: 'siX', linkedin: 'siLinkedin', instagram: 'siInstagram', facebook: 'siFacebook', youtube: 'siYoutube', tiktok: 'siTiktok', snapchat: 'siSnapchat', whatsapp: 'siWhatsapp', telegram: 'siTelegram', threads: 'siThreads', google: 'siGoogle' };
+const si = require('simple-icons'); // eslint-disable-line import/no-extraneous-dependencies
+for (const [name, key] of Object.entries(BRANDS)) symbols.push(`<symbol id="b-${name}" viewBox="0 0 24 24"><path fill="currentColor" stroke="none" d="${si[key].path}"/></symbol>`);
+
+const out = `<svg xmlns="http://www.w3.org/2000/svg" style="display:none"><!-- Lucide icons (ISC license); brand marks from Simple Icons (CC0) -->${symbols.join('')}</svg>\n`;
 fs.writeFileSync(path.join(__dirname, '..', 'public', 'icons.svg'), out);
-console.log(`Wrote ${ICONS.length} icons to public/icons.svg`);
+console.log(`Wrote ${symbols.length} icons to public/icons.svg`);

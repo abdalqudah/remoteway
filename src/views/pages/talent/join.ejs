@@ -10,5 +10,7 @@
   <label class="check"><input type="checkbox" name="terms"><span><%= t('legal.accept_pre') %> <a class="link" href="/terms" target="_blank" rel="noopener"><%= t('legal.terms_title') %></a> <%= t('legal.and') %> <a class="link" href="/privacy" target="_blank" rel="noopener"><%= t('legal.privacy_title') %></a>.</span></label>
   <% if (errors && errors.terms) { %><span class="field-error"><%= errors.terms %></span><% } %>
   <button class="btn btn-dark btn-lg btn-block" type="submit"><%= t('talent.join_cta') %></button>
+  <%- include('../../partials/google-button', { gIntent: 'join', gNext: typeof next !== 'undefined' ? next : '' }) %>
+  <p class="small muted"><%= typeof googleOn !== 'undefined' && googleOn ? t('google.join_terms') : '' %></p>
   <p class="muted small text-center"><%= t('talent.join_company_q') %> <a href="/signup"><%= t('talent.join_company_link') %></a> · <a href="/login"><%= t('auth.login') %></a></p>
 </form>

@@ -12,6 +12,7 @@ const knex = require('./db/knex');
 const { loadUser } = require('./middleware/context');
 const web = require('./middleware/web');
 const { notFound, errorHandler } = require('./middleware/errors');
+const seo = require('./modules/site/seo.service');
 
 function createApp() {
   const app = express();
@@ -29,12 +30,13 @@ function createApp() {
     contentSecurityPolicy: {
       directives: {
         defaultSrc: ["'self'"],
-        scriptSrc: ["'self'"],
+        // Advertising pixels set up in Super Admin add their vendors' hosts, on public pages only.
+        scriptSrc: ["'self'", (req) => (seo.isPrivate(req.path) && !seo.hasPendingConversion(req) ? '' : seo.csp().script.join(' '))],
         styleSrc: ["'self'"],
         styleSrcAttr: ["'unsafe-inline'"], // dynamic widths for meters/charts only; scripts stay strict
         imgSrc: ["'self'", 'data:', 'https:'],
         fontSrc: ["'self'"],
-        connectSrc: ["'self'"],
+        connectSrc: ["'self'", (req) => (seo.isPrivate(req.path) && !seo.hasPendingConversion(req) ? '' : seo.csp().connect.join(' '))],
         formAction: ["'self'"],
         frameAncestors: ["'none'"],
         frameSrc: ['https://www.youtube-nocookie.com', 'https://player.vimeo.com'], // lesson videos only

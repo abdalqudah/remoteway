@@ -22,6 +22,7 @@ router.post('/demo', limiter, form(async (req, res) => {
       await mailer.send({ to, subject: `New demo request: ${String(req.body.name || '').slice(0, 80)}`, html: mailer.layout({ locale: 'en', title: 'New demo request', body: `${req.body.name} · ${req.body.company_name || ''} · ${req.body.email || ''}`, cta: 'Open in CRM', href: `${config.appUrl}/admin/crm/contacts/${id}` }) }).catch(() => {});
     }
   }
+  res.locals.pixelEventNow = 'lead'; // reported on this confirmation page
   return renderDemo(req, res, { sent: true });
 }, renderDemo));
 

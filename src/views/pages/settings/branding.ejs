@@ -59,12 +59,25 @@
         <%- include('../../partials/field', { name: 'email_sender_name', label: t('branding.email_sender'), value: v('email_sender_name'), help: t('branding.email_sender_help') }) %>
         <%- include('../../partials/field', { name: 'custom_domain', label: t('branding.domain'), value: v('custom_domain'), placeholder: 'hr.yourcompany.com', attrs: 'dir="ltr"', help: t('branding.domain_help') }) %>
       </div>
-      <% if (s.custom_domain) { %>
-      <div class="alert alert-info"><%- icon('globe') %><div class="grow small"><div class="alert-title"><%= t('branding.dns_title') %></div>
-        <div class="text-2"><%= t('branding.dns_text') %></div>
-        <div class="mono mt-2" dir="ltr"><%= s.custom_domain %>  CNAME  <%= platformHost %></div></div></div>
+      <% if (s.custom_domain && domainRecords) { var _ds = s.domain_status || 'pending'; %>
+      <div class="alert <%= _ds === 'verified' ? 'alert-success' : _ds === 'suspended' ? 'alert-danger' : 'alert-info' %>"><%- icon('globe') %><div class="grow small">
+        <div class="alert-title"><%= t('domains.status_' + _ds) %></div>
+        <% if (_ds !== 'verified' && _ds !== 'suspended') { %>
+        <div class="text-2"><%= t('domains.company_text') %></div>
+        <div class="table-wrap mt-2"><table class="table"><thead><tr><th><%= t('domains.type') %></th><th><%= t('domains.name') %></th><th><%= t('domains.value') %></th></tr></thead><tbody>
+          <tr><td>TXT</td><td class="mono" dir="ltr"><%= domainRecords.txt.name %></td><td class="mono" dir="ltr"><%= domainRecords.txt.value %></td></tr>
+          <tr><td>CNAME</td><td class="mono" dir="ltr"><%= domainRecords.cname.name %></td><td class="mono" dir="ltr"><%= domainRecords.cname.value %></td></tr>
+          <% if (domainRecords.serverIp) { %><tr><td>A <span class="muted">(<%= t('domains.apex_only') %>)</span></td><td class="mono" dir="ltr"><%= domainRecords.domain %></td><td class="mono" dir="ltr"><%= domainRecords.serverIp %></td></tr><% } %>
+        </tbody></table></div>
+        <div class="text-2 mt-2"><%= t('domains.dns_wait') %></div>
+        <% } else if (_ds === 'verified') { %><div class="text-2"><%= t('domains.company_live', { domain: s.custom_domain }) %></div><% } %>
+        <% if (s.domain_checked_at) { %><div class="muted mt-2"><%= t('domains.last_check') %>: <span dir="ltr"><%= new Date(s.domain_checked_at).toISOString().slice(0, 16).replace('T', ' ') %></span></div><% } %>
+      </div>
+      <% if (_ds !== 'suspended') { %><button class="btn btn-secondary btn-sm" type="submit" form="domain-check"><%- icon('refresh-cw') %><%= t('domains.check_now') %></button><% } %>
+      </div>
       <% } %>
     <% } %>
   </div>
   <% if (hasWhiteLabel) { %><div class="panel-foot"><button class="btn btn-dark" type="submit"><%= t('common.save_changes') %></button></div><% } %>
 </form>
+<% if (s.custom_domain) { %><form id="domain-check" method="post" action="/app/settings/branding/domain/check"><input type="hidden" name="_csrf" value="<%= csrfToken %>"></form><% } %>

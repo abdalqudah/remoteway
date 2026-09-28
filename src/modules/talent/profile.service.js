@@ -112,6 +112,21 @@ async function signup(input, { ip } = {}) {
   return user;
 }
 
+/** Individual sign-up through Google: the address is already proven; the password is random until the person sets one. */
+async function signupWithGoogle({ name, email, sub, locale }, { ip } = {}) {
+  const user = await knex.transaction(async (trx) => {
+    const [userId] = await trx('users').insert({
+      name: String(name || email.split('@')[0]).slice(0, 120), email, locale: locale === 'ar' ? 'ar' : 'en', google_sub: sub, email_verified_at: new Date(),
+      password_hash: await bcrypt.hash(crypto.randomBytes(32).toString('hex'), config.bcryptRounds),
+    });
+    await trx('talent_profiles').insert({ user_id: userId, slug: await uniqueSlug(name || 'member'), skills: '[]', education: '[]', experience: '[]', certifications: '[]', projects: '[]', languages: '[]', preferences: '{}' });
+    await audit.record({ organizationId: null, userId, ip }, 'talent.signup', { entityType: 'user', entityId: userId, newValues: { via: 'google' } }, trx);
+    return trx('users').where({ id: userId }).first();
+  });
+  await require('../crm/crm.service').track('individual_signup', { userId: user.id }); // eslint-disable-line global-require
+  return user;
+}
+
 /** An existing user (e.g. a company member) starts a profile. */
 async function ensure(user) {
   const existing = await knex('talent_profiles').where({ user_id: user.id }).first('id');
@@ -354,6 +369,7 @@ async function saveAnalysis(profileId, output) {
 }
 
 module.exports = {
+  signupWithGoogle,
   VISIBILITY, JOB_TYPES, WORK_MODES, LANG_LEVELS, SECTIONS, hydrate, completion, computeYears, signup, ensure, forUser, byId, bySlug, canView, contactFor,
   saveBasics, saveSkills, saveSection, savePreferences, uploadPhoto, removePhoto, uploadCv, removeCv, photo, search, searchQuery, featured, specializations,
   saveAnalysis, normSkill, skillsList,

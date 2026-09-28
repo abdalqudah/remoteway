@@ -45,13 +45,19 @@ const settings = express.Router();
 settings.use((req, res, next) => { res.locals.section = 'branding'; next(); });
 const render = async (req, res, extra = {}) => res.page('pages/settings/branding', {
   title: req.t('branding.title'), saved: await branding.settings(req.ctx.organizationId), hasWhiteLabel: await ent.hasFeature(req.ctx.organizationId, 'white_label'),
-  platformHost: branding.PLATFORM_HOST, ...extra,
+  platformHost: branding.PLATFORM_HOST, domainRecords: require('./domain.service').records(await branding.settings(req.ctx.organizationId)), ...extra, // eslint-disable-line global-require
 });
 settings.get('/', can('organization.manage'), wrap((req, res) => render(req, res)));
 settings.post('/logo', can('organization.manage'), ...singleFile('file'), form(async (req, res) => {
   await branding.uploadLogo(req.ctx, String(req.body.kind || 'logo'), req.file);
   flash(req, 'success', req.t('branding.logo_saved'));
   res.redirect('/app/settings/branding');
+}, render));
+// Custom domain: check the DNS records now (it goes live as soon as both are right).
+settings.post('/domain/check', can('organization.manage'), form(async (req, res) => {
+  const r = await require('./domain.service').check(req.ctx, req.ctx.organizationId); // eslint-disable-line global-require
+  flash(req, r.live ? 'success' : 'warning', r.live ? req.t('domains.now_live') : req.t(!r.owned ? 'domains.missing_txt' : 'domains.missing_cname'));
+  res.redirect('/app/settings/branding#white-label');
 }, render));
 settings.post('/logo/remove', can('organization.manage'), form(async (req, res) => {
   await branding.removeLogo(req.ctx, String(req.body.kind || 'logo'));

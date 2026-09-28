@@ -1,0 +1,75 @@
+<% var cls = { none: '', pending: 'badge-warning', verified: 'badge-success', suspended: 'badge-danger' }; %>
+<div class="page-head"><div><h1><%= t('domains.title') %></h1><p><%= t('domains.sub') %></p></div></div>
+
+<div class="alert alert-info mb-6"><%- icon('info') %><div class="small">
+  <div class="alert-title"><%= t('domains.how_title') %></div>
+  <ol class="steps-list mt-2">
+    <li><%= t('domains.how1') %></li>
+    <li><%= t('domains.how2', { host: platformHost }) %></li>
+    <li><%= t('domains.how3') %></li>
+    <li><%= t('domains.how4') %></li>
+  </ol>
+  <% if (!serverIp) { %><div class="muted mt-2"><%= t('domains.server_ip_hint') %></div><% } %>
+</div></div>
+
+<section class="panel mb-6">
+  <div class="panel-head"><div><h2><%- icon('globe') %> <%= t('domains.list') %></h2></div><span class="badge"><%= rows.length %></span></div>
+  <% if (!rows.length) { %><div class="empty"><%- icon('globe') %><p><%= t('domains.empty') %></p></div><% } else { %>
+  <div class="table-wrap"><table class="table">
+    <thead><tr><th><%= t('domains.company') %></th><th><%= t('domains.domain') %></th><th><%= t('domains.status') %></th><th><%= t('domains.dns') %></th><th><%= t('domains.hosting') %></th><th></th></tr></thead>
+    <tbody>
+    <% rows.forEach(function (r) { var c = r.check; %>
+      <tr>
+        <td><a class="link" href="/admin/organizations/<%= r.organization_id %>"><%= r.org_name %></a><% if (!r.white_label) { %><div class="small muted"><%= t('domains.wl_off') %></div><% } %></td>
+        <td class="mono" dir="ltr"><%= r.custom_domain %></td>
+        <td><span class="badge <%= cls[r.domain_status] || '' %>"><%= t('domains.status_' + r.domain_status) %></span>
+          <% if (r.domain_checked_at) { %><div class="small muted" dir="ltr"><%= new Date(r.domain_checked_at).toISOString().slice(0, 16).replace('T', ' ') %></div><% } %></td>
+        <td class="small">
+          <% if (c) { %>
+            <div><%- icon(c.owned ? 'circle-check' : 'circle-alert', 'icon-sm') %> TXT</div>
+            <div><%- icon(c.pointed ? 'circle-check' : 'circle-alert', 'icon-sm') %> <%= c.cname.length ? 'CNAME ' + c.cname[0] : (c.a.length ? 'A ' + c.a.join(', ') : t('domains.no_record')) %></div>
+          <% } else { %><span class="muted"><%= t('domains.not_checked') %></span><% } %>
+          <details class="mt-2"><summary class="link"><%= t('domains.records') %></summary>
+            <table class="table dns-table mt-2"><tbody>
+              <tr><td>TXT</td><td class="mono" dir="ltr"><%= r.records.txt.name %></td><td class="mono" dir="ltr"><%= r.records.txt.value %></td></tr>
+              <tr><td>CNAME</td><td class="mono" dir="ltr"><%= r.records.cname.name %></td><td class="mono" dir="ltr"><%= r.records.cname.value %></td></tr>
+              <% if (r.records.serverIp) { %><tr><td>A</td><td class="mono" dir="ltr"><%= r.records.domain %></td><td class="mono" dir="ltr"><%= r.records.serverIp %></td></tr><% } %>
+            </tbody></table></details>
+        </td>
+        <td class="small"><% if (r.domain_hosting) { %><span class="badge <%= r.domain_hosting === 'failed' ? 'badge-danger' : 'badge-success' %>"><%= t('domains.hosting_' + r.domain_hosting) %></span><% } else { %><span class="muted"><%= t('domains.hosting_none') %></span><% } %>
+          <% if (r.domain_hosting_note) { %><div class="muted mt-2"><%= r.domain_hosting_note %></div><% } %></td>
+        <td>
+          <% if (adminCan('domains', true)) { %>
+          <div class="row wrap">
+            <% function btn(path, label, style) { %><form method="post" action="/admin/domains/<%= r.organization_id %>/<%= path %>"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><button class="btn <%= style || 'btn-secondary' %> btn-sm" type="submit"><%= label %></button></form><% } %>
+            <% if (r.domain_status !== 'suspended') { btn('check', t('domains.check_now')); } %>
+            <% if (r.domain_status === 'pending') { btn('approve', t('domains.approve')); } %>
+            <% if (cp.hasToken && cp.host) { btn('hosting', t('domains.add_hosting')); } %>
+            <% if (r.domain_hosting !== 'manual' && r.domain_hosting !== 'added') { btn('manual', t('domains.mark_manual'), 'btn-ghost'); } %>
+            <% if (r.domain_status === 'suspended') { btn('resume', t('domains.resume')); } else { btn('suspend', t('domains.suspend'), 'btn-danger-ghost'); } %>
+          </div>
+          <% } %>
+        </td>
+      </tr>
+    <% }) %>
+    </tbody>
+  </table></div>
+  <% } %>
+</section>
+
+<% if (adminCan('domains', true)) { var o = old || {}; var has = Object.keys(o).length > 0; %>
+<form method="post" action="/admin/domains/cpanel" class="panel" novalidate>
+  <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+  <div class="panel-head"><div><h2><%- icon('settings') %> <%= t('domains.cpanel') %></h2><div class="panel-sub"><%= t('domains.cpanel_sub') %></div></div></div>
+  <div class="panel-body stack">
+    <div class="grid grid-3">
+      <%- include('../../partials/field', { name: 'cp_host', label: t('domains.cp_host'), value: has ? o.cp_host : cp.host, attrs: 'dir="ltr"', placeholder: 'server1.orangehost.com', help: t('domains.cp_host_help') }) %>
+      <%- include('../../partials/field', { name: 'cp_user', label: t('domains.cp_user'), value: has ? o.cp_user : cp.user, attrs: 'dir="ltr" autocomplete="off"' }) %>
+      <%- include('../../partials/field', { name: 'cp_token', label: t('domains.cp_token'), type: 'password', attrs: 'dir="ltr" autocomplete="off"', help: cp.hasToken ? t('domains.cp_token_saved') : t('domains.cp_token_help') }) %>
+    </div>
+    <label class="check"><input type="checkbox" name="cp_auto" value="1"<%= (has ? o.cp_auto === '1' : cp.auto) ? ' checked' : '' %>><span><%= t('domains.cp_auto') %></span></label>
+    <p class="small muted"><%= t('domains.cp_note') %></p>
+  </div>
+  <div class="panel-foot"><button class="btn btn-dark" type="submit"><%= t('common.save_changes') %></button></div>
+</form>
+<% } %>

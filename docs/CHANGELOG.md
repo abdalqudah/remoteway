@@ -1,5 +1,15 @@
 # RemoteWay — Changelog
 
+## 1.3.0 — Search, marketing, Google sign-in, custom domains
+
+- **Search & AI visibility** (Super Admin → Search & AI visibility): site name, description and keywords (AR/EN); title, description and "hide from search engines" per public page; share image from the media library; canonical and Arabic/English alternate links (hreflang) on every public page; Google/Bing/Yandex verification; a quick health check.
+- **AEO (structured data):** Organization (logo, social profiles, contact), WebSite with search, SoftwareApplication with the plans and prices, FAQPage from the website's FAQ section, and JobPosting on marketplace job pages (Google for Jobs).
+- **GEO:** switches for AI crawlers (GPTBot, ClaudeBot, PerplexityBot, Google-Extended, CCBot…) in robots.txt, and an editable `/llms.txt` (generated from the site content by default). Sitemap now lists both languages.
+- **Marketing:** social media accounts (X, LinkedIn, Instagram, Facebook, YouTube, TikTok, Snapchat, WhatsApp, Telegram, Threads) as footer icons; pixels for GA4, Google Tag Manager, Meta, TikTok, Snap, LinkedIn and X. Pixels load only on public pages and only after the visitor accepts (accept / essential only; changeable on the privacy page); the privacy policy lists them automatically; conversions (company sign-up, individual sign-up, demo request) are reported once.
+- **Sign in with Google:** set up from Super Admin with a Google Cloud OAuth client; buttons on sign-in, individual sign-up and company pages. Existing accounts are linked by verified email; new addresses become individual accounts (optional). Two-step verification and company SSO enforcement still apply; the platform team cannot use it. Users can unlink it from Account security.
+- **White-label custom domains:** a domain goes live only after DNS proves ownership (TXT `_remoteway.<domain>`) and points to the platform (CNAME, or A with `SERVER_IP`). Companies see the records and "Check now"; Super Admin → Custom domains lists every domain with approve / stop / resume, and can add verified domains to cPanel as alias domains with AutoSSL (optional API token, stored encrypted). Domains saved before 1.3.0 stay live.
+
+
 ## 1.2.0 — Website media and alignment
 
 - **Media library** (Super Admin → Website → Media library): upload images (JPG, PNG, WebP, GIF up to 8 MB) and videos (MP4, WebM up to 30 MB), or add YouTube/Vimeo links. Files are checked by their content (no SVG), stored outside the app folder and served with range support.

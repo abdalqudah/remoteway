@@ -161,7 +161,7 @@ router.post('/security/delete', requireAuth, loginLimiter, form(async (req, res)
 const renderSecurity = async (req, res, extra = {}) => {
   const user = await authService.findUser(req.user.id);
   const setup = req.session.twofaSetup ? await security.setupData(user, req.session.twofaSetup) : null;
-  res.page('pages/auth/security', { layout: 'auth', wide: true, title: req.t('auth.security_title'), on: security.hasTwoFactor(user), setup, owned: await privacy.ownedCompanies(user.id), required: req.query.required === '1', back: req.session.securityBack || '/app', ...extra });
+  res.page('pages/auth/security', { layout: 'auth', wide: true, title: req.t('auth.security_title'), on: security.hasTwoFactor(user), setup, owned: await privacy.ownedCompanies(user.id), required: req.query.required === '1', back: req.session.securityBack || '/app', googleLinked: Boolean(user.google_sub), ...extra });
 };
 router.get('/security', requireAuth, wrap(async (req, res) => {
   let back = '';
@@ -243,6 +243,7 @@ router.post('/signup', loginLimiter, form(async (req, res) => {
   }, { ip: req.ip, userAgent: req.get('user-agent') });
   await signIn(req, { id: userId }, organizationId);
   await verify.send(await authService.findUser(userId), { locale: req.locale }).catch(() => {});
+  require('../site/seo.service').markConversion(res, 'signup'); // eslint-disable-line global-require
   return res.redirect('/app/onboarding');
 }, (req, res, extra) => renderSignup(req, res, extra)));
 
@@ -301,6 +302,56 @@ router.post('/invite/:token', loginLimiter, form(async (req, res) => {
   flash(req, 'success', req.t('auth.invite_accepted'));
   return res.redirect('/app');
 }, renderInvite));
+
+// ---------- Sign in with Google ----------
+const google = require('./google.service');
+router.get('/auth/google', loginLimiter, wrap(async (req, res) => {
+  if (req.user) return res.redirect('/app');
+  try {
+    const { url, pending: p } = await google.start({ intent: req.query.intent, next: req.query.next, portal: req.query.portal, as: req.query.as });
+    req.session.google = p;
+    return req.session.save(() => res.redirect(url));
+  } catch (e) {
+    if (!(e instanceof require('../../core/errors').AppError) && !/provider|HTTP|JSON|Timed out|ENOTFOUND|EAI_AGAIN/.test(e.message)) throw e; // eslint-disable-line global-require
+    flash(req, 'error', req.t('google.unavailable'));
+    return res.redirect('/login');
+  }
+}));
+router.get('/auth/google/callback', loginLimiter, wrap(async (req, res) => {
+  const p = req.session.google;
+  delete req.session.google;
+  try {
+    const g = await google.verify(p, req.query);
+    const { user, created } = await google.resolve(g, { locale: req.locale, ip: req.ip });
+    let orgId = user.last_organization_id;
+    const fromPortal = p.portal ? await portal.bySlug(p.portal) : null;
+    if (fromPortal) {
+      if (!(await orgs.isMember(user.id, fromPortal.id))) throw E.conflict('PORTAL_NOT_MEMBER', `This account is not a member of ${fromPortal.name}.`);
+      orgId = fromPortal.id;
+      const e = portal.entry(p.as);
+      const perms = await rbac.getUserPermissions(orgId, user.id);
+      req.session.returnTo = !e.permission || perms.has(e.permission) ? e.path : '/app';
+    } else if (p.next) req.session.returnTo = p.next;
+    if (created) require('../site/seo.service').markConversion(res, 'join'); // eslint-disable-line global-require
+    if (security.hasTwoFactor(user)) {
+      req.session.pending2fa = { userId: user.id, at: Date.now(), orgId };
+      return req.session.save(() => res.redirect('/login/2fa'));
+    }
+    await signIn(req, user, orgId);
+    if (created) return res.redirect(req.session.returnTo && req.session.returnTo.startsWith('/jobs/') ? req.session.returnTo : '/me/profile');
+    return finishLogin(req, res, user);
+  } catch (e) {
+    if (!(e instanceof require('../../core/errors').AppError)) throw e; // eslint-disable-line global-require
+    const tr = req.t(`errors.${e.code}`);
+    res.status(e.status >= 500 ? 502 : e.status);
+    return renderLogin(req, res, { formError: { code: e.code, message: tr !== `errors.${e.code}` ? tr : e.message } });
+  }
+}));
+router.post('/security/google/unlink', requireAuth, wrap(async (req, res) => {
+  await google.unlink({ userId: req.user.id, ip: req.ip }, req.user.id);
+  flash(req, 'success', req.t('google.unlinked'));
+  res.redirect('/security');
+}));
 
 module.exports = router;
 module.exports.signIn = signIn;

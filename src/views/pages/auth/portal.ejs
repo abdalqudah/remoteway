@@ -28,6 +28,7 @@
     <div class="small" style="margin-top:-6px"><a class="link" href="/forgot"><%= t('auth.forgot_link') %></a></div>
     <button class="btn btn-dark btn-lg btn-block" type="submit"><%= t('auth.login') %><%- icon('arrow-right', 'flip-rtl') %></button>
   </form>
+  <%- include('../../partials/google-button', { gPortal: org.slug, gAs: as }) %>
   <% if (sso) { %><a class="btn btn-secondary btn-block mt-4" href="/sso"><%- icon('key-round') %><%= t('sso.sign_in') %></a><% } %>
 <% } %>
 <p class="mt-6 small muted"><%= t('portal.note') %></p>

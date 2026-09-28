@@ -53,8 +53,10 @@ function locals(req, res, next) {
     assetV: ASSET_V,
     escapeHtml: (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]),
     cookiesOk: req.cookies?.rw_cookies_ok === '1',
+    consent: ['yes', 'no'].includes(req.cookies?.rw_consent) ? req.cookies.rw_consent : '', // advertising pixels
     baseUrl: process.env.APP_URL ? config.appUrl.replace(/\/+$/, '') : `${req.protocol}://${req.get('host')}`,
     icon: (name, cls = '') => `<svg class="icon ${cls}" aria-hidden="true"><use href="/icons.svg?v=${ASSET_V}#i-${name}"></use></svg>`,
+    brandIcon: (name, cls = '') => `<svg class="brand-icon ${cls}" aria-hidden="true"><use href="/icons.svg?v=${ASSET_V}#b-${String(name).replace(/[^a-z]/g, '')}"></use></svg>`,
     roleName: (r) => {
       if (!r) return '—';
       if (r.is_system === false || r.is_system === 0) return r.name;

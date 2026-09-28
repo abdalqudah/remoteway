@@ -1,0 +1,6 @@
+<% if (typeof googleOn !== 'undefined' && googleOn && !(typeof hostBrand !== 'undefined' && hostBrand)) {
+  var _q = new URLSearchParams(); if (typeof gIntent !== 'undefined' && gIntent) _q.set('intent', gIntent); if (typeof gNext !== 'undefined' && gNext) _q.set('next', gNext);
+  if (typeof gPortal !== 'undefined' && gPortal) _q.set('portal', gPortal); if (typeof gAs !== 'undefined' && gAs) _q.set('as', gAs); var _qs = _q.toString(); %>
+<div class="or-divider"><span><%= t('google.or') %></span></div>
+<a class="btn btn-secondary btn-lg btn-block btn-google" href="/auth/google<%= _qs ? '?' + _qs : '' %>" rel="nofollow"><%- brandIcon('google') %><%= t(typeof gIntent !== 'undefined' && gIntent === 'join' ? 'google.join' : 'google.sign_in') %></a>
+<% } %>

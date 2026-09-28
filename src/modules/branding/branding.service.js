@@ -24,7 +24,7 @@ function sniff(buf) {
 }
 
 const row = (organizationId) => cache.remember(`brand:${organizationId}`, async () => (await knex('organization_branding').where({ organization_id: organizationId })
-  .first('logo_sha', 'logo_dark_sha', 'white_label', 'brand_name', 'brand_color', 'custom_domain', 'email_sender_name')) || null, 60_000);
+  .first('logo_sha', 'logo_dark_sha', 'white_label', 'brand_name', 'brand_color', 'custom_domain', 'email_sender_name', 'domain_status', 'domain_token', 'domain_checked_at', 'domain_check')) || null, 60_000);
 const invalidate = (organizationId) => { cache.forgetPrefix(`brand:${organizationId}`); cache.forgetPrefix('brand-host:'); };
 
 // ---------- Colour ----------
@@ -69,7 +69,7 @@ async function forOrg(organizationId, orgName) {
     organizationId, logoUrl, logoDarkUrl, whiteLabel,
     appName: whiteLabel ? (r.brand_name || orgName || 'RemoteWay') : 'RemoteWay',
     color, themeUrl: color ? `/org-brand/${organizationId}/theme/${color.slice(1).toLowerCase()}.css` : null,
-    customDomain: whiteLabel ? r.custom_domain || null : null,
+    customDomain: whiteLabel && r.domain_status === 'verified' ? r.custom_domain || null : null, // only once DNS is proven
     emailSenderName: whiteLabel ? (r.email_sender_name || r.brand_name || orgName) : null,
   };
 }
@@ -91,7 +91,7 @@ function orgIdForHost(host) {
   if (!h || h === PLATFORM_HOST || h === 'localhost' || /^[\d.]+$/.test(h)) return Promise.resolve(null);
   return cache.remember(`brand-host:${h}`, async () => {
     const r = await knex('organization_branding as b').join('organizations as o', 'o.id', 'b.organization_id')
-      .where({ 'b.custom_domain': h, 'b.white_label': true, 'o.status': 'active' }).first('b.organization_id');
+      .where({ 'b.custom_domain': h, 'b.white_label': true, 'b.domain_status': 'verified', 'o.status': 'active' }).first('b.organization_id');
     if (!r) return 0;
     const e = await ent.getEntitlements(r.organization_id);
     return e.features.has('white_label') ? r.organization_id : 0;
@@ -139,8 +139,12 @@ async function saveWhiteLabel(ctx, body) {
     white_label: enabled, brand_name: name || null, brand_color: color || null, custom_domain: domain || null, email_sender_name: sender || null,
     updated_by: ctx.userId, updated_at: new Date(),
   };
+  const before = await knex('organization_branding').where({ organization_id: ctx.organizationId }).first('custom_domain');
   await knex('organization_branding').insert({ organization_id: ctx.organizationId, ...values }).onConflict('organization_id').merge(values);
+  // A new domain waits for its DNS records (ownership + pointing) before it goes live.
+  if ((before && before.custom_domain) !== (domain || null) || (domain && !before)) await require('./domain.service').onDomainChanged(ctx.organizationId, domain || null); // eslint-disable-line global-require
   invalidate(ctx.organizationId);
+  cache.forgetPrefix('brand-host:');
   await audit.record(ctx, 'branding.white_label_updated', { entityType: 'organization', entityId: ctx.organizationId, newValues: { enabled, brand_name: name, brand_color: color, custom_domain: domain } });
 }
 

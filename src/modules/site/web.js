@@ -35,27 +35,39 @@ for (const kind of legal.KINDS) {
   }));
 }
 
-// Essential cookies only: the notice just needs to be dismissed once.
+// Cookie notice: essential cookies only need the notice dismissed; when advertising pixels are set up,
+// the visitor accepts or declines them (rw_consent) and can change it later from the privacy page.
 router.post('/preferences/cookies', (req, res) => {
-  res.cookie('rw_cookies_ok', '1', { maxAge: 365 * 86_400_000, sameSite: 'lax', httpOnly: false, secure: config.isProd });
+  const opts = { maxAge: 365 * 86_400_000, sameSite: 'lax', httpOnly: false, secure: config.isProd };
+  res.cookie('rw_cookies_ok', '1', opts);
+  if (['accept', 'decline'].includes(req.body.choice)) res.cookie('rw_consent', req.body.choice === 'accept' ? 'yes' : 'no', { ...opts, maxAge: 180 * 86_400_000 });
   if (req.get('accept')?.includes('application/json')) return res.json({ success: true });
   return res.redirect(req.get('referer') || '/');
 });
 
-// ---------- Search engines ----------
-const PRIVATE_PATHS = ['/app', '/admin', '/me', '/api', '/security', '/reset', '/login/2fa', '/payments', '/webhooks', '/org-brand', '/invitations'];
-router.get('/robots.txt', (req, res) => {
-  res.type('text/plain').send(`User-agent: *\n${PRIVATE_PATHS.map((p) => `Disallow: ${p}`).join('\n')}\n\nSitemap: ${res.locals.baseUrl}/sitemap.xml\n`);
-});
+// ---------- Search engines and AI assistants ----------
+const seo = require('./seo.service');
+const ROBOTS_PRIVATE = seo.PRIVATE_PATHS;
+router.get('/robots.txt', wrap(async (req, res) => {
+  res.type('text/plain').send(seo.robots(await seo.get(), res.locals.baseUrl, ROBOTS_PRIVATE));
+}));
+// llms.txt: a plain summary that AI assistants read to describe the platform correctly (GEO).
+router.get('/llms.txt', wrap(async (req, res) => {
+  const s = await seo.get();
+  const text = s.llms || seo.llmsDefault({ seo: s, site: res.locals.site, base: res.locals.baseUrl, plans: await subscriptions.listPublicPlans() });
+  res.set('Cache-Control', 'public, max-age=3600').type('text/plain; charset=utf-8').send(text);
+}));
 router.get('/sitemap.xml', wrap(async (req, res) => {
   const base = res.locals.baseUrl;
-  const xmlEsc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-  const urls = ['/', '/pricing', '/jobs', '/talent', '/join', '/signup', '/demo', '/privacy', '/terms'].map((p) => ({ loc: p }));
+  const s = await seo.get();
+  const xmlEsc = (v) => String(v).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  const urls = Object.entries(seo.PATH_PAGE).filter(([p, key]) => p !== '/login' && !(s.pages[key] && s.pages[key].noindex)).map(([p]) => ({ loc: p }));
   const [jobs, talents] = await Promise.all([marketplace.latestJobs(500), profiles.featured(500)]);
   for (const j of jobs) urls.push({ loc: `/jobs/${j.org_slug}/${j.slug}`, lastmod: j.marketplace_at });
   for (const p of talents) urls.push({ loc: `/talent/${p.slug}`, lastmod: p.updated_at });
-  const body = urls.map((u) => `<url><loc>${xmlEsc(base + u.loc)}</loc>${u.lastmod ? `<lastmod>${new Date(u.lastmod).toISOString().slice(0, 10)}</lastmod>` : ''}</url>`).join('');
-  res.set('Cache-Control', 'public, max-age=3600').type('application/xml').send(`<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${body}</urlset>`);
+  const alt = (loc) => ['ar', 'en'].map((lc) => `<xhtml:link rel="alternate" hreflang="${lc}" href="${xmlEsc(`${base}${loc}?lang=${lc}`)}"/>`).join('') + `<xhtml:link rel="alternate" hreflang="x-default" href="${xmlEsc(base + loc)}"/>`;
+  const body = urls.map((u) => `<url><loc>${xmlEsc(base + u.loc)}</loc>${u.lastmod ? `<lastmod>${new Date(u.lastmod).toISOString().slice(0, 10)}</lastmod>` : ''}${alt(u.loc)}</url>`).join('');
+  res.set('Cache-Control', 'public, max-age=3600').type('application/xml').send(`<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">${body}</urlset>`);
 }));
 
 router.post('/preferences/theme', (req, res) => {

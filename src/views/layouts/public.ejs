@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="<%= locale %>" dir="<%= dir %>" data-v="<%= assetV %>"<% if (theme !== 'system') { %> data-theme="<%= theme %>"<% } %>>
-<head><%- include('../partials/head') %></head>
+<head><%- include('../partials/head', { publicHead: true }) %></head>
 <body class="site">
 <header class="site-nav">
   <div class="inner">
@@ -33,9 +33,21 @@
     <% var F = (typeof site !== 'undefined' && site) ? site.footer : null; %>
     <div class="row wrap small"><span>© <%= new Date().getFullYear() %> <%= F && F.copyright ? F.copyright : 'RemoteWay' %></span><% if (F ? L(F.tagline) : true) { %><span>·</span><span><%= F ? L(F.tagline) : t('site.footer_tagline') %></span><% } %></div>
     <nav class="row wrap small footer-links" aria-label="<%= t('legal.nav') %>"><% (F ? F.items : []).forEach(function (n) { if (n.href && L(n.label)) { %><a href="<%= n.href %>"><%= L(n.label) %></a><% } }) %></nav>
+    <% var _soc = (typeof marketing !== 'undefined' && marketing && marketing.social) || {}; if (Object.keys(_soc).length) { %>
+    <nav class="row wrap footer-social" aria-label="<%= t('seo.social_nav') %>"><% Object.keys(_soc).forEach(function (k) { %><a href="<%= _soc[k] %>" target="_blank" rel="noopener me" aria-label="<%= t('seo.social_' + k) %>" title="<%= t('seo.social_' + k) %>"><%- brandIcon(k) %></a><% }) %></nav>
+    <% } %>
   </div>
 </footer>
-<% if (!cookiesOk) { %>
+<% var _consentAsk = typeof pixelsOn !== 'undefined' && pixelsOn && !consent; %>
+<% if (_consentAsk) { %>
+<div class="cookie-note" role="region" aria-label="<%= t('legal.cookies') %>" data-cookie-note>
+  <span><%- icon('cookie', 'icon-sm') %> <%= t('seo.consent_text') %> <a class="link" href="/privacy"><%= t('legal.more') %></a></span>
+  <div class="row nowrap">
+    <form method="post" action="/preferences/cookies"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><input type="hidden" name="choice" value="decline"><button class="btn btn-secondary btn-sm" type="submit"><%= t('seo.consent_decline') %></button></form>
+    <form method="post" action="/preferences/cookies"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><input type="hidden" name="choice" value="accept"><button class="btn btn-dark btn-sm" type="submit"><%= t('seo.consent_accept') %></button></form>
+  </div>
+</div>
+<% } else if (!cookiesOk && !(typeof pixelsOn !== 'undefined' && pixelsOn)) { %>
 <div class="cookie-note" role="region" aria-label="<%= t('legal.cookies') %>" data-cookie-note>
   <span><%- icon('cookie', 'icon-sm') %> <%= t('legal.cookie_text') %> <a class="link" href="/privacy"><%= t('legal.more') %></a></span>
   <form method="post" action="/preferences/cookies"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><button class="btn btn-dark btn-sm" type="submit"><%= t('legal.cookie_ok') %></button></form>

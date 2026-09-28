@@ -25,6 +25,10 @@ const SECTIONS = {
   launch: ['owner', 'admin'],
   legal: ['owner', 'admin'],
   site: ['owner', 'admin'], // landing page editor
+  seo: ['owner', 'admin'], // search engines and AI assistants
+  marketing: ['owner', 'admin', 'sales'], // social links and advertising pixels
+  google: ['owner', 'admin'], // sign in with Google
+  domains: ['owner', 'admin', 'support'], // white-label custom domains
   users: ['owner', 'admin', 'support'], // find accounts, create password reset links
 };
 // Changing things (POST) in these sections needs a narrower role than reading them.
@@ -32,6 +36,8 @@ const WRITE = {
   organizations: ['owner', 'admin', 'finance'],
   payments: ['owner', 'admin'], // gateway keys; finance can still see payments
   launch: ['owner'], // removing the demo data
+  marketing: ['owner', 'admin'],
+  domains: ['owner', 'admin'],
 };
 
 const roleOf = (user) => (user && user.is_super_admin ? (ROLES.includes(user.platform_role) ? user.platform_role : 'owner') : null);

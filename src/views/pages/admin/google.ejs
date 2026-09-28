@@ -1,0 +1,33 @@
+<%
+  var o = old || {};
+  var has = Object.keys(o).length > 0;
+%>
+<div class="page-head"><div><h1><%= t('google.admin_title') %></h1><p><%= t('google.admin_sub') %></p></div>
+  <div class="page-actions"><span class="badge <%= g.enabled ? 'badge-success' : '' %>"><%= g.enabled ? t('google.status_on') : t('google.status_off') %></span></div></div>
+<div class="grid grid-2 align-start">
+<form method="post" action="/admin/google" class="panel" novalidate>
+  <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+  <div class="panel-head"><h2><%- brandIcon('google') %> <%= t('google.settings') %></h2></div>
+  <div class="panel-body stack">
+    <%- include('../../partials/field', { name: 'client_id', label: 'Client ID', value: has ? o.client_id : g.client_id, attrs: 'dir="ltr"', placeholder: '1234-abc.apps.googleusercontent.com' }) %>
+    <%- include('../../partials/field', { name: 'client_secret', label: 'Client secret', type: 'password', attrs: 'dir="ltr" autocomplete="off"', help: g.secret_enc ? t('google.secret_saved') : t('google.secret_help') }) %>
+    <label class="check"><input type="checkbox" name="enabled" value="1"<%= (has ? o.enabled === '1' : g.enabled) ? ' checked' : '' %>><span><%= t('google.enable') %></span></label>
+    <label class="check"><input type="checkbox" name="allow_signup" value="1"<%= (has ? o.allow_signup === '1' : g.allow_signup) ? ' checked' : '' %>><span><%= t('google.allow_signup') %></span></label>
+    <p class="small muted"><%= t('google.rules') %></p>
+  </div>
+  <div class="panel-foot"><button class="btn btn-dark" type="submit"><%= t('common.save_changes') %></button></div>
+</form>
+<section class="panel">
+  <div class="panel-head"><h2><%- icon('list-checks') %> <%= t('google.steps_title') %></h2></div>
+  <div class="panel-body stack-sm small">
+    <ol class="steps-list">
+      <li><%= t('google.step1') %> <a class="link" href="https://console.cloud.google.com/apis/credentials" target="_blank" rel="noopener">console.cloud.google.com</a></li>
+      <li><%= t('google.step2') %></li>
+      <li><%= t('google.step3') %><div class="copy-row mt-2"><code class="mono" dir="ltr"><%= origin %></code></div></li>
+      <li><%= t('google.step4') %><div class="copy-row mt-2"><code class="mono" dir="ltr"><%= redirectUri %></code></div></li>
+      <li><%= t('google.step5') %></li>
+    </ol>
+    <p class="muted"><%= t('google.domains_note') %></p>
+  </div>
+</section>
+</div>
