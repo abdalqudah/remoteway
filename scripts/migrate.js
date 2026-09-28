@@ -14,6 +14,10 @@ const { seedReference, ensureSuperAdmin } = require('../src/db/seed-reference');
       await knex.raw('SET FOREIGN_KEY_CHECKS = 1');
       console.log('Dropped all tables.');
     }
+    if (await knex.schema.hasTable('knex_migrations_lock') && (await knex('knex_migrations_lock').first())?.is_locked && process.argv.includes('--unlock')) {
+      await knex.migrate.forceFreeMigrationsLock();
+      console.log('Released a stale migration lock.');
+    }
     const [, applied] = await knex.migrate.latest();
     console.log(applied.length ? `Applied: ${applied.join(', ')}` : 'Database schema is up to date.');
     await seedReference(knex, { log: console.log });

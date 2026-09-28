@@ -13,6 +13,7 @@ const HINTS = {
   MODULE_NOT_FOUND: ['Dependencies are not installed.', 'الحزم غير مثبتة. اضغط Run NPM Install ثم RESTART.'],
   MYISAM_TABLES: ['Some tables use the MyISAM engine and the database already has data.',
     'بعض الجداول تستخدم محرك MyISAM والقاعدة فيها بيانات. من phpMyAdmin حوّل الجداول إلى InnoDB أو تواصل مع الدعم الفني.'],
+  BOOT_LOCK_TIMEOUT: ['Another process is still starting the app.', 'عملية أخرى ما زالت تشغّل التطبيق. انتظر دقيقة ثم حدّث الصفحة.'],
   ER_TOO_LONG_KEY: ['Database engine is MyISAM.', 'محرك قاعدة البيانات MyISAM. اضغط RESTART، وإذا تكرر الخطأ احذف كل الجداول من phpMyAdmin ثم RESTART.'],
 };
 
@@ -32,6 +33,31 @@ async function repairFreshMyIsamInstall(knex) {
   await knex.raw('SET FOREIGN_KEY_CHECKS = 0');
   for (const r of rows) await knex.schema.dropTableIfExists(r.name);
   await knex.raw('SET FOREIGN_KEY_CHECKS = 1');
+}
+
+/**
+ * Hosts like LiteSpeed may start several app processes at the same moment. A MySQL named lock
+ * (held on one dedicated connection) makes them run migrations/seeding one at a time; the others
+ * wait, then find nothing left to do. Because only the lock holder can be migrating, a leftover
+ * knex migration lock (from a process killed mid-migration) is stale and safe to release.
+ */
+async function bootDatabase(knex, work) {
+  await knex.transaction(async (trx) => {
+    const [[{ got }]] = await trx.raw("SELECT GET_LOCK('remoteway_boot', 180) AS got");
+    if (got !== 1) throw Object.assign(new Error('Timed out waiting for another process to finish starting'), { code: 'BOOT_LOCK_TIMEOUT' });
+    try {
+      if (await knex.schema.hasTable('knex_migrations_lock')) {
+        const row = await knex('knex_migrations_lock').first();
+        if (row && row.is_locked) {
+          console.warn('[db] releasing a stale migration lock left by an interrupted start');
+          await knex.migrate.forceFreeMigrationsLock();
+        }
+      }
+      await work();
+    } finally {
+      await trx.raw("SELECT RELEASE_LOCK('remoteway_boot')");
+    }
+  });
 }
 
 function escapeHtml(s) {
@@ -57,6 +83,9 @@ p{line-height:1.7}.en{direction:ltr;text-align:left;color:#4a4a4a;font-size:14px
     res.writeHead(503, { 'Content-Type': req.url === '/healthz' ? 'application/json' : 'text/html; charset=utf-8', 'Retry-After': '60' });
     res.end(req.url === '/healthz' ? JSON.stringify({ status: 'setup_error', code: detail }) : html);
   }).listen(PORT, () => console.error(`[remoteway] serving setup error page (${detail})`));
+  // Exit after a minute so the host starts a fresh process: transient problems (a busy database,
+  // a restart race) then fix themselves; configuration problems simply show this page again.
+  setTimeout(() => process.exit(1), 60_000).unref();
 }
 
 async function start() {
@@ -67,13 +96,15 @@ async function start() {
 
   await knex.raw('select 1'); // fail fast with a clear code if the database is unreachable
   if (config.autoMigrate) {
-    await repairFreshMyIsamInstall(knex);
-    const [, applied] = await knex.migrate.latest();
-    if (applied.length) console.log(`[db] applied migrations: ${applied.join(', ')}`);
-    await seedReference(knex);
-    await ensureSuperAdmin(knex, {
-      email: process.env.SUPER_ADMIN_EMAIL, password: process.env.SUPER_ADMIN_PASSWORD, name: process.env.SUPER_ADMIN_NAME,
-    }, config.bcryptRounds);
+    await bootDatabase(knex, async () => {
+      await repairFreshMyIsamInstall(knex);
+      const [, applied] = await knex.migrate.latest();
+      if (applied.length) console.log(`[db] applied migrations: ${applied.join(', ')}`);
+      await seedReference(knex);
+      await ensureSuperAdmin(knex, {
+        email: process.env.SUPER_ADMIN_EMAIL, password: process.env.SUPER_ADMIN_PASSWORD, name: process.env.SUPER_ADMIN_NAME,
+      }, config.bcryptRounds);
+    });
   }
   const app = createApp();
   // Phusion Passenger / LiteSpeed (cPanel "Setup Node.js App") passes a socket path via PORT; listen() accepts both.
