@@ -1,0 +1,16 @@
+<main class="kiosk" data-kiosk-src="/kiosk/<%= token %>/qr" data-expires="<%= qr.expiresIn %>">
+  <header class="kiosk-head">
+    <% if (orgLogo) { %><img class="kiosk-logo" src="<%= orgLogo %>" alt="<%= org.name %>"><% } else { %><strong class="kiosk-org"><%= org.name %></strong><% } %>
+    <div class="kiosk-clock" data-kiosk-clock dir="ltr">--:--</div>
+  </header>
+  <section class="kiosk-main">
+    <h1><%= t('qr.display_title') %></h1>
+    <p class="kiosk-sub"><%= t('qr.display_sub') %></p>
+    <div class="kiosk-qr" data-kiosk-qr><%- qr.svg %></div>
+    <div class="kiosk-timer"><span><%= t('qr.changes_in') %></span> <strong data-kiosk-left dir="ltr"><%= qr.expiresIn %></strong> <span><%= t('qr.seconds') %></span></div>
+    <div class="kiosk-bar"><span data-kiosk-bar></span></div>
+    <p class="kiosk-name"><%- icon('map-pin', 'icon-sm') %> <%= kiosk.name %></p>
+    <p class="kiosk-offline" data-kiosk-offline hidden><%= t('qr.offline') %></p>
+  </section>
+  <footer class="kiosk-foot"><img src="/brand/logo-primary-sm.png" alt="RemoteWay" height="18"></footer>
+</main>

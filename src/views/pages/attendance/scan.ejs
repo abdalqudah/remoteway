@@ -1,0 +1,27 @@
+<% if (typeof failed !== 'undefined' && failed) { %>
+  <h1><%= t('qr.scan_title') %></h1>
+  <div class="alert alert-warning mt-4" role="alert"><%- icon('triangle-alert') %><div><%= failed %></div></div>
+  <a class="btn btn-secondary btn-block mt-6" href="/app"><%= t('qr.go_app') %></a>
+<% } else { %>
+  <div class="row-sm"><span class="badge badge-brand"><%- icon('map-pin', 'icon-sm') %><%= kiosk.name %></span></div>
+  <h1 class="mt-2"><%= org.name %></h1>
+  <% if (typeof finished !== 'undefined' && finished) { %>
+    <div class="scan-done"><%- icon('circle-check') %><div><strong><%= t('attendance.done_' + done) %></strong><div class="text-2 small" dir="ltr"><%= fmt.date(new Date(), { timeStyle: 'short' }) %></div></div></div>
+    <a class="btn btn-dark btn-block mt-6" href="/app"><%= t('qr.go_app') %></a>
+  <% } else { %>
+    <% if (typeof formError !== 'undefined' && formError) { %><div class="alert alert-error mt-4" role="alert"><%- icon('circle-alert') %><div><%= formError.message %></div></div><% } %>
+    <% var row = today && today.row; var inDone = row && row.clock_in; var outDone = row && row.clock_out; %>
+    <% if (!today) { %>
+      <div class="alert alert-warning mt-4"><%- icon('triangle-alert') %><div><%= t('errors.EMPLOYEE_RECORD_REQUIRED') %></div></div>
+    <% } else if (outDone) { %>
+      <div class="alert alert-info mt-4"><%- icon('info') %><div><%= t('qr.already_done') %></div></div>
+    <% } else { %>
+      <p class="lead mt-2"><%= inDone ? t('qr.confirm_out') : t('qr.confirm_in') %></p>
+      <form method="post" action="/q/<%= kiosk.public_id %>" class="mt-6">
+        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+        <button class="btn btn-primary btn-lg btn-block" type="submit" name="action" value="<%= inDone ? 'out' : 'in' %>"><%- icon('clock') %><%= inDone ? t('attendance.clock_out') : t('attendance.clock_in') %></button>
+      </form>
+      <p class="small muted mt-4"><%= t('qr.signed_as', { email: currentUser.email }) %></p>
+    <% } %>
+  <% } %>
+<% } %>

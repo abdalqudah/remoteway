@@ -20,6 +20,9 @@ router.use('/payments', require('../modules/payments/web'));
 router.use('/', require('../modules/crm/public.web')); // demo requests + WhatsApp webhook (internal CRM)
 router.use('/admin', requireAuth, requireSuperAdmin, require('../modules/admin/web'));
 router.use('/app', requireAuth, emailGate, resolveTenant, require('./app'));
+router.use('/kiosk', require('../modules/attendance/qr.web').display); // office screen showing the attendance QR
+router.use('/q', require('../modules/attendance/qr.web').scan); // phone opens this after scanning
+router.use('/', require('../modules/organizations/portal.web').router); // remoteway.net/<company link> — keep last
 
 // After the grace period an account must confirm its email before using the app (API tokens excepted).
 function emailGate(req, res, next) {

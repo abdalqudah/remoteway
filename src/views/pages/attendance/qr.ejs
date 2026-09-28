@@ -1,0 +1,64 @@
+<% var o = old || {}; %>
+<div class="page-head"><div><div class="eyebrow"><a href="/app/attendance"><%= t('nav.attendance') %></a><%- icon('chevron-right', 'icon-sm flip-rtl') %></div><h1><%= t('qr.title') %></h1><p><%= t('qr.sub') %></p></div></div>
+
+<div class="grid grid-3">
+  <div class="span-2 stack">
+    <section class="panel">
+      <div class="panel-head"><h2><%= t('qr.screens') %></h2><span class="badge"><%= fmt.number(list.length) %></span></div>
+      <% if (!list.length) { %><div class="empty"><%- icon('smartphone') %><p><%= t('qr.empty') %></p></div><% } else { %>
+      <div class="stack" style="padding:14px 16px">
+      <% list.forEach(function (k) { var online = k.last_seen_at && (Date.now() - new Date(k.last_seen_at).getTime()) < 3 * 60000; %>
+        <div class="kiosk-card">
+          <div class="row between wrap">
+            <div><div style="font-weight:700"><%= k.name %></div><div class="small muted"><%= k.location_name || t('qr.no_location') %></div></div>
+            <div class="row-sm">
+              <% if (!k.is_active) { %><span class="badge badge-danger"><%= t('qr.disabled') %></span><% } else if (online) { %><span class="badge badge-success badge-dot"><%= t('qr.online') %></span><% } else { %><span class="badge"><%= k.last_seen_at ? t('qr.last_seen', { when: fmt.date(k.last_seen_at, { dateStyle: 'short', timeStyle: 'short' }) }) : t('qr.never_opened') %></span><% } %>
+              <% if (k.is_active) { %><a class="btn btn-dark btn-sm" href="/app/attendance/qr/<%= k.id %>/open" target="_blank" rel="noopener"><%- icon('external-link', 'icon-sm') %><%= t('qr.open_screen') %></a><% } %>
+            </div>
+          </div>
+          <form method="post" action="/app/attendance/qr/<%= k.id %>" class="row wrap mt-2">
+            <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+            <label class="check"><input type="checkbox" name="is_active" value="1"<%= k.is_active ? ' checked' : '' %>> <span><%= t('qr.active') %></span></label>
+            <label class="check"><input type="checkbox" name="same_network" value="1"<%= k.same_network ? ' checked' : '' %>> <span><%= t('qr.same_network') %></span></label>
+            <button class="btn btn-secondary btn-sm" type="submit"><%= t('common.save') %></button>
+          </form>
+          <div class="row-sm mt-2">
+            <form class="inline" method="post" action="/app/attendance/qr/<%= k.id %>/regenerate" data-confirm="<%= t('qr.regenerate_confirm') %>"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><button class="btn btn-ghost btn-sm" type="submit"><%- icon('history', 'icon-sm') %><%= t('qr.regenerate') %></button></form>
+            <form class="inline" method="post" action="/app/attendance/qr/<%= k.id %>/delete" data-confirm="<%= t('qr.delete_confirm', { name: k.name }) %>"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><button class="btn btn-danger-ghost btn-sm" type="submit"><%- icon('trash-2', 'icon-sm') %><%= t('common.delete') %></button></form>
+          </div>
+        </div>
+      <% }) %>
+      </div><% } %>
+    </section>
+
+    <section class="panel">
+      <div class="panel-head"><h2><%= t('qr.how_title') %></h2></div>
+      <div class="panel-body"><ol class="steps-list">
+        <li><%= t('qr.how_1') %></li><li><%= t('qr.how_2') %></li><li><%= t('qr.how_3') %></li><li><%= t('qr.how_4') %></li>
+      </ol></div>
+    </section>
+  </div>
+
+  <div class="stack">
+    <form class="panel" method="post" action="/app/attendance/qr" novalidate>
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+      <div class="panel-head"><div><h2><%= t('qr.add') %></h2><div class="panel-sub"><%= t('qr.add_sub') %></div></div></div>
+      <div class="panel-body stack">
+        <%- include('../../partials/field', { name: 'name', label: t('qr.screen_name'), required: true, placeholder: t('qr.screen_name_ph') }) %>
+        <%- include('../../partials/field', { name: 'location_id', label: t('fields.location'), type: 'select', placeholder: t('qr.no_location'), options: locations.map(function (l) { return { value: l.id, label: l.name }; }) }) %>
+        <label class="check"><input type="checkbox" name="same_network" value="1"<%= o.same_network ? ' checked' : '' %>> <span><%= t('qr.same_network') %></span></label>
+        <p class="small muted" style="margin:0"><%= t('qr.same_network_help') %></p>
+      </div>
+      <div class="panel-foot"><button class="btn btn-dark" type="submit"><%- icon('plus') %><%= t('qr.add') %></button></div>
+    </form>
+    <form class="panel" method="post" action="/app/attendance/qr/settings">
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+      <div class="panel-head"><h2><%= t('qr.policy') %></h2></div>
+      <div class="panel-body stack">
+        <label class="check"><input type="checkbox" name="qr_required" value="1"<%= qrRequired ? ' checked' : '' %>> <span><%= t('qr.required') %></span></label>
+        <p class="small muted" style="margin:0"><%= t('qr.required_help') %></p>
+      </div>
+      <div class="panel-foot"><button class="btn btn-dark" type="submit"><%= t('common.save') %></button></div>
+    </form>
+  </div>
+</div>

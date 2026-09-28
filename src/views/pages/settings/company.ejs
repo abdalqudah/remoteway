@@ -19,6 +19,20 @@
   <div class="panel-foot"><button class="btn btn-dark" type="submit"><%= t('common.save_changes') %></button></div>
 </form>
 
+<% if (can('organization.manage')) { %>
+<form method="post" action="/app/settings/company-link" class="panel" id="link" novalidate>
+  <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+  <div class="panel-head"><div><h2><%- icon('globe') %> <%= t('portal.link_title') %></h2><div class="panel-sub"><%= t('portal.link_sub') %></div></div></div>
+  <div class="panel-body stack">
+    <div class="row mt-2"><code class="code-box grow" data-copy-source dir="ltr"><%= baseUrl %>/<%= o.slug %></code><button class="btn btn-secondary btn-sm" type="button" data-copy><%- icon('copy', 'icon-sm') %><%= t('common.copy') %></button><a class="btn btn-ghost btn-sm" href="/<%= o.slug %>" target="_blank" rel="noopener"><%- icon('external-link', 'icon-sm') %></a></div>
+    <div class="field"><label class="label" for="f-slug"><%= t('portal.link_name') %></label>
+      <div class="input-prefix" dir="ltr"><span><%= baseUrl.replace(/^https?:\/\//, '') %>/</span><input class="input<%= errors.slug ? ' is-invalid' : '' %>" id="f-slug" name="slug" value="<%= old && old.slug !== undefined ? old.slug : o.slug %>" maxlength="40" autocomplete="off" spellcheck="false"></div>
+      <% if (errors.slug) { %><span class="field-error"><%= errors.slug %></span><% } else { %><span class="help"><%= t('portal.link_help') %></span><% } %></div>
+  </div>
+  <div class="panel-foot"><button class="btn btn-dark" type="submit"><%= t('common.save_changes') %></button></div>
+</form>
+<% } %>
+
 <% if (can('settings.manage')) { %>
 <form method="post" action="/app/settings/work" class="panel" id="work" novalidate>
   <input type="hidden" name="_csrf" value="<%= csrfToken %>">

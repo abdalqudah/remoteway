@@ -1071,3 +1071,44 @@ form.inline { display: inline; }
 .check-row.is-fail .check-icon { color: var(--danger); }
 .verify-banner { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; padding: 10px 16px; margin: 0 0 16px; background: var(--warning-soft); border-radius: var(--radius); font-size: 13px; }
 .verify-banner .icon { color: var(--warning); }
+
+/* ---------- Company portal (remoteway.net/<link>) ---------- */
+.portal-head { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 10px; }
+.portal-head h1 { margin: 0; font-size: 24px; line-height: 1.3; }
+.portal-logo { max-height: 56px; max-width: 160px; object-fit: contain; }
+.portal-mark { width: 56px; height: 56px; border-radius: 14px; display: grid; place-items: center; background: var(--text); color: var(--bg); font-weight: 800; font-size: 20px; flex: none; }
+.portal-choices { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.portal-choice { display: flex; align-items: center; gap: 10px; padding: 14px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); font-weight: 600; font-size: 14px; color: var(--text); transition: border-color .15s, background .15s; }
+.portal-choice:hover { border-color: var(--rw-green, #1DCB6B); background: var(--surface-2); }
+.portal-choice .icon { color: var(--rw-green-deep, #138A48); }
+@media (max-width: 420px) { .portal-choices { grid-template-columns: 1fr; } }
+.input-prefix { display: flex; align-items: stretch; border: 1px solid var(--border-strong); border-radius: var(--radius); overflow: hidden; background: var(--surface); }
+.input-prefix > span { display: flex; align-items: center; padding: 0 10px; background: var(--surface-sunken); color: var(--text-2); font-size: 13px; white-space: nowrap; border-inline-end: 1px solid var(--border); }
+.input-prefix > .input { border: 0; border-radius: 0; flex: 1; min-width: 0; }
+
+/* ---------- QR attendance: office screen + scan page ---------- */
+.kiosk-body { background: #fff; color: #0A0A0A; margin: 0; }
+.kiosk { min-height: 100vh; display: flex; flex-direction: column; padding: 24px 32px; box-sizing: border-box; }
+.kiosk-head { display: flex; align-items: center; justify-content: space-between; }
+.kiosk-logo { max-height: 56px; max-width: 220px; object-fit: contain; }
+.kiosk-org { font-size: 24px; }
+.kiosk-clock { font-size: 40px; font-weight: 800; font-variant-numeric: tabular-nums; }
+.kiosk-main { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; gap: 10px; }
+.kiosk-main h1 { font-size: clamp(26px, 4vw, 44px); margin: 0; }
+.kiosk-sub { font-size: clamp(15px, 2vw, 20px); color: #5F6368; margin: 0 0 8px; }
+.kiosk-qr { width: min(62vh, 80vw); aspect-ratio: 1; padding: 14px; border-radius: 20px; border: 2px solid #E6E6E6; background: #fff; transition: opacity .25s; }
+.kiosk-qr svg { width: 100%; height: 100%; display: block; }
+.kiosk-qr.is-changing { opacity: .25; }
+.kiosk-timer { font-size: 18px; color: #3C4043; }
+.kiosk-timer strong { font-size: 24px; color: #0A0A0A; }
+.kiosk-bar { width: min(62vh, 80vw); height: 6px; background: #EEE; border-radius: 99px; overflow: hidden; }
+.kiosk-bar span { display: block; height: 100%; width: 100%; background: #1DCB6B; transform-origin: left; transition: width 1s linear; }
+[dir="rtl"] .kiosk-bar span { margin-inline-start: auto; }
+.kiosk-name { color: #5F6368; font-size: 15px; display: flex; align-items: center; gap: 6px; }
+.kiosk-offline { color: #B3261E; font-weight: 700; }
+.kiosk-foot { display: flex; justify-content: center; opacity: .8; }
+.scan-done { display: flex; align-items: center; gap: 14px; margin-top: 24px; padding: 18px; border-radius: var(--radius-lg, 12px); background: var(--success-soft); }
+.scan-done .icon { width: 34px; height: 34px; color: var(--success); }
+.kiosk-card { border: 1px solid var(--border); border-radius: var(--radius); padding: 12px 14px; }
+.qr-tag { display: inline-block; font-size: 10px; font-weight: 700; padding: 1px 5px; border-radius: 4px; background: var(--success-soft); color: var(--success); vertical-align: middle; }
+.qr-hint { display: inline-flex; align-items: center; gap: 8px; padding: 8px 12px; border-radius: var(--radius); background: var(--surface-sunken); font-size: 13px; font-weight: 600; }

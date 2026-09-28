@@ -47,6 +47,11 @@ router.post('/company', can('organization.manage'), form(async (req, res) => {
   flash(req, 'success', req.t('common.saved'));
   res.redirect('/app/settings/company');
 }, renderCompany));
+router.post('/company-link', can('organization.manage'), form(async (req, res) => {
+  await require('../organizations/portal.service').setSlug(req.ctx, req.body.slug); // eslint-disable-line global-require
+  flash(req, 'success', req.t('portal.link_saved'));
+  res.redirect('/app/settings/company#link');
+}, renderCompany));
 router.post('/work', can('settings.manage'), form(async (req, res) => {
   const data = validate(workSchema, req.body);
   await orgs.updateSettings(req.ctx, data);

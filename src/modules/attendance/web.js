@@ -43,4 +43,40 @@ router.post('/manual', can('attendance.manage'), form(async (req, res) => {
   back(req, res, '/app/attendance');
 }));
 
+// ---------- QR attendance: office screens ----------
+const kiosks = require('./kiosk.service');
+const orgs = require('../organizations/organization.service');
+const knex = require('../../db/knex');
+const renderQr = async (req, res, extra = {}) => {
+  const [list, locations, settings] = await Promise.all([kiosks.list(req.ctx.organizationId), knex('locations').where({ organization_id: req.ctx.organizationId }).orderBy('name'), orgs.getSettings(req.ctx.organizationId)]);
+  res.page('pages/attendance/qr', { title: req.t('qr.title'), list, locations, qrRequired: Boolean(settings.attendance_qr_required), ...extra });
+};
+router.get('/qr', can('attendance.manage'), wrap((req, res) => renderQr(req, res)));
+router.post('/qr', can('attendance.manage'), form(async (req, res) => {
+  await kiosks.create(req.ctx, req.body);
+  flash(req, 'success', req.t('qr.created'));
+  res.redirect('/app/attendance/qr');
+}, renderQr));
+router.post('/qr/settings', can('attendance.manage'), wrap(async (req, res) => {
+  await orgs.updateSettings(req.ctx, { attendance_qr_required: req.body.qr_required === '1' });
+  flash(req, 'success', req.t('common.saved'));
+  res.redirect('/app/attendance/qr');
+}));
+router.get('/qr/:id/open', can('attendance.manage'), wrap(async (req, res) => res.redirect(kiosks.displayUrl(await kiosks.get(req.ctx, Number(req.params.id))))));
+router.post('/qr/:id', can('attendance.manage'), wrap(async (req, res) => {
+  await kiosks.update(req.ctx, Number(req.params.id), { same_network: req.body.same_network === '1', is_active: req.body.is_active === '1' });
+  flash(req, 'success', req.t('common.saved'));
+  res.redirect('/app/attendance/qr');
+}));
+router.post('/qr/:id/regenerate', can('attendance.manage'), wrap(async (req, res) => {
+  await kiosks.regenerate(req.ctx, Number(req.params.id));
+  flash(req, 'success', req.t('qr.regenerated'));
+  res.redirect('/app/attendance/qr');
+}));
+router.post('/qr/:id/delete', can('attendance.manage'), wrap(async (req, res) => {
+  await kiosks.remove(req.ctx, Number(req.params.id));
+  flash(req, 'success', req.t('qr.deleted'));
+  res.redirect('/app/attendance/qr');
+}));
+
 module.exports = router;

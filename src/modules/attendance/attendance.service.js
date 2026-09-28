@@ -53,12 +53,20 @@ async function today(ctx) {
   const c = await context(ctx.organizationId);
   const date = todayIn(c.tz);
   const row = await knex('attendance').where({ organization_id: ctx.organizationId, employee_id: id, work_date: date }).first();
-  return { date, row: row || null, isWorkingDay: c.workingDays.includes(dayKey(date)), workStart: c.start, workEnd: c.end, tz: c.tz };
+  const qrRequired = Boolean((await orgs.getSettings(ctx.organizationId)).attendance_qr_required);
+  return { date, row: row || null, isWorkingDay: c.workingDays.includes(dayKey(date)), workStart: c.start, workEnd: c.end, tz: c.tz, qrRequired };
 }
 
-async function clock(ctx, action, ip) {
+/**
+ * @param opts.method 'web' (the button) or 'qr' (scanned at a display screen)
+ * When the company requires QR, clocking in and out only works by scanning; breaks stay on the button.
+ */
+async function clock(ctx, action, ip, { method = 'web', kioskId = null } = {}) {
   await ent.assertFeature(ctx.organizationId, 'attendance');
   await ent.assertCanWrite(ctx.organizationId);
+  if (method === 'web' && ['in', 'out'].includes(action) && (await orgs.getSettings(ctx.organizationId)).attendance_qr_required) {
+    throw new AppError('ATTENDANCE_QR_REQUIRED', 'Your company records attendance by scanning the QR code at the office screen.', 409);
+  }
   const emp = await selfEmployee(ctx);
   const c = await context(ctx.organizationId);
   const date = todayIn(c.tz);
@@ -69,8 +77,9 @@ async function clock(ctx, action, ip) {
       if (row?.clock_in) throw new AppError('ALREADY_CLOCKED_IN', 'You have already clocked in today.', 409);
       const nowMin = minutesNowIn(c.tz);
       const late = c.workingDays.includes(dayKey(date)) ? Math.max(0, nowMin - (c.start + c.grace)) : 0;
-      if (row) await trx('attendance').where({ id: row.id }).update({ clock_in: now, late_minutes: late, ip, source: 'web' });
-      else await trx('attendance').insert({ organization_id: ctx.organizationId, employee_id: emp.id, work_date: date, clock_in: now, late_minutes: late, ip, source: 'web' });
+      const how = { clock_in_method: method, ...(kioskId ? { kiosk_id: kioskId } : {}) };
+      if (row) await trx('attendance').where({ id: row.id }).update({ clock_in: now, late_minutes: late, ip, source: 'web', ...how });
+      else await trx('attendance').insert({ organization_id: ctx.organizationId, employee_id: emp.id, work_date: date, clock_in: now, late_minutes: late, ip, source: 'web', ...how });
       return 'in';
     }
     if (!row?.clock_in) throw new AppError('NOT_CLOCKED_IN', 'Clock in first.', 409);
@@ -88,7 +97,7 @@ async function clock(ctx, action, ip) {
       return 'break_end';
     }
     if (action === 'out') {
-      const update = { clock_out: now, break_started_at: null, break_minutes: breakMinutes };
+      const update = { clock_out: now, break_started_at: null, break_minutes: breakMinutes, clock_out_method: method, ...(kioskId ? { kiosk_id: kioskId } : {}) };
       Object.assign(update, computeMinutes({ ...row, ...update }, c));
       await trx('attendance').where({ id: row.id }).update(update);
       return 'out';

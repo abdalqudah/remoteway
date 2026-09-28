@@ -1,0 +1,26 @@
+<div class="portal-head">
+  <% if (orgLogo) { %><img class="portal-logo" src="<%= orgLogo %>" alt="<%= org.name %>"><% } else { %><span class="portal-mark"><%= initials(org.name) %></span><% } %>
+  <div><h1><%= org.name %></h1><p class="text-2 small"><%= t('portal.lead') %></p></div>
+</div>
+<% if (!as) { %>
+  <p class="mt-6" style="font-weight:600"><%= t('portal.who') %></p>
+  <div class="portal-choices mt-2">
+    <% entries.forEach(function (e) { %>
+      <a class="portal-choice" href="/<%= org.slug %>?as=<%= e.key %>"><%- icon(e.icon) %><span><%= t('portal.as_' + e.key) %></span></a>
+    <% }) %>
+  </div>
+  <% if (sso) { %><a class="btn btn-secondary btn-block mt-4" href="/sso"><%- icon('key-round') %><%= t('sso.sign_in') %></a><% } %>
+<% } else { %>
+  <div class="row between mt-6"><span class="badge badge-brand"><%= t('portal.as_' + as) %></span><a class="link small" href="/<%= org.slug %>"><%= t('portal.change') %></a></div>
+  <form method="post" action="/login" class="stack mt-4" novalidate>
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+    <input type="hidden" name="portal" value="<%= org.slug %>">
+    <input type="hidden" name="as" value="<%= as %>">
+    <%- include('../../partials/field', { name: 'email', label: t('fields.email'), type: 'email', required: true, autocomplete: 'email' }) %>
+    <%- include('../../partials/field', { name: 'password', label: t('fields.password'), type: 'password', required: true, autocomplete: 'current-password' }) %>
+    <div class="small" style="margin-top:-6px"><a class="link" href="/forgot"><%= t('auth.forgot_link') %></a></div>
+    <button class="btn btn-dark btn-lg btn-block" type="submit"><%= t('auth.login') %><%- icon('arrow-right', 'flip-rtl') %></button>
+  </form>
+  <% if (sso) { %><a class="btn btn-secondary btn-block mt-4" href="/sso"><%- icon('key-round') %><%= t('sso.sign_in') %></a><% } %>
+<% } %>
+<p class="mt-6 small muted"><%= t('portal.note') %></p>

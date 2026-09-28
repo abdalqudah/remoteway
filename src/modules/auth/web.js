@@ -11,6 +11,9 @@ const subscriptions = require('../billing/subscription.service');
 const security = require('./security.service');
 const privacy = require('./privacy.service');
 const verify = require('./verify.service');
+const portal = require('../organizations/portal.service');
+const rbac = require('../rbac/rbac.service');
+const { E } = require('../../core/errors');
 
 const router = express.Router();
 
@@ -22,11 +25,13 @@ const loginLimiter = rateLimit({
 function signIn(req, user, organizationId) {
   return new Promise((resolve, reject) => {
     const returnTo = req.session.returnTo;
+    const qrTicket = req.session.qrTicket; // a QR attendance scan made just before signing in
     req.session.regenerate((err) => {
       if (err) return reject(err);
       req.session.userId = user.id;
       if (organizationId) req.session.organizationId = organizationId;
       req.session.returnTo = returnTo;
+      if (qrTicket) req.session.qrTicket = qrTicket;
       return req.session.save((e) => (e ? reject(e) : resolve()));
     });
   });
@@ -39,16 +44,28 @@ router.get('/login', (req, res) => (req.user ? res.redirect('/app') : renderLogi
 
 router.post('/login', loginLimiter, form(async (req, res) => {
   const data = validate(z.object({ email: email(), password: z.string().min(1, 'Password is required.') }), req.body);
+  // Signing in from a company page (remoteway.net/<link>): the account must belong to that company.
+  const fromPortal = req.body.portal ? await portal.bySlug(req.body.portal) : null;
   const user = await authService.authenticate(data, { ip: req.ip, userAgent: req.get('user-agent') });
+  let orgId = user.last_organization_id;
+  if (fromPortal) {
+    if (!(await orgs.isMember(user.id, fromPortal.id))) throw E.conflict('PORTAL_NOT_MEMBER', `This account is not a member of ${fromPortal.name}.`);
+    orgId = fromPortal.id;
+    const e = portal.entry(req.body.as);
+    const perms = await rbac.getUserPermissions(orgId, user.id);
+    req.session.returnTo = !e.permission || perms.has(e.permission) ? e.path : '/app';
+  }
   if (security.hasTwoFactor(user)) {
     // Password was right; the session is only created after the second factor.
-    req.session.pending2fa = { userId: user.id, at: Date.now() };
+    req.session.pending2fa = { userId: user.id, at: Date.now(), orgId };
     return req.session.save(() => res.redirect('/login/2fa'));
   }
-  await signIn(req, user, user.last_organization_id);
+  await signIn(req, user, orgId);
   return finishLogin(req, res, user);
-}, (req, res, extra) => {
+}, async (req, res, extra) => {
   if (extra.formError?.code === 'INVALID_CREDENTIALS') res.status(401);
+  const fromPortal = req.body.portal ? await portal.bySlug(req.body.portal) : null;
+  if (fromPortal) return require('../organizations/portal.web').renderPortal(req, res, fromPortal, extra); // eslint-disable-line global-require
   return renderLogin(req, res, extra);
 }));
 
@@ -73,7 +90,7 @@ router.post('/login/2fa', loginLimiter, form(async (req, res) => {
   await security.verifyLogin(p.userId, req.body.code);
   const user = await authService.findUser(p.userId);
   delete req.session.pending2fa;
-  await signIn(req, user, user.last_organization_id);
+  await signIn(req, user, p.orgId || user.last_organization_id);
   return finishLogin(req, res, user);
 }, render2fa));
 
