@@ -5,6 +5,7 @@
 </div>
 <%- include('../../partials/settings-nav') %>
 
+<%- include('../../partials/reset-link') %>
 <% if (inviteLink) { %>
 <div class="alert alert-success mb-4"><%- icon('mail') %><div class="grow"><div class="alert-title"><%= t('settings.invite_link_title') %></div><div class="text-2"><%= t('settings.invite_link_text') %></div><div class="row mt-2"><code class="code-box grow" data-copy-source><%= inviteLink %></code><button class="btn btn-secondary btn-sm" type="button" data-copy><%- icon('copy', 'icon-sm') %><%= t('common.copy') %></button></div></div></div>
 <% } %>
@@ -19,6 +20,7 @@
         <td><div class="person"><span class="avatar"><%= initials(m.name) %></span><span><span class="person-name"><%= m.name %><% if (m.is_owner) { %> <span class="badge badge-brand"><%= t('settings.owner') %></span><% } %></span><span class="person-sub" style="display:block"><%= m.email %></span></span></div></td>
         <td>
           <% if (can('users.manage') && !m.is_owner && m.id !== currentUser.id) { %>
+          <% if (m.status === 'active') { %><form method="post" action="/app/settings/users/<%= m.id %>/reset-link" style="display:inline" data-confirm="<%= t('auth.reset_link_confirm', { name: m.name }) %>"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><button class="btn btn-ghost btn-sm" type="submit"><%- icon('key-round', 'icon-sm') %><%= t('auth.reset_link_btn') %></button></form><% } %>
           <form method="post" action="/app/settings/users/<%= m.id %>/role" class="row-sm" data-autosubmit><input type="hidden" name="_csrf" value="<%= csrfToken %>">
             <select class="select" name="role_id" style="height:32px;font-size:13px;min-width:180px" aria-label="<%= t('fields.role') %>"><% roles.forEach(function (r) { %><option value="<%= r.id %>"<%= r.id === m.role_id ? ' selected' : '' %>><%= roleName(r) %></option><% }) %></select>
           </form>

@@ -1,0 +1,10 @@
+<div class="table-wrap"><table class="table">
+  <thead><tr><th><%= t('fields.name') %></th><% if (showOrgs) { %><th><%= t('admin.organizations') %></th><% } %><th><%= t('settings.last_login') %></th><th></th><th class="actions"></th></tr></thead>
+  <tbody><% rows.forEach(function (u) { %><tr>
+    <td><div style="font-weight:600"><%= u.name %><% if (u.is_super_admin) { %> <span class="badge badge-brand"><%= t('admin.super_admin') %></span><% } %></div><div class="muted small" dir="ltr"><%= u.email %></div></td>
+    <% if (showOrgs) { %><td class="small text-2"><%= u.orgs || '—' %></td><% } %>
+    <td class="small muted nowrap"><%= u.last_login_at ? fmt.date(u.last_login_at, { dateStyle: 'medium', timeStyle: 'short' }) : t('settings.never') %></td>
+    <td class="nowrap"><% if (u.status !== 'active') { %><span class="badge badge-danger"><%= t('statuses.member_disabled') %></span> <% } %><% if (!u.email_verified_at && !u.is_super_admin) { %><span class="badge badge-warning"><%= t('verify.title') %></span> <% } %><% if (u.two_factor_enabled_at) { %><span class="badge badge-success"><%- icon('shield-check', 'icon-sm') %>2FA</span><% } %></td>
+    <td class="actions"><% if (!u.is_super_admin && u.status === 'active' && adminCan('users', true)) { %><form method="post" action="/admin/users/<%= u.id %>/reset-link" style="display:inline" data-confirm="<%= t('auth.reset_link_confirm', { name: u.name }) %>"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><input type="hidden" name="back" value="<%= back %>"><button class="btn btn-secondary btn-sm" type="submit"><%- icon('key-round', 'icon-sm') %><%= t('auth.reset_link_btn') %></button></form><% } %></td>
+  </tr><% }) %></tbody>
+</table></div>

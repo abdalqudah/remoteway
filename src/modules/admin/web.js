@@ -8,7 +8,7 @@ const subscriptions = require('../billing/subscription.service');
 const auditLog = require('../organizations/audit.service');
 const audit = require('../../core/audit');
 const bcrypt = require('bcryptjs');
-const { E } = require('../../core/errors');
+const { E, AppError } = require('../../core/errors');
 const { singleFile } = require('../../middleware/upload');
 const updater = require('./updater.service');
 
@@ -44,10 +44,14 @@ router.get('/organizations', wrap(async (req, res) => {
   res.page('pages/admin/organizations', { layout: 'admin', title: req.t('admin.organizations'), orgs: await admin.listOrganizations({ q: req.query.q }) });
 }));
 
+const orgUsers = (orgId) => knex('memberships as m').join('users as u', 'u.id', 'm.user_id').where('m.organization_id', orgId).whereNull('u.deleted_at')
+  .select('u.id', 'u.name', 'u.email', 'u.status', 'u.last_login_at', 'u.email_verified_at', 'u.two_factor_enabled_at', 'm.status as member_status').orderBy('u.name').limit(200);
 const renderOrg = async (req, res, extra = {}) => {
   const [org, plans, addons, features] = await Promise.all([admin.getOrganization(Number(req.params.id)), knex('plans').orderBy('sort_order'),
     knex('addons').where({ is_active: true }).orderBy('sort_order'), knex('features').orderBy('sort_order')]);
-  res.page('pages/admin/organization', { layout: 'admin', title: org.name, org, plans, addons, features, limitKeys: LIMIT_KEYS, ...extra });
+  const resetLink = req.session.lastResetLink;
+  delete req.session.lastResetLink;
+  res.page('pages/admin/organization', { layout: 'admin', title: org.name, org, plans, addons, features, limitKeys: LIMIT_KEYS, users: await orgUsers(org.id), resetLink, ...extra });
 };
 router.get('/organizations/:id', wrap((req, res) => renderOrg(req, res)));
 router.post('/organizations/:id/status', wrap(async (req, res) => {
@@ -339,6 +343,31 @@ router.post('/backups/:name/delete', form(async (req, res) => {
   flash(req, 'success', req.t('admin.backup_deleted'));
   res.redirect('/admin/backups');
 }, renderBackups));
+
+// ---------- Users: find any account, create a password reset link ----------
+router.get('/users', wrap(async (req, res) => {
+  const q = String(req.query.q || '').trim().slice(0, 100);
+  const list = q ? await knex('users as u').whereNull('u.deleted_at').where((w) => w.where('u.email', 'like', `%${q.replace(/[%_]/g, '\\$&')}%`).orWhere('u.name', 'like', `%${q.replace(/[%_]/g, '\\$&')}%`))
+    .select('u.id', 'u.name', 'u.email', 'u.status', 'u.is_super_admin', 'u.last_login_at', 'u.email_verified_at', 'u.two_factor_enabled_at',
+      knex.raw('(SELECT GROUP_CONCAT(o.name SEPARATOR \', \') FROM memberships m JOIN organizations o ON o.id = m.organization_id WHERE m.user_id = u.id) AS orgs'))
+    .orderBy('u.name').limit(50) : [];
+  const resetLink = req.session.lastResetLink;
+  delete req.session.lastResetLink;
+  res.page('pages/admin/users', { layout: 'admin', title: req.t('admin.users'), q, list, resetLink });
+}));
+router.post('/users/:id/reset-link', wrap(async (req, res) => {
+  const back = String(req.body.back || '');
+  const to = /^\/admin\/(users|organizations\/\d+)(\?[\w=&%.@+-]*)?$/.test(back) ? back : '/admin/users';
+  try {
+    const r = await security.adminResetLink(req.ctx, Number(req.params.id));
+    if (r.emailed) flash(req, 'success', req.t('auth.reset_link_emailed', { email: r.email }));
+    else req.session.lastResetLink = { link: r.link, email: r.email };
+  } catch (e) {
+    if (!(e instanceof AppError)) throw e;
+    flash(req, 'error', req.t(`errors.${e.code}`) !== `errors.${e.code}` ? req.t(`errors.${e.code}`) : e.message);
+  }
+  res.redirect(to);
+}));
 
 // ---------- Launch readiness ----------
 router.get('/launch', wrap(async (req, res) => {

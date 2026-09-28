@@ -1,5 +1,8 @@
 <h1><%= t('auth.forgot_title') %></h1>
-<% if (sent) { %>
+<% if (typeof noEmail !== 'undefined' && noEmail) { %>
+<div class="alert alert-warning mt-4" role="alert"><%- icon('triangle-alert') %><div><%= t('auth.forgot_no_email') %></div></div>
+<a class="btn btn-secondary btn-block mt-6" href="/login"><%= t('auth.back_to_login') %></a>
+<% } else if (sent) { %>
 <div class="alert alert-success mt-4" role="status"><%- icon('mail-check') %><div><%= t('auth.forgot_sent') %></div></div>
 <p class="mt-4 text-2 small"><%= t('auth.forgot_sent_hint') %></p>
 <a class="btn btn-secondary btn-block mt-6" href="/login"><%= t('auth.back_to_login') %></a>

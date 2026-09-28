@@ -1,0 +1,3 @@
+<% if (typeof resetLink !== 'undefined' && resetLink) { %>
+<div class="alert alert-success mb-4" role="status"><%- icon('key-round') %><div class="grow"><div class="alert-title"><%= t('auth.reset_link_title', { email: resetLink.email }) %></div><div class="text-2"><%= t('auth.reset_link_text') %></div><div class="row mt-2"><code class="code-box grow" data-copy-source dir="ltr"><%= resetLink.link %></code><button class="btn btn-secondary btn-sm" type="button" data-copy><%- icon('copy', 'icon-sm') %><%= t('common.copy') %></button></div></div></div>
+<% } %>

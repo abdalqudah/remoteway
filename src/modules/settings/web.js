@@ -8,6 +8,7 @@ const members = require('../organizations/members.service');
 const auditLog = require('../organizations/audit.service');
 const rbac = require('../rbac/rbac.service');
 const authService = require('../auth/auth.service');
+const security = require('../auth/security.service');
 const ent = require('../billing/entitlements.service');
 const mailer = require('../../core/mailer');
 
@@ -60,8 +61,10 @@ const renderUsers = async (req, res, extra = {}) => {
   ]);
   const inviteLink = req.session.lastInviteLink;
   delete req.session.lastInviteLink;
+  const resetLink = req.session.lastResetLink;
+  delete req.session.lastResetLink;
   res.page('pages/settings/users', {
-    title: req.t('settings.users'), section: 'users', members: list, invitations, roles: roles.filter((r) => r.key !== 'owner'), usage, inviteLink,
+    title: req.t('settings.users'), section: 'users', members: list, invitations, roles: roles.filter((r) => r.key !== 'owner'), usage, inviteLink, resetLink,
     emailEnabled: mailer.enabled(), ...extra,
   });
 };
@@ -88,6 +91,12 @@ router.post('/users/invitations/:id/revoke', can('users.manage'), wrap(async (re
 router.post('/users/:id/role', can('users.manage'), form(async (req, res) => {
   await rbac.assignRole(req.ctx, Number(req.params.id), Number(req.body.role_id));
   flash(req, 'success', req.t('common.saved'));
+  res.redirect('/app/settings/users');
+}, renderUsers));
+router.post('/users/:id/reset-link', can('users.manage'), form(async (req, res) => {
+  const r = await security.adminResetLink(req.ctx, Number(req.params.id), { organizationId: req.ctx.organizationId });
+  if (r.emailed) flash(req, 'success', req.t('auth.reset_link_emailed', { email: r.email }));
+  else req.session.lastResetLink = { link: r.link, email: r.email };
   res.redirect('/app/settings/users');
 }, renderUsers));
 router.post('/users/:id/status', can('users.manage'), form(async (req, res) => {

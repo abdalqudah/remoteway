@@ -469,3 +469,57 @@ describe('email verification', () => {
     assert.match(page.text, /<html lang="ar" dir="rtl"/);
   });
 });
+
+describe('password reset links without email', () => {
+  test('forgot page says so when email is not set up', async () => {
+    const config = require('../src/config');
+    config.isTest = false; // behave like a server without SMTP
+    try {
+      const a = pub();
+      const page = await a.get('/forgot');
+      const r = await a.post('/forgot').type('form').send({ _csrf: csrfOf(page.text), email: 'someone@test.local' });
+      assert.match(r.text, /not set up/);
+    } finally { config.isTest = true; }
+  });
+
+  test('a company admin creates a one-time reset link for a member', async () => {
+    const co = await h.createCompany();
+    const member = await h.addMember(co.organizationId, 'employee');
+    const owner = await h.login(co.email, co.password);
+    mailer.testOutbox.length = 0;
+    const config = require('../src/config');
+    config.isTest = false; // no SMTP: the link is shown to copy
+    let page;
+    try {
+      assert.equal((await owner.form(`/app/settings/users/${member.userId}/reset-link`, {})).status, 302);
+      page = (await owner.get('/app/settings/users')).text;
+    } finally { config.isTest = true; }
+    const link = page.match(/\/reset\/([a-f0-9]{64})/)[1];
+    const a = pub();
+    const form = await a.get(`/reset/${link}`);
+    assert.equal((await a.post(`/reset/${link}`).type('form').send({ _csrf: csrfOf(form.text), password: 'Fresh#2026x', password_confirm: 'Fresh#2026x' })).status, 302);
+    await h.login(member.email, 'Fresh#2026x');
+    // Not for the owner, and not across companies
+    const other = await h.createCompany();
+    assert.equal((await owner.form(`/app/settings/users/${other.userId}/reset-link`, {})).status, 404);
+    const hr = await h.addMember(co.organizationId, 'admin');
+    const hrs = await h.login(hr.email, hr.password);
+    assert.equal((await hrs.form(`/app/settings/users/${co.userId}/reset-link`, {})).status, 409);
+  });
+
+  test('platform support finds a user and creates a link; finance cannot', async () => {
+    const co = await h.createCompany();
+    const sup = await h.login((await superAdmin('support')).email, 'Password#123');
+    const found = await sup.get(`/admin/users?q=${encodeURIComponent(co.email)}`);
+    assert.equal(found.status, 200);
+    assert.ok(found.text.includes(co.email));
+    mailer.testOutbox.length = 0;
+    const r = await sup.form(`/admin/users/${co.userId}/reset-link`, { back: '/admin/users' });
+    assert.equal(r.status, 302);
+    assert.ok(mailer.testOutbox.find((m) => m.to === co.email && /\/reset\//.test(m.html)), 'emailed when email works');
+    assert.ok(await h.knex('audit_logs').where({ action: 'auth.password_reset_link_created' }).first());
+    const fin = await h.login((await superAdmin('finance')).email, 'Password#123');
+    assert.equal((await fin.form(`/admin/users/${co.userId}/reset-link`, {})).status, 403);
+    assert.equal((await sup.get(`/admin/organizations/${co.organizationId}`)).status, 200);
+  });
+});

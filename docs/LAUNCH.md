@@ -33,6 +33,12 @@ Super Admin → **Launch readiness** runs these checks live. Fix every red item;
 ## 4b. Email verification
 New accounts (company sign-up and individual sign-up) get a confirmation link valid for 48 hours. Until it is confirmed, the account works but cannot invite people or apply to jobs, and after 7 days it must confirm before continuing. Accepting an invitation, using a password-reset link or signing in through a company's SSO also confirms the address. Accounts created before this release count as confirmed. **This only switches on once email sending is configured** — without SMTP nobody is blocked.
 
+## 4c. Password recovery
+- **Forgot password** on the sign-in page emails a one-time link (60 minutes). Without email set up, the page says so instead of pretending to send.
+- **Company admins** (Settings → Users → *Reset password*) create a link for a member of their company.
+- **Platform team** (Super Admin → Users, or a company's page → Company users) finds any account and creates a link. Roles: owner, admin, support.
+- These links last 24 hours, work once, are emailed when email works, and are otherwise shown to copy and send privately. Every link is recorded in the audit log.
+
 ## 5. Personal data rights (PDPL)
 Every user can, from **Account security**:
 - download their data (JSON);

@@ -1,4 +1,5 @@
 <% var canEdit = adminCan('organizations', true); var e = org.entitlements; var sub = e.subscription || { status: 'past_due', billing_cycle: 'monthly' }; var noSub = !e.subscription; var custom = sub && sub.custom_limits ? (typeof sub.custom_limits === 'string' ? JSON.parse(sub.custom_limits) : sub.custom_limits) : {}; %>
+<%- include('../../partials/reset-link') %>
 <div class="page-head">
   <div><div class="eyebrow"><a href="/admin/organizations"><%= t('admin.organizations') %></a><%- icon('chevron-right', 'icon-sm flip-rtl') %>#<%= org.id %></div><h1><%= org.name %></h1><p><%= org.owner_name %> · <%= org.owner_email %></p></div>
   <% if (canEdit) { %><form method="post" action="/admin/organizations/<%= org.id %>/status" data-confirm="<%= org.status === 'active' ? t('admin.confirm_suspend') : t('admin.confirm_activate') %>"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><input type="hidden" name="status" value="<%= org.status === 'active' ? 'suspended' : 'active' %>">
@@ -83,6 +84,11 @@
     </dl></div>
   </section>
 </div>
+
+<section class="panel mt-6" id="users">
+  <div class="panel-head"><h2><%= t('admin.org_members') %></h2><span class="badge"><%= fmt.number(users.length) %></span></div>
+  <% if (users.length) { %><%- include('_user-rows', { rows: users, back: '/admin/organizations/' + org.id, showOrgs: false }) %><% } else { %><div class="empty"><p><%= t('common.none') %></p></div><% } %>
+</section>
 
 <section class="panel mt-6" id="invoices">
   <div class="panel-head"><h2><%= t('billing.invoices') %></h2></div>

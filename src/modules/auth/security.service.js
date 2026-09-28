@@ -24,14 +24,49 @@ async function requestReset(email, { ip, locale } = {}) {
   // At most 3 requests per hour per account
   const [{ n }] = await knex('password_resets').where({ user_id: user.id }).where('created_at', '>=', new Date(Date.now() - 3600_000)).count({ n: '*' });
   if (Number(n) >= 3) return;
-  const token = crypto.randomBytes(32).toString('hex');
-  await knex('password_resets').insert({ user_id: user.id, token_hash: sha256(token), expires_at: new Date(Date.now() + RESET_MINUTES * 60_000), ip: ip ? String(ip).slice(0, 64) : null });
-  const t = translator(user.locale || locale || 'en');
-  await mailer.send({
-    to: mail, subject: `RemoteWay — ${t('auth.reset_subject')}`,
-    html: mailer.layout({ locale: user.locale || locale, title: t('auth.reset_subject'), body: t('auth.reset_body', { minutes: RESET_MINUTES }), cta: t('auth.reset_cta'), href: `${config.appUrl.replace(/\/+$/, '')}/reset/${token}` }),
-  }).catch((e) => console.error('[mail] reset failed:', e.message)); // eslint-disable-line no-console
+  const link = await issueResetLink(user.id, { ip, minutes: RESET_MINUTES });
+  await emailResetLink({ ...user, email: mail }, link, { locale, minutes: RESET_MINUTES });
   await audit.record({ userId: user.id, ip }, 'auth.password_reset_requested', { entityType: 'user', entityId: user.id });
+}
+
+/** Can the platform send email right now (tests count as yes: messages go to the test outbox)? */
+const canEmail = () => config.isTest || mailer.enabled();
+
+async function issueResetLink(userId, { ip, minutes = RESET_MINUTES } = {}) {
+  const token = crypto.randomBytes(32).toString('hex');
+  await knex('password_resets').insert({ user_id: userId, token_hash: sha256(token), expires_at: new Date(Date.now() + minutes * 60_000), ip: ip ? String(ip).slice(0, 64) : null });
+  return `${config.appUrl.replace(/\/+$/, '')}/reset/${token}`;
+}
+
+function emailResetLink(user, link, { locale, minutes = RESET_MINUTES } = {}) {
+  const lang = user.locale || locale || 'en';
+  const t = translator(lang);
+  return mailer.send({
+    to: user.email, subject: `RemoteWay — ${t('auth.reset_subject')}`,
+    html: mailer.layout({ locale: lang, title: t('auth.reset_subject'), body: t('auth.reset_body', { duration: minutes >= 120 ? t('auth.dur_hours', { n: Math.round(minutes / 60) }) : t('auth.dur_minutes', { n: minutes }) }), cta: t('auth.reset_cta'), href: link }),
+  }).then(() => true).catch((e) => { console.error('[mail] reset failed:', e.message); return false; }); // eslint-disable-line no-console
+}
+
+/**
+ * A company admin or the platform team creates a reset link for someone (e.g. email is not set up yet,
+ * or the message did not arrive). It is emailed when possible and always returned so it can be shared
+ * privately. Valid 24 hours, once.
+ */
+async function adminResetLink(ctx, userId, { organizationId = null } = {}) {
+  const user = await knex('users').where({ id: userId }).whereNull('deleted_at').first('id', 'name', 'email', 'locale', 'is_super_admin', 'status');
+  if (!user || user.status !== 'active') throw E.notFound('User');
+  if (user.is_super_admin) throw E.conflict('RESET_PLATFORM_TEAM', 'Platform team members reset their password from the sign-in page.');
+  if (userId === ctx.userId) throw E.conflict('RESET_SELF', 'Change your own password from your account settings.');
+  if (organizationId) {
+    const member = await knex('memberships').where({ organization_id: organizationId, user_id: userId }).first('id');
+    if (!member) throw E.notFound('User');
+    const org = await knex('organizations').where({ id: organizationId }).first('owner_user_id');
+    if (org.owner_user_id === userId) throw E.conflict('RESET_OWNER', 'The company owner resets their password from the sign-in page.');
+  }
+  const link = await issueResetLink(user.id, { ip: ctx.ip, minutes: 24 * 60 });
+  const emailed = canEmail() ? await emailResetLink(user, link, { minutes: 24 * 60 }) : false;
+  await audit.record({ ...ctx, organizationId: organizationId || ctx.organizationId }, 'auth.password_reset_link_created', { entityType: 'user', entityId: user.id, newValues: { emailed } });
+  return { link, emailed, email: user.email };
 }
 
 async function findReset(token) {
@@ -142,4 +177,4 @@ async function requireAdmin2fa() {
   return Boolean(v.require_admin_2fa);
 }
 
-module.exports = { requestReset, findReset, resetPassword, endSessions, hasTwoFactor, setupData, enable, disable, verifyLogin, requireAdmin2fa, setRequireAdmin2fa, resetForUser, generateSecret: totp.generateSecret };
+module.exports = { canEmail, adminResetLink, requestReset, findReset, resetPassword, endSessions, hasTwoFactor, setupData, enable, disable, verifyLogin, requireAdmin2fa, setRequireAdmin2fa, resetForUser, generateSecret: totp.generateSecret };

@@ -81,6 +81,7 @@ router.post('/login/2fa', loginLimiter, form(async (req, res) => {
 const renderForgot = (req, res, extra = {}) => res.page('pages/auth/forgot', { layout: 'auth', title: req.t('auth.forgot_title'), sent: false, ...extra });
 router.get('/forgot', (req, res) => renderForgot(req, res));
 router.post('/forgot', loginLimiter, form(async (req, res) => {
+  if (!security.canEmail()) return renderForgot(req, res, { noEmail: true });
   await security.requestReset(req.body.email, { ip: req.ip, locale: req.locale });
   return renderForgot(req, res, { sent: true });
 }, renderForgot));

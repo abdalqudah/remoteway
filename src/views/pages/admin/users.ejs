@@ -1,0 +1,13 @@
+<div class="page-head"><div><h1><%= t('admin.users') %></h1><p><%= t('admin.users_search_hint') %></p></div></div>
+<%- include('../../partials/reset-link') %>
+<form method="get" action="/admin/users" class="row-sm mb-6">
+  <input class="input grow" type="search" name="q" value="<%= q %>" placeholder="<%= t('admin.users_search') %>" aria-label="<%= t('admin.users_search') %>" autofocus>
+  <button class="btn btn-dark" type="submit"><%- icon('search') %><%= t('common.search') %></button>
+</form>
+<% if (q) { %>
+<section class="panel">
+  <% if (!list.length) { %><div class="empty"><%- icon('search') %><p><%= t('common.none') %></p></div><% } else { %>
+  <%- include('_user-rows', { rows: list, back: '/admin/users?q=' + encodeURIComponent(q), showOrgs: true }) %>
+  <% } %>
+</section>
+<% } %>
