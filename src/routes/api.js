@@ -21,6 +21,8 @@ const attendance = require('../modules/attendance/attendance.service');
 const documents = require('../modules/documents/document.service');
 const tasks = require('../modules/tasks/task.service');
 const notifications = require('../modules/notifications/notification.service');
+const recruitment = require('../modules/recruitment/recruitment.service');
+const onboarding = require('../modules/onboarding/onboarding.service');
 
 const router = express.Router();
 const ok = (res, data, meta, status = 200) => res.status(status).json({ success: true, data, ...(meta ? { meta } : {}) });
@@ -180,6 +182,49 @@ router.patch('/tasks/:id', feature('tasks'), wrap(async (req, res) => {
 router.delete('/tasks/:id', feature('tasks'), wrap(async (req, res) => {
   await tasks.remove(req.ctx, Number(req.params.id));
   ok(res, { deleted: true });
+}));
+
+// Recruitment
+const cleanCandidate = ({ cv_storage_key: _k, ...c }) => c;
+router.get('/recruitment/jobs', feature('recruitment'), can('recruitment.view'), wrap(async (req, res) => ok(res, await recruitment.listJobs(req.ctx, req.query))));
+router.post('/recruitment/jobs', feature('recruitment'), can('recruitment.manage'), wrap(async (req, res) => {
+  const id = await recruitment.saveJob(req.ctx, null, req.body);
+  if (req.body.status === 'open') await recruitment.setJobStatus(req.ctx, id, 'open');
+  ok(res, await recruitment.getJob(req.ctx, id), undefined, 201);
+}));
+router.get('/recruitment/jobs/:id', feature('recruitment'), can('recruitment.view'), wrap(async (req, res) => ok(res, await recruitment.getJob(req.ctx, Number(req.params.id)))));
+router.post('/recruitment/jobs/:id/status', feature('recruitment'), can('recruitment.manage'), wrap(async (req, res) => {
+  await recruitment.setJobStatus(req.ctx, Number(req.params.id), String(req.body.status || ''));
+  ok(res, await recruitment.getJob(req.ctx, Number(req.params.id)));
+}));
+router.get('/recruitment/jobs/:id/applications', feature('recruitment'), can('recruitment.view'), wrap(async (req, res) => {
+  await recruitment.getJob(req.ctx, Number(req.params.id));
+  ok(res, await recruitment.pipeline(req.ctx, Number(req.params.id)));
+}));
+router.get('/recruitment/candidates', feature('recruitment'), can('recruitment.view'), wrap(async (req, res) => ok(res, (await recruitment.listCandidates(req.ctx, req.query)).map(cleanCandidate))));
+router.post('/recruitment/candidates', feature('recruitment'), can('recruitment.manage'), wrap(async (req, res) => {
+  const id = await recruitment.saveCandidate(req.ctx, null, req.body, null);
+  if (req.body.job_id) await recruitment.addToJob(req.ctx, id, Number(req.body.job_id), { source: req.body.source });
+  ok(res, cleanCandidate(await recruitment.getCandidate(req.ctx, id)), undefined, 201);
+}));
+router.get('/recruitment/candidates/:id', feature('recruitment'), can('recruitment.view'), wrap(async (req, res) => ok(res, cleanCandidate(await recruitment.getCandidate(req.ctx, Number(req.params.id))))));
+router.get('/recruitment/applications/:id', feature('recruitment'), can('recruitment.view'), wrap(async (req, res) => ok(res, await recruitment.getApplication(req.ctx, Number(req.params.id)))));
+router.post('/recruitment/applications/:id/stage', feature('recruitment'), can('recruitment.manage'), wrap(async (req, res) => {
+  await recruitment.moveStage(req.ctx, Number(req.params.id), String(req.body.stage || ''), { reason: req.body.reason });
+  ok(res, await recruitment.getApplication(req.ctx, Number(req.params.id)));
+}));
+router.get('/recruitment/interviews', feature('recruitment'), wrap(async (req, res) => ok(res, await recruitment.listInterviews(req.ctx, { mine: req.query.mine === '1' }))));
+
+// Onboarding
+router.get('/onboarding/plans', feature('onboarding'), wrap(async (req, res) => ok(res, await onboarding.listPlans(req.ctx, { status: req.query.status || 'active' }))));
+router.post('/onboarding/plans', feature('onboarding'), can('onboarding.manage'), wrap(async (req, res) => {
+  const id = await onboarding.startPlan(req.ctx, Number(req.body.employee_id), req.body);
+  ok(res, await onboarding.getPlan(req.ctx, id), undefined, 201);
+}));
+router.get('/onboarding/plans/:id', feature('onboarding'), wrap(async (req, res) => ok(res, await onboarding.getPlan(req.ctx, Number(req.params.id)))));
+router.post('/onboarding/tasks/:id', feature('onboarding'), wrap(async (req, res) => {
+  const planId = await onboarding.setTaskDone(req.ctx, Number(req.params.id), req.body.done !== false && req.body.done !== '0' && req.body.done !== 0);
+  ok(res, await onboarding.getPlan(req.ctx, planId));
 }));
 
 // Notifications

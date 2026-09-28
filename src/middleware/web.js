@@ -4,6 +4,7 @@ const { randomToken, safeEqual } = require('../core/tokens');
 const { E } = require('../core/errors');
 const fmt = require('../core/format');
 const config = require('../config');
+const ASSET_V = require('../../package.json').version;
 
 function locals(req, res, next) {
   const locale = resolveLocale(req);
@@ -35,7 +36,10 @@ function locals(req, res, next) {
     },
     appName: config.appName,
     arabicFont: config.arabicFontInstalled,
-    icon: (name, cls = '') => `<svg class="icon ${cls}" aria-hidden="true"><use href="/icons.svg#i-${name}"></use></svg>`,
+    assetV: ASSET_V,
+    escapeHtml: (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]),
+    baseUrl: process.env.APP_URL ? config.appUrl.replace(/\/+$/, '') : `${req.protocol}://${req.get('host')}`,
+    icon: (name, cls = '') => `<svg class="icon ${cls}" aria-hidden="true"><use href="/icons.svg?v=${ASSET_V}#i-${name}"></use></svg>`,
     roleName: (r) => {
       if (!r) return '—';
       if (r.is_system === false || r.is_system === 0) return r.name;
@@ -67,7 +71,8 @@ function flash(req, type, message) {
 // API requests authenticated with a Bearer token are exempt (no ambient credentials).
 // Multipart bodies are only parsed by the upload routes below; their token is checked after parsing
 // (verifyCsrfAfterUpload). Multipart sent anywhere else is refused so it can never skip the check.
-const MULTIPART_ROUTES = [/^\/app\/documents(\/\d+\/versions)?\/?$/, /^\/app\/employees\/import\/?$/, /^\/api\/v1\/documents\/?$/, /^\/admin\/system\/update\/?$/];
+const MULTIPART_ROUTES = [/^\/app\/documents(\/\d+\/versions)?\/?$/, /^\/app\/employees\/import\/?$/, /^\/api\/v1\/documents\/?$/, /^\/admin\/system\/update\/?$/,
+  /^\/app\/recruitment\/candidates(\/\d+)?\/?$/, /^\/careers\/[a-z0-9-]+\/jobs\/[a-z0-9-]+\/apply\/?$/];
 
 function tokenValid(req, sent) {
   return Boolean(req.session?.csrf && sent && safeEqual(sent, req.session.csrf));

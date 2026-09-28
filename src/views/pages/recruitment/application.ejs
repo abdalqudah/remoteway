@@ -1,0 +1,129 @@
+<%
+  var a = app; var manage = can('recruitment.manage'); var hired = a.stage === 'hired';
+  var tz = organization.timezone;
+  var dt = function (v) { return new Intl.DateTimeFormat(locale === 'ar' ? 'ar-SA-u-nu-latn-ca-gregory' : 'en-GB', { dateStyle: 'medium', timeStyle: 'short', timeZone: tz }).format(new Date(v)); };
+  var evText = function (e) {
+    var d = e.data || {};
+    if (e.type === 'stage') return d.from ? t('recruitment.ev_stage', { from: t('recruitment.stage_' + d.from), to: t('recruitment.stage_' + d.to) }) : t('recruitment.ev_applied', { source: t('recruitment.source_' + (d.source || 'manual')) });
+    if (e.type === 'interview') return t('recruitment.ev_interview', { at: dt(d.at), mode: t('recruitment.iv_mode_' + d.mode) });
+    if (e.type === 'interview_cancelled') return t('recruitment.ev_interview_cancelled');
+    if (e.type === 'feedback') return t('recruitment.ev_feedback', { rec: t('recruitment.rec_' + d.recommendation) });
+    if (e.type === 'rating') return t('recruitment.ev_rating', { n: d.rating });
+    if (e.type === 'assessment') return t('recruitment.ev_assessment', { title: d.title }) + (d.score != null ? ' — ' + d.score + (d.max_score != null ? '/' + d.max_score : '') : '');
+    if (e.type === 'hired') return t('recruitment.ev_hired');
+    return '';
+  };
+%>
+<div class="page-head">
+  <div class="row">
+    <span class="avatar avatar-lg"><%= initials(a.first_name + ' ' + a.last_name) %></span>
+    <div>
+      <div class="eyebrow"><a href="/app/recruitment/jobs/<%= a.job_id %>"><%= a.job_title %></a></div>
+      <h1><a href="/app/recruitment/candidates/<%= a.candidate_id %>"><%= a.first_name %> <%= a.last_name %></a></h1>
+      <div class="row-sm wrap mt-2 small muted"><span class="st st-<%= a.stage %>"><%= t('recruitment.stage_' + a.stage) %></span><span><%= a.email %></span><% if (a.phone) { %><span><%= a.phone %></span><% } %><span><%= t('recruitment.applied_on', { date: fmt.date(a.created_at) }) %></span></div>
+    </div>
+  </div>
+  <div class="page-actions">
+    <% if (a.cv_name) { %><a class="btn btn-secondary" href="/app/recruitment/candidates/<%= a.candidate_id %>/cv?inline=1" target="_blank" rel="noopener"><%- icon('file-text') %><%= t('recruitment.view_cv') %></a><% } %>
+    <% if (hired && a.hired_employee_id) { %><a class="btn btn-dark" href="/app/employees/<%= a.hired_employee_id %>"><%- icon('user') %><%= t('recruitment.open_employee') %></a><% } %>
+    <% if (manage && !hired && can('employees.create')) { %><button class="btn btn-primary" type="button" data-open-dialog="hire-dialog"><%- icon('user-check') %><%= t('recruitment.hire') %></button><% } %>
+  </div>
+</div>
+
+<div class="grid grid-3">
+  <div class="span-2 stack-lg">
+    <% if (manage && !hired) { %>
+    <section class="panel">
+      <div class="panel-head"><h2><%= t('recruitment.move_stage') %></h2>
+        <form method="post" action="/app/recruitment/applications/<%= a.id %>/rate" class="rate-form" aria-label="<%= t('recruitment.rating') %>"><input type="hidden" name="_csrf" value="<%= csrfToken %>">
+          <% for (var i = 1; i <= 5; i++) { %><button type="submit" name="rating" value="<%= i %>" class="<%= a.rating >= i ? 'on' : '' %>" aria-label="<%= i %>/5">★</button><% } %>
+        </form>
+      </div>
+      <div class="panel-body">
+        <form method="post" action="/app/recruitment/applications/<%= a.id %>/stage" class="row-sm wrap"><input type="hidden" name="_csrf" value="<%= csrfToken %>">
+          <% stages.filter(function (s) { return s !== 'hired' && s !== 'rejected'; }).forEach(function (s) { %>
+            <button class="btn btn-sm <%= a.stage === s ? 'btn-dark' : 'btn-secondary' %>" type="submit" name="stage" value="<%= s %>"<%= a.stage === s ? ' aria-current="step"' : '' %>><%= t('recruitment.stage_' + s) %></button>
+          <% }) %>
+        </form>
+        <% if (a.stage !== 'rejected') { %>
+        <details class="mt-4"><summary class="link small"><%= t('recruitment.reject') %></summary>
+          <form method="post" action="/app/recruitment/applications/<%= a.id %>/stage" class="row-sm wrap mt-2"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><input type="hidden" name="stage" value="rejected">
+            <input class="input" name="reason" maxlength="255" placeholder="<%= t('recruitment.reject_reason_ph') %>" aria-label="<%= t('recruitment.reject_reason') %>" style="max-width:360px">
+            <button class="btn btn-danger-ghost btn-sm" type="submit"><%- icon('user-x', 'icon-sm') %><%= t('recruitment.reject') %></button>
+          </form>
+        </details>
+        <% } else if (a.rejection_reason) { %><p class="small muted mt-4"><%= t('recruitment.reject_reason') %>: <%= a.rejection_reason %></p><% } %>
+      </div>
+    </section>
+    <% } %>
+
+    <section class="panel">
+      <div class="panel-head"><h2><%= t('recruitment.interviews') %></h2><% if (manage && !hired) { %><button class="btn btn-secondary btn-sm" type="button" data-open-dialog="iv-dialog"><%- icon('plus', 'icon-sm') %><%= t('recruitment.schedule_interview') %></button><% } %></div>
+      <% if (!a.interviews.length) { %><div class="empty" style="padding:24px"><p><%= t('recruitment.no_interviews') %></p></div><% } else { %>
+      <ul class="action-list"><% a.interviews.forEach(function (iv) { %>
+        <li><a href="/app/recruitment/interviews/<%= iv.id %>"><span class="action-icon info"><%- icon(iv.mode === 'phone' ? 'phone' : iv.mode === 'video' ? 'video' : 'map-pin', 'icon-sm') %></span>
+          <span class="grow small"><strong><%= dt(iv.scheduled_at) %></strong> · <%= t('recruitment.minutes_n', { n: iv.duration_minutes }) %><span class="muted" style="display:block"><%= iv.interviewer_name || t('recruitment.no_interviewer') %><%= iv.recommendation ? ' · ' + t('recruitment.rec_' + iv.recommendation) : '' %></span></span>
+          <span class="st st-<%= iv.status %>"><%= t('recruitment.iv_status_' + iv.status) %></span></a></li>
+      <% }) %></ul><% } %>
+    </section>
+
+    <section class="panel">
+      <div class="panel-head"><h2><%= t('recruitment.assessments') %></h2></div>
+      <% if (a.assessments.length) { %><div class="table-wrap"><table class="table"><thead><tr><th><%= t('recruitment.assessment') %></th><th class="num"><%= t('recruitment.score') %></th><th><%= t('recruitment.notes') %></th><th><%= t('recruitment.by') %></th></tr></thead><tbody>
+        <% a.assessments.forEach(function (s) { %><tr><td><%= s.title %></td><td class="num"><%= s.score != null ? Number(s.score) : '—' %><%= s.max_score != null ? ' / ' + Number(s.max_score) : '' %></td><td class="small muted"><%= s.notes || '' %></td><td class="small"><%= s.created_by_name || '—' %></td></tr><% }) %>
+      </tbody></table></div><% } else { %><div class="empty" style="padding:24px"><p><%= t('recruitment.no_assessments') %></p></div><% } %>
+      <% if (manage && !hired) { %>
+      <div class="panel-foot">
+        <form method="post" action="/app/recruitment/applications/<%= a.id %>/assessments" class="row-sm wrap"><input type="hidden" name="_csrf" value="<%= csrfToken %>">
+          <input class="input" name="title" required maxlength="150" placeholder="<%= t('recruitment.assessment_ph') %>" aria-label="<%= t('recruitment.assessment') %>" style="flex:2;min-width:180px">
+          <input class="input" name="score" type="number" step="any" placeholder="<%= t('recruitment.score') %>" aria-label="<%= t('recruitment.score') %>" style="width:100px">
+          <input class="input" name="max_score" type="number" step="any" placeholder="<%= t('recruitment.max_score') %>" aria-label="<%= t('recruitment.max_score') %>" style="width:100px">
+          <input class="input" name="notes" maxlength="1000" placeholder="<%= t('recruitment.notes') %>" aria-label="<%= t('recruitment.notes') %>" style="flex:2;min-width:160px">
+          <button class="btn btn-secondary btn-sm" type="submit"><%= t('common.add') %></button>
+        </form>
+      </div>
+      <% } %>
+    </section>
+  </div>
+
+  <div class="stack-lg">
+    <% if (a.cover_note) { %><section class="panel"><div class="panel-head"><h2><%= t('recruitment.cover_note') %></h2></div><div class="panel-body"><p dir="auto" class="prose small"><%= a.cover_note %></p></div></section><% } %>
+    <section class="panel">
+      <div class="panel-head"><h2><%= t('recruitment.activity') %></h2></div>
+      <% if (manage) { %>
+      <div class="panel-body" style="padding-bottom:0">
+        <form method="post" action="/app/recruitment/applications/<%= a.id %>/note" class="stack-sm"><input type="hidden" name="_csrf" value="<%= csrfToken %>">
+          <textarea class="textarea" name="note" required maxlength="5000" placeholder="<%= t('recruitment.note_ph') %>" aria-label="<%= t('recruitment.add_note') %>" style="min-height:70px"></textarea>
+          <div class="form-actions"><button class="btn btn-dark btn-sm" type="submit"><%= t('recruitment.add_note') %></button></div>
+        </form>
+      </div>
+      <% } %>
+      <ul class="feed"><% a.events.forEach(function (e) { %>
+        <li><span class="dot"<% if (e.type === 'note') { %> style="background:var(--info)"<% } %>></span><div class="grow">
+          <div class="what"><% if (e.type === 'note') { %><strong><%= e.user_name || '—' %>:</strong> <span style="white-space:pre-wrap"><%= e.data.text %></span><% } else { %><%= evText(e) %><% if (e.data && e.data.reason) { %> — <span class="muted"><%= e.data.reason %></span><% } %><% } %></div>
+          <div class="when"><%= e.type !== 'note' && e.user_name ? e.user_name + ' · ' : (!e.user_name && e.type === 'stage' ? t('recruitment.via_careers') + ' · ' : '') %><%= dt(e.created_at) %></div>
+        </div></li>
+      <% }) %></ul>
+    </section>
+  </div>
+</div>
+
+<% if (manage && !hired) { %>
+<dialog class="dialog" id="iv-dialog"<%= openDialog === 'interview' ? ' data-open-on-load' : '' %>>
+  <form method="post" action="/app/recruitment/applications/<%= a.id %>/interviews" novalidate>
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+    <div class="dialog-head"><div><h2><%= t('recruitment.schedule_interview') %></h2><p class="muted small mt-1"><%= t('recruitment.tz_note', { tz: tz }) %></p></div><button class="btn btn-ghost btn-icon btn-sm" type="button" data-close-dialog aria-label="<%= t('common.close') %>"><%- icon('x') %></button></div>
+    <div class="dialog-body stack">
+      <div class="form-grid">
+        <%- include('../../partials/field', { name: 'scheduled_at', label: t('recruitment.when'), type: 'datetime-local', required: true }) %>
+        <%- include('../../partials/field', { name: 'duration_minutes', label: t('recruitment.duration'), type: 'number', value: 45, attrs: 'min="10" max="480" step="5"' }) %>
+        <%- include('../../partials/field', { name: 'mode', label: t('recruitment.iv_mode'), type: 'select', value: 'video', options: ['video', 'onsite', 'phone'].map(function (m) { return { value: m, label: t('recruitment.iv_mode_' + m) }; }) }) %>
+        <%- include('../../partials/field', { name: 'interviewer_user_id', label: t('recruitment.interviewer'), type: 'select', placeholder: t('recruitment.no_interviewer'), value: currentUser.id, options: members.map(function (m) { return { value: m.id, label: m.name }; }) }) %>
+      </div>
+      <%- include('../../partials/field', { name: 'location', label: t('recruitment.iv_location'), placeholder: t('recruitment.iv_location_ph') }) %>
+    </div>
+    <div class="dialog-foot"><button class="btn btn-ghost" type="button" data-close-dialog><%= t('common.cancel') %></button><button class="btn btn-dark" type="submit"><%= t('recruitment.schedule_interview') %></button></div>
+  </form>
+</dialog>
+<% if (can('employees.create')) { %><%- include('_hire-dialog', { app: a, dialogId: 'hire-dialog', hireOpen: true }) %><% } %>
+<% } %>

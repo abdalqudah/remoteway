@@ -1,0 +1,43 @@
+<% var q = query; var manage = can('recruitment.manage'); %>
+<div class="page-head">
+  <div><div class="eyebrow"><a href="/app/recruitment"><%= t('nav.recruitment') %></a></div><h1><%= t('recruitment.candidates') %></h1><p><%= t('recruitment.candidates_sub') %></p></div>
+  <% if (manage) { %><div class="page-actions"><button class="btn btn-dark" type="button" data-open-dialog="candidate-dialog"><%- icon('user-plus') %><%= t('recruitment.add_candidate') %></button></div><% } %>
+</div>
+<section class="panel">
+  <form class="table-toolbar" method="get" data-autosubmit>
+    <div class="input-group"><%- icon('search', 'icon-sm') %><input class="input" type="search" name="q" value="<%= q.q || '' %>" placeholder="<%= t('recruitment.search_ph') %>" aria-label="<%= t('common.search') %>"></div>
+    <select class="select" name="job_id" aria-label="<%= t('recruitment.job') %>"><option value=""><%= t('recruitment.all_jobs') %></option><% jobs.forEach(function (j) { %><option value="<%= j.id %>"<%= String(q.job_id) === String(j.id) ? ' selected' : '' %>><%= j.title %></option><% }) %></select>
+    <select class="select" name="stage" aria-label="<%= t('recruitment.stage') %>"><option value=""><%= t('recruitment.all_stages') %></option><% stages.forEach(function (s) { %><option value="<%= s %>"<%= q.stage === s ? ' selected' : '' %>><%= t('recruitment.stage_' + s) %></option><% }) %></select>
+  </form>
+  <% if (!rows.length) { %>
+    <div class="empty"><span class="empty-icon"><%- icon('users') %></span><h3><%= t('recruitment.no_candidates_title') %></h3><p><%= t('recruitment.no_candidates_text') %></p></div>
+  <% } else { %>
+  <div class="table-wrap"><table class="table">
+    <thead><tr><th><%= t('recruitment.candidate') %></th><th><%= t('recruitment.current_title') %></th><th><%= t('recruitment.applied_to') %></th><th><%= t('recruitment.source') %></th><th><%= t('recruitment.cv') %></th><th><%= t('recruitment.added') %></th></tr></thead>
+    <tbody><% rows.forEach(function (c) { %>
+      <tr>
+        <td><a class="person" href="/app/recruitment/candidates/<%= c.id %>"><span class="avatar"><%= initials(c.first_name + ' ' + c.last_name) %></span><span><span class="person-name"><%= c.first_name %> <%= c.last_name %></span><span class="person-sub" style="display:block"><%= c.email %></span></span></a></td>
+        <td class="muted"><%= c.current_title || '—' %><% if (c.experience_years != null) { %> · <%= t('recruitment.years_n', { n: c.experience_years }) %><% } %></td>
+        <td class="small"><%= c.job_titles || '—' %></td>
+        <td><span class="tag"><%= t('recruitment.source_' + c.source) %></span></td>
+        <td><% if (c.cv_name) { %><a class="btn btn-ghost btn-sm btn-icon" href="/app/recruitment/candidates/<%= c.id %>/cv" aria-label="<%= t('common.download') %>" title="<%= c.cv_name %>"><%- icon('download', 'icon-sm') %></a><% } else { %>—<% } %></td>
+        <td class="nowrap muted"><%= fmt.date(c.created_at) %></td>
+      </tr>
+    <% }) %></tbody>
+  </table></div>
+  <% } %>
+</section>
+<% if (manage) { %>
+<dialog class="dialog" id="candidate-dialog"<%= openDialog === 'candidate' ? ' data-open-on-load' : '' %>>
+  <form method="post" action="/app/recruitment/candidates" enctype="multipart/form-data" novalidate>
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+    <div class="dialog-head"><h2><%= t('recruitment.add_candidate') %></h2><button class="btn btn-ghost btn-icon btn-sm" type="button" data-close-dialog aria-label="<%= t('common.close') %>"><%- icon('x') %></button></div>
+    <div class="dialog-body stack">
+      <% if (formError && !Object.keys(errors).length) { %><div class="alert alert-error"><%= formError.message %></div><% } %>
+      <%- include('_candidate-fields', { c: {} }) %>
+      <%- include('../../partials/field', { name: 'job_id', label: t('recruitment.add_to_job'), type: 'select', placeholder: t('recruitment.no_job_yet'), options: jobs.filter(function (j) { return j.status !== 'closed'; }).map(function (j) { return { value: j.id, label: j.title }; }) }) %>
+    </div>
+    <div class="dialog-foot"><button class="btn btn-ghost" type="button" data-close-dialog><%= t('common.cancel') %></button><button class="btn btn-dark" type="submit"><%= t('recruitment.add_candidate') %></button></div>
+  </form>
+</dialog>
+<% } %>

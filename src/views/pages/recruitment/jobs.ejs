@@ -1,0 +1,79 @@
+<%
+  var manage = can('recruitment.manage');
+  var careersUrl = '/careers/' + organization.slug;
+  var colors = { applied: 'var(--border-strong)', screening: 'var(--info)', shortlisted: '#5B7FE0', interview: 'var(--warning)', assessment: '#D9892B', offer: '#E0A43B', hired: 'var(--success)' };
+%>
+<div class="page-head">
+  <div><h1><%= t('nav.recruitment') %></h1><p><%= t('recruitment.subtitle') %></p></div>
+  <div class="page-actions">
+    <a class="btn btn-secondary" href="/app/recruitment/candidates"><%- icon('users') %><%= t('recruitment.candidates') %></a>
+    <a class="btn btn-secondary" href="/app/recruitment/interviews"><%- icon('calendar-days') %><%= t('recruitment.interviews') %></a>
+    <% if (manage) { %><a class="btn btn-dark" href="/app/recruitment/jobs/new"><%- icon('plus') %><%= t('recruitment.new_job') %></a><% } %>
+  </div>
+</div>
+
+<div class="kpis mb-6">
+  <div class="kpi"><div class="kpi-label"><%= t('recruitment.kpi_open_jobs') %></div><div class="kpi-value"><%= fmt.number(summary.openJobs) %></div><div class="kpi-meta"><%= entitlements.limits && entitlements.limits.active_jobs != null ? t('recruitment.kpi_of_limit', { max: fmt.number(entitlements.limits.active_jobs) }) : t('recruitment.kpi_unlimited') %></div></div>
+  <div class="kpi"><div class="kpi-label"><%= t('recruitment.kpi_new_apps') %></div><div class="kpi-value"><%= fmt.number(summary.newApplications) %></div><div class="kpi-meta"><%= t('recruitment.kpi_last_7') %></div></div>
+  <div class="kpi"><div class="kpi-label"><%= t('recruitment.kpi_interviews') %></div><div class="kpi-value"><%= fmt.number(summary.upcomingInterviews) %></div><div class="kpi-meta"><%= t('recruitment.kpi_upcoming') %></div></div>
+</div>
+
+<div class="grid grid-3">
+  <section class="panel span-2">
+    <div class="panel-head">
+      <h2><%= t('recruitment.jobs') %></h2>
+      <nav class="tabs" style="margin:0;border:0">
+        <% [['', 'common.all'], ['open', 'recruitment.job_status_open'], ['draft', 'recruitment.job_status_draft'], ['closed', 'recruitment.job_status_closed']].forEach(function (x) { %>
+          <a href="?status=<%= x[0] %>" class="<%= status === x[0] ? 'active' : '' %>"><%= t(x[1]) %></a>
+        <% }) %>
+      </nav>
+    </div>
+    <% if (!jobs.length) { %>
+      <div class="empty"><span class="empty-icon"><%- icon('briefcase') %></span><h3><%= t('recruitment.no_jobs_title') %></h3><p><%= t('recruitment.no_jobs_text') %></p>
+        <% if (manage) { %><a class="btn btn-dark mt-4" href="/app/recruitment/jobs/new"><%- icon('plus') %><%= t('recruitment.new_job') %></a><% } %></div>
+    <% } else { %>
+      <div>
+      <% jobs.forEach(function (j) { var total = j.total || 0; %>
+        <div class="job-row">
+          <div class="grow" style="min-width:0">
+            <a class="job-title" href="/app/recruitment/jobs/<%= j.id %>"><%= j.title %></a>
+            <div class="row-sm wrap mt-1 small muted">
+              <span class="st st-<%= j.status %>"><%= t('recruitment.job_status_' + j.status) %></span>
+              <% if (j.department_name) { %><span><%- icon('building-2', 'icon-sm') %> <%= j.department_name %></span><% } %>
+              <span><%- icon('map-pin', 'icon-sm') %> <%= j.location_name || t('recruitment.mode_' + j.work_mode) %></span>
+              <span><%= t('recruitment.type_' + j.employment_type) %></span>
+            </div>
+          </div>
+          <div class="hide-sm" style="width:180px">
+            <div class="funnel" title="<%= t('recruitment.pipeline') %>">
+              <% if (total) { Object.keys(colors).forEach(function (s) { var n = j.stageCounts[s] || 0; if (n) { %><span style="width:<%= (n / total * 100).toFixed(1) %>%;background:<%= colors[s] %>" title="<%= t('recruitment.stage_' + s) %>: <%= n %>"></span><% } }); } %>
+            </div>
+            <div class="tiny muted mt-1"><%= t('recruitment.in_pipeline', { n: fmt.number(j.active) }) %> · <%= t('recruitment.hired_count', { n: fmt.number(j.stageCounts.hired || 0), of: fmt.number(j.openings) }) %></div>
+          </div>
+          <div class="text-end" style="min-width:64px"><div style="font-weight:800;font-size:20px"><%= fmt.number(total) %></div><div class="tiny muted"><%= t('recruitment.applicants') %></div></div>
+        </div>
+      <% }) %>
+      </div>
+    <% } %>
+  </section>
+
+  <section class="panel">
+    <div class="panel-head"><div><h2><%= t('recruitment.careers_page') %></h2><div class="panel-sub"><%= t('recruitment.careers_page_sub') %></div></div></div>
+    <div class="panel-body stack">
+      <% if (settings.careers_enabled) { %>
+        <div class="alert alert-success" style="display:block"><div class="alert-title"><%= t('recruitment.careers_live') %></div><div class="row-sm mt-2" style="align-items:flex-start"><code class="small grow" style="word-break:break-all" data-copy-source><%= baseUrl %><%= careersUrl %></code><button class="btn btn-ghost btn-sm btn-icon" type="button" data-copy aria-label="<%= t('common.copy') %>"><%- icon('copy', 'icon-sm') %></button></div></div>
+        <a class="btn btn-secondary btn-sm" href="<%= careersUrl %>" target="_blank" rel="noopener"><%- icon('external-link', 'icon-sm') %><%= t('recruitment.view_careers') %></a>
+      <% } else { %>
+        <p class="muted small"><%= t('recruitment.careers_off') %></p>
+      <% } %>
+      <% if (manage) { %>
+      <form method="post" action="/app/recruitment/careers" class="stack-sm">
+        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+        <label class="check"><input type="checkbox" name="careers_enabled"<%= settings.careers_enabled ? ' checked' : '' %>><%= t('recruitment.careers_enable') %></label>
+        <div class="field"><label class="label" for="careers-intro"><%= t('recruitment.careers_intro') %></label><textarea class="textarea" id="careers-intro" name="careers_intro" maxlength="1000" placeholder="<%= t('recruitment.careers_intro_ph') %>"><%= settings.careers_intro || '' %></textarea></div>
+        <div><button class="btn btn-dark btn-sm" type="submit"><%= t('common.save') %></button></div>
+      </form>
+      <% } %>
+    </div>
+  </section>
+</div>

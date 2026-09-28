@@ -1,0 +1,60 @@
+<% var c = candidate; var manage = can('recruitment.manage'); var inJobs = c.applications.map(function (a) { return a.job_id; }); %>
+<div class="page-head">
+  <div class="row">
+    <span class="avatar avatar-lg"><%= initials(c.first_name + ' ' + c.last_name) %></span>
+    <div><div class="eyebrow"><a href="/app/recruitment/candidates"><%= t('recruitment.candidates') %></a></div><h1><%= c.first_name %> <%= c.last_name %></h1><p><%= c.current_title || '' %><%= c.current_title && c.city ? ' · ' : '' %><%= c.city || '' %></p></div>
+  </div>
+  <div class="page-actions">
+    <% if (c.cv_name) { %><a class="btn btn-secondary" href="/app/recruitment/candidates/<%= c.id %>/cv<%= c.cv_mime === 'application/pdf' ? '?inline=1' : '' %>" target="_blank" rel="noopener"><%- icon('file-text') %><%= t('recruitment.view_cv') %></a><% } %>
+    <% if (manage) { %>
+      <button class="btn btn-secondary" type="button" data-open-dialog="edit-dialog"><%- icon('pencil') %><%= t('common.edit') %></button>
+      <form method="post" action="/app/recruitment/candidates/<%= c.id %>/delete" data-confirm="<%= t('recruitment.confirm_delete_candidate') %>"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><button class="btn btn-danger-ghost" type="submit" aria-label="<%= t('common.delete') %>"><%- icon('trash-2') %></button></form>
+    <% } %>
+  </div>
+</div>
+<% if (formError && openDialog !== 'edit') { %><div class="alert alert-error mb-4"><%= formError.message %></div><% } %>
+<div class="grid grid-3">
+  <div class="span-2 stack-lg">
+    <section class="panel">
+      <div class="panel-head"><h2><%= t('recruitment.applications') %></h2></div>
+      <% if (!c.applications.length) { %><div class="empty" style="padding:28px"><p><%= t('recruitment.no_applications') %></p></div><% } else { %>
+      <ul class="action-list"><% c.applications.forEach(function (a) { %>
+        <li><a href="/app/recruitment/applications/<%= a.id %>"><span class="grow small"><strong><%= a.job_title %></strong><span class="muted" style="display:block"><%= t('recruitment.applied_on', { date: fmt.date(a.created_at) }) %></span></span><span class="st st-<%= a.stage %>"><%= t('recruitment.stage_' + a.stage) %></span><%- icon('chevron-right', 'icon-sm muted flip-rtl') %></a></li>
+      <% }) %></ul><% } %>
+      <% var avail = jobs.filter(function (j) { return j.status !== 'closed' && inJobs.indexOf(j.id) === -1; }); %>
+      <% if (manage && avail.length) { %>
+      <div class="panel-foot">
+        <form method="post" action="/app/recruitment/candidates/<%= c.id %>/apply" class="row-sm wrap"><input type="hidden" name="_csrf" value="<%= csrfToken %>">
+          <select class="select" name="job_id" required aria-label="<%= t('recruitment.job') %>"><option value=""><%= t('recruitment.choose_job') %></option><% avail.forEach(function (j) { %><option value="<%= j.id %>"><%= j.title %></option><% }) %></select>
+          <button class="btn btn-secondary btn-sm" type="submit"><%- icon('plus', 'icon-sm') %><%= t('recruitment.add_to_pipeline') %></button>
+        </form>
+      </div>
+      <% } %>
+    </section>
+  </div>
+  <section class="panel">
+    <div class="panel-head"><h2><%= t('recruitment.profile') %></h2></div>
+    <div class="panel-body">
+      <dl class="dl" style="grid-template-columns:1fr">
+        <dt><%= t('fields.email') %></dt><dd><a class="link" href="mailto:<%= c.email %>"><%= c.email %></a></dd>
+        <dt><%= t('fields.phone') %></dt><dd><%= c.phone || '—' %></dd>
+        <dt><%= t('recruitment.experience_years') %></dt><dd><%= c.experience_years != null ? c.experience_years : '—' %></dd>
+        <dt><%= t('recruitment.source') %></dt><dd><%= t('recruitment.source_' + c.source) %></dd>
+        <dt><%= t('recruitment.linkedin') %></dt><dd><% if (c.linkedin_url) { %><a class="link" href="<%= c.linkedin_url %>" target="_blank" rel="noopener nofollow"><%= c.linkedin_url.replace(/^https?:\/\/(www\.)?/, '') %></a><% } else { %>—<% } %></dd>
+        <dt><%= t('recruitment.cv') %></dt><dd><% if (c.cv_name) { %><a class="link" href="/app/recruitment/candidates/<%= c.id %>/cv"><%= c.cv_name %></a><% } else { %>—<% } %></dd>
+        <dt><%= t('recruitment.added') %></dt><dd><%= fmt.date(c.created_at) %></dd>
+      </dl>
+      <% if (c.skills.length) { %><div class="tags mt-4"><% c.skills.forEach(function (s) { %><span class="tag"><%= s %></span><% }) %></div><% } %>
+    </div>
+  </section>
+</div>
+<% if (manage) { %>
+<dialog class="dialog" id="edit-dialog"<%= openDialog === 'edit' ? ' data-open-on-load' : '' %>>
+  <form method="post" action="/app/recruitment/candidates/<%= c.id %>" enctype="multipart/form-data" novalidate>
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+    <div class="dialog-head"><h2><%= t('recruitment.edit_candidate') %></h2><button class="btn btn-ghost btn-icon btn-sm" type="button" data-close-dialog aria-label="<%= t('common.close') %>"><%- icon('x') %></button></div>
+    <div class="dialog-body stack"><%- include('_candidate-fields', { c: c }) %></div>
+    <div class="dialog-foot"><button class="btn btn-ghost" type="button" data-close-dialog><%= t('common.cancel') %></button><button class="btn btn-dark" type="submit"><%= t('common.save_changes') %></button></div>
+  </form>
+</dialog>
+<% } %>

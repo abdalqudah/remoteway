@@ -214,4 +214,4 @@ async function expirySummary(organizationId) {
   return { expired: Number(expired), expiring: Number(expiring) };
 }
 
-module.exports = { CATEGORIES, MAX_BYTES, upload, addVersion, updateMeta, remove, list, get, openFile, expirySummary };
+module.exports = { CATEGORIES, MAX_BYTES, TYPES, checkFile, assertStorage, upload, addVersion, updateMeta, remove, list, get, openFile, expirySummary };

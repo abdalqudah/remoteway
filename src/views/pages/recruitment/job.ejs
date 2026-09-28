@@ -1,0 +1,98 @@
+<%
+  var manage = can('recruitment.manage');
+  var pipeStages = stages.filter(function (s) { return s !== 'rejected'; });
+  var stars = function (n) { var s = ''; for (var i = 1; i <= 5; i++) s += '<span class="' + (i <= n ? '' : 'off') + '">★</span>'; return '<span class="stars" aria-label="' + n + '/5">' + s + '</span>'; };
+  var salary = job.salary_min != null || job.salary_max != null;
+%>
+<div class="page-head">
+  <div>
+    <div class="eyebrow"><a href="/app/recruitment"><%= t('nav.recruitment') %></a><%- icon('chevron-right', 'icon-sm flip-rtl') %><%= t('recruitment.jobs') %></div>
+    <h1><%= job.title %></h1>
+    <div class="row-sm wrap mt-2 small muted">
+      <span class="st st-<%= job.status %>"><%= t('recruitment.job_status_' + job.status) %></span>
+      <% if (job.department_name) { %><span><%- icon('building-2', 'icon-sm') %> <%= job.department_name %></span><% } %>
+      <span><%- icon('map-pin', 'icon-sm') %> <%= job.location_name ? job.location_name + ' · ' : '' %><%= t('recruitment.mode_' + job.work_mode) %></span>
+      <span><%= t('recruitment.type_' + job.employment_type) %></span>
+      <span><%= t('recruitment.openings_n', { n: job.openings }) %></span>
+      <% if (job.hiring_manager_name) { %><span><%- icon('user', 'icon-sm') %> <%= job.hiring_manager_name %></span><% } %>
+    </div>
+  </div>
+  <div class="page-actions">
+    <% if (job.status === 'open' && settings.careers_enabled) { %><a class="btn btn-ghost" href="/careers/<%= organization.slug %>/jobs/<%= job.slug %>" target="_blank" rel="noopener"><%- icon('external-link') %><%= t('recruitment.public_link') %></a><% } %>
+    <% if (manage) { %>
+      <a class="btn btn-secondary" href="/app/recruitment/jobs/<%= job.id %>/edit"><%- icon('pencil') %><%= t('common.edit') %></a>
+      <form method="post" action="/app/recruitment/jobs/<%= job.id %>/status"><input type="hidden" name="_csrf" value="<%= csrfToken %>">
+        <% if (job.status !== 'open') { %><button class="btn btn-primary" type="submit" name="status" value="open"><%- icon('send') %><%= job.status === 'closed' ? t('recruitment.reopen_job') : t('recruitment.publish_job') %></button>
+        <% } else { %><button class="btn btn-secondary" type="submit" name="status" value="closed"><%- icon('lock') %><%= t('recruitment.close_job') %></button><% } %>
+      </form>
+      <% if (job.status !== 'closed') { %><button class="btn btn-dark" type="button" data-open-dialog="candidate-dialog"><%- icon('user-plus') %><%= t('recruitment.add_candidate') %></button><% } %>
+    <% } %>
+  </div>
+</div>
+
+<% if (job.status === 'draft') { %><div class="alert alert-info mb-4"><%- icon('info') %><div><%= t('recruitment.draft_note') %></div></div><% } %>
+
+<div class="board board-pipeline mb-6" data-board data-endpoint="/app/recruitment/applications/:id/stage" data-field="stage">
+  <% stages.forEach(function (s) { var col = apps.filter(function (a) { return a.stage === s; }); %>
+  <div class="board-col<%= s === 'hired' || s === 'rejected' ? ' is-end' : '' %>" data-status="<%= s %>"<% if (s === 'hired') { %> data-dialog="hire-:id"<% } %>>
+    <div class="board-head"><span class="st st-<%= s %>"><%= t('recruitment.stage_' + s) %></span><span class="muted small"><%= col.length %></span></div>
+    <div class="board-list">
+      <% col.forEach(function (a) { %>
+      <article class="task-card"<% if (manage && a.stage !== 'hired') { %> draggable="true" data-id="<%= a.id %>"<% } %>>
+        <a class="t" href="/app/recruitment/applications/<%= a.id %>"><%= a.first_name %> <%= a.last_name %></a>
+        <% if (a.current_title) { %><div class="tiny muted mt-1 truncate"><%= a.current_title %></div><% } %>
+        <div class="meta">
+          <% if (a.rating) { %><%- stars(a.rating) %><% } %>
+          <% if (a.upcoming_interviews) { %><span><%- icon('calendar-days', 'icon-sm') %> <%= a.upcoming_interviews %></span><% } %>
+          <% if (a.cv_name) { %><span title="<%= a.cv_name %>"><%- icon('file-text', 'icon-sm') %></span><% } %>
+          <span style="margin-inline-start:auto"><%= fmt.date(a.created_at, { day: 'numeric', month: 'short' }) %></span>
+        </div>
+      </article>
+      <% if (manage && a.stage !== 'hired') { %><%- include('_hire-dialog', { app: a, dialogId: 'hire-' + a.id }) %><% } %>
+      <% }) %>
+      <% if (!col.length) { %><p class="muted small text-center" style="padding:16px 0">—</p><% } %>
+    </div>
+  </div>
+  <% }) %>
+</div>
+
+<div class="grid grid-2">
+  <section class="panel"><div class="panel-head"><h2><%= t('recruitment.description') %></h2></div>
+    <div class="panel-body"><p dir="auto" class="prose <%= job.description ? '' : 'muted' %>"><%= job.description || t('recruitment.no_description') %></p>
+      <% if (job.skills.length) { %><div class="tags mt-4"><% job.skills.forEach(function (s) { %><span class="tag"><%= s %></span><% }) %></div><% } %></div>
+  </section>
+  <section class="panel"><div class="panel-head"><h2><%= t('recruitment.requirements') %></h2></div>
+    <div class="panel-body"><p dir="auto" class="prose <%= job.requirements ? '' : 'muted' %>"><%= job.requirements || '—' %></p>
+      <dl class="dl mt-4">
+        <dt><%= t('recruitment.experience_years') %></dt><dd><%= job.experience_years != null ? job.experience_years : '—' %></dd>
+        <dt><%= t('recruitment.salary') %></dt><dd><%= salary ? (job.salary_min != null ? fmt.money(job.salary_min, job.salary_currency) : '…') + ' – ' + (job.salary_max != null ? fmt.money(job.salary_max, job.salary_currency) : '…') : '—' %><% if (salary && !job.show_salary) { %> <span class="muted small">(<%= t('recruitment.salary_hidden') %>)</span><% } %></dd>
+        <dt><%= t('recruitment.published_at') %></dt><dd><%= job.published_at ? fmt.date(job.published_at) : '—' %></dd>
+      </dl>
+    </div>
+  </section>
+</div>
+
+<% if (manage && job.status !== 'closed') { %>
+<dialog class="dialog" id="candidate-dialog"<%= openDialog === 'candidate' ? ' data-open-on-load' : '' %>>
+  <form method="post" action="/app/recruitment/candidates" enctype="multipart/form-data" novalidate>
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>"><input type="hidden" name="job_id" value="<%= job.id %>">
+    <div class="dialog-head"><div><h2><%= t('recruitment.add_candidate') %></h2><p class="muted small mt-1"><%= t('recruitment.add_candidate_sub', { job: job.title }) %></p></div><button class="btn btn-ghost btn-icon btn-sm" type="button" data-close-dialog aria-label="<%= t('common.close') %>"><%- icon('x') %></button></div>
+    <div class="dialog-body stack"><%- include('_candidate-fields', { c: {} }) %></div>
+    <div class="dialog-foot"><button class="btn btn-ghost" type="button" data-close-dialog><%= t('common.cancel') %></button><button class="btn btn-dark" type="submit"><%= t('recruitment.add_candidate') %></button></div>
+  </form>
+</dialog>
+<% if (candidates.length) { %>
+<section class="panel mt-6">
+  <div class="panel-head"><div><h2><%= t('recruitment.add_existing') %></h2><div class="panel-sub"><%= t('recruitment.add_existing_sub') %></div></div></div>
+  <div class="panel-body">
+    <form method="post" action="/app/recruitment/jobs/<%= job.id %>/applications" class="row-sm wrap">
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+      <% var inJob = apps.map(function (a) { return a.candidate_id; }); %>
+      <select class="select" name="candidate_id" required aria-label="<%= t('recruitment.candidate') %>" style="flex:1;min-width:220px;width:auto"><option value=""><%= t('recruitment.choose_candidate') %></option>
+        <% candidates.filter(function (c) { return inJob.indexOf(c.id) === -1; }).forEach(function (c) { %><option value="<%= c.id %>"><%= c.first_name %> <%= c.last_name %> · <%= c.email %></option><% }) %></select>
+      <button class="btn btn-secondary" type="submit"><%- icon('plus') %><%= t('recruitment.add_to_pipeline') %></button>
+    </form>
+  </div>
+</section>
+<% } %>
+<% } %>

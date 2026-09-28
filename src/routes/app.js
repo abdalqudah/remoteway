@@ -22,6 +22,8 @@ router.use('/attendance', require('../modules/attendance/web'));
 router.use('/documents', require('../modules/documents/web'));
 router.use('/', require('../modules/tasks/web'));
 router.use('/notifications', require('../modules/notifications/web'));
+router.use('/recruitment', require('../modules/recruitment/web'));
+router.use('/employee-onboarding', require('../modules/onboarding/plans.web'));
 router.use('/settings', require('../modules/settings/web'));
 router.use('/billing', require('../modules/billing/web'));
 

@@ -13,11 +13,16 @@
     hasFeature('leave') && can('leave.approve') ? { title: t('leave.tab_approvals'), href: '/app/leave?tab=approvals', icon: 'circle-check' } : null,
     hasFeature('documents') ? { title: t('nav.documents'), href: '/app/documents', icon: 'file-text' } : null,
     hasFeature('tasks') ? { title: t('nav.tasks'), href: '/app/tasks', icon: 'list-checks' } : null,
+    hasFeature('recruitment') && can('recruitment.view') ? { title: t('nav.recruitment'), href: '/app/recruitment', icon: 'briefcase' } : null,
+    hasFeature('recruitment') && can('recruitment.view') ? { title: t('recruitment.candidates'), href: '/app/recruitment/candidates', icon: 'users' } : null,
+    hasFeature('recruitment') && can('recruitment.manage') ? { title: t('recruitment.new_job'), href: '/app/recruitment/jobs/new', icon: 'plus' } : null,
+    hasFeature('recruitment') ? { title: t('recruitment.interviews'), href: '/app/recruitment/interviews', icon: 'calendar-days' } : null,
+    hasFeature('onboarding') ? { title: t('nav.onboarding_module'), href: '/app/employee-onboarding', icon: 'user-check' } : null,
     can('employees.create') ? { title: t('import.title'), href: '/app/employees/import', icon: 'upload' } : null,
     { title: t('notifications.title'), href: '/app/notifications', icon: 'bell' },
     can('users.view') ? { title: t('settings.users'), href: '/app/settings/users', icon: 'user-cog' } : null,
     can('billing.view') ? { title: t('nav.billing'), href: '/app/billing', icon: 'receipt' } : null,
     { title: t('nav.settings'), href: '/app/settings', icon: 'settings' }
   ].filter(Boolean)).replace(/</g, '\\u003c') %></script>
-  <script type="application/json" data-cmdk-i18n><%- JSON.stringify({ pages: t('search.pages'), employees: t('nav.employees'), departments: t('structure.departments'), empty: t('search.no_results') }).replace(/</g, '\\u003c') %></script>
+  <script type="application/json" data-cmdk-i18n><%- JSON.stringify({ pages: t('search.pages'), employees: t('nav.employees'), departments: t('structure.departments'), jobs: t('recruitment.jobs'), candidates: t('recruitment.candidates'), empty: t('search.no_results') }).replace(/</g, '\\u003c') %></script>
 </div>

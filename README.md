@@ -9,11 +9,19 @@
 | Runtime | Node.js ≥ 20 (Express 4, server-rendered EJS, no build step) |
 | Database | MySQL 8 / MariaDB ≥ 10.3 (all data, including sessions, lives in the database) |
 | Hosting | Any cPanel host with **Setup Node.js App** (e.g. Orange Host), or any VPS |
-| Status | **Phase 1 — SaaS Core** and **Phase 2 — Workforce** complete and tested (see `docs/ARCHITECTURE.md`) |
+| Status | **Phase 1 — SaaS Core**, **Phase 2 — Workforce** and **Phase 3 — Talent** complete and tested (see `docs/ARCHITECTURE.md`) |
 
 ---
 
-## What works today (Phases 1–2)
+## What works today (Phases 1–3)
+
+**Phase 3 — Talent:**
+- **Recruitment (ATS):** jobs (draft → open → closed, counted against the plan's active-jobs limit), candidates with private CV storage, a drag & drop pipeline (applied → screening → shortlisted → interview → assessment → offer → hired / rejected), ratings, internal notes and a full activity timeline.
+- **Interviews & assessments:** scheduling in the company time zone, interviewer assignment with notifications, feedback and recommendation from the interviewer (even without recruitment access), scored assessments.
+- **Hire:** one step creates the employee record (seat limit enforced), closes the job when all openings are filled and starts onboarding.
+- **Public careers page** per company (`/careers/<company>`): open jobs, application form with CV upload, consent, CSRF, rate limiting and a spam honeypot. Turned on from Recruitment.
+- **Onboarding:** editable checklist templates (Arabic/English default), plans per new hire with tasks for HR, the manager and the employee, due dates, progress, automatic completion.
+- Jobs and candidates in Ctrl/⌘ + K search, "My hiring & onboarding" on the dashboard, REST endpoints under `/api/v1/recruitment` and `/api/v1/onboarding`.
 
 **Phase 2 — Workforce:**
 - **Attendance:** clock in/out with breaks, late detection (company hours + grace), daily sheet for HR/managers, monthly timesheets with overtime, audited manual corrections.
@@ -37,7 +45,7 @@
 - **UI:** RemoteWay brand identity (your logos, the `#1ACC6C / #13AA54 / #000 / #E2E2E2` palette, Montserrat), RTL/LTR, real dark mode, responsive.
 - **REST API v1** with standard `{ success, data | error: { code, message } }` responses.
 
-Modules that are not built yet (attendance, leave, payroll, recruitment, PayWay, AI…) appear as **Soon / Setup required** with their phase number. Nothing is faked.
+Modules that are not built yet (payroll, performance, learning, PayWay, AI…) appear as **Soon / Setup required** with their phase number. Nothing is faked.
 
 ---
 

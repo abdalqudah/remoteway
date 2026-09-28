@@ -135,6 +135,70 @@ async function seedPhase2(ctx, empIds) {
   await documents.upload(ctx, { title: 'Iqama', category: 'iqama', employee_id: empIds[8], expires_at: addDays(today, -5), visible_to_employee: 'on' }, file('iqama.pdf', 'Iqama copy'));
 }
 
+/** Jobs, candidates across the pipeline, interviews and an onboarding plan so every Phase 3 screen has content. */
+async function seedPhase3(ctx, empIds, userIds) {
+  const rec = require('../src/modules/recruitment/recruitment.service');
+  const onboarding = require('../src/modules/onboarding/onboarding.service');
+  const { todayIn, addDays } = require('../src/core/workdays');
+  const today = todayIn('Asia/Riyadh');
+  const [eng, cs] = await Promise.all(['Engineering', 'Customer Support'].map((n) => knex('departments').where({ organization_id: ctx.organizationId, name: n }).first('id')));
+  const [riyadh, remote] = await Promise.all(['Riyadh HQ', 'Remote — KSA'].map((n) => knex('locations').where({ organization_id: ctx.organizationId, name: n }).first('id')));
+
+  const jobs = [
+    { title: 'Senior Backend Engineer', department_id: eng.id, location_id: riyadh.id, work_mode: 'hybrid', employment_type: 'full_time', salary_min: 22000, salary_max: 30000, show_salary: 'on', experience_years: 5, openings: 2,
+      skills: 'Node.js, MySQL, REST APIs, Docker', description: 'Design and build the services behind our HR platform. You will own features end to end, from database design to production monitoring.',
+      requirements: '5+ years building backend services\nStrong SQL and data modelling\nExperience with cloud deployments', hiring_manager_user_id: userIds.manager },
+    { title: 'Customer Success Specialist', department_id: cs.id, location_id: remote.id, work_mode: 'remote', employment_type: 'full_time', salary_min: 8000, salary_max: 11000, experience_years: 2, openings: 1,
+      skills: 'Arabic, English, CRM, Communication', description: 'Help our customers get the most out of RemoteWay through onboarding sessions and fast, friendly support.', requirements: 'Fluent Arabic and English\n2+ years in a customer-facing role' },
+    { title: 'Product Designer (Contract)', department_id: eng.id, work_mode: 'remote', employment_type: 'contract', skills: 'Figma, UX research', description: 'A six-month contract to redesign our mobile experience.', openings: 1 },
+  ];
+  const jobIds = [];
+  for (const j of jobs) jobIds.push(await rec.saveJob(ctx, null, j));
+  await rec.setJobStatus(ctx, jobIds[0], 'open');
+  await rec.setJobStatus(ctx, jobIds[1], 'open');
+
+  const pdf = (text) => Buffer.from(`%PDF-1.4\n1 0 obj<</Type/Catalog/Pages 2 0 R>>endobj 2 0 obj<</Type/Pages/Kids[3 0 R]/Count 1>>endobj 3 0 obj<</Type/Page/Parent 2 0 R/MediaBox[0 0 595 842]/Contents 4 0 R/Resources<</Font<</F1 5 0 R>>>>>>endobj 4 0 obj<</Length ${text.length + 30}>>stream\nBT /F1 18 Tf 60 780 Td (${text}) Tj ET\nendstream endobj 5 0 obj<</Type/Font/Subtype/Type1/BaseFont/Helvetica>>endobj\ntrailer<</Root 1 0 R>>\n%%EOF\n`);
+  // [first, last, title, years, source, job index, stage, rating]
+  const people = [
+    ['Hamad', 'Al-Fahad', 'Backend Developer', 6, 'linkedin', 0, 'interview', 4],
+    ['Lulwa', 'Al-Nasser', 'Software Engineer', 5, 'careers', 0, 'shortlisted', 4],
+    ['Ibrahim', 'Saleh', 'Full-stack Developer', 4, 'referral', 0, 'screening', 3],
+    ['Ghada', 'Al-Marri', 'Senior Engineer', 8, 'careers', 0, 'offer', 5],
+    ['Waleed', 'Hassan', 'Junior Developer', 1, 'careers', 0, 'rejected', 2],
+    ['Asma', 'Al-Tamimi', 'Backend Engineer', 5, 'agency', 0, 'applied', null],
+    ['Bader', 'Al-Enezi', 'Support Agent', 3, 'careers', 1, 'applied', null],
+    ['Shahad', 'Al-Hajri', 'Customer Care Lead', 4, 'linkedin', 1, 'assessment', 4],
+    ['Ziyad', 'Al-Khaldi', 'Account Coordinator', 2, 'careers', 1, 'screening', 3],
+  ];
+  const appIds = [];
+  for (const [first, last, title, years, source, jobIndex, stage, rating] of people) {
+    const buffer = pdf(`${first} ${last} - CV`);
+    const id = await rec.saveCandidate(ctx, null, {
+      first_name: first, last_name: last, email: `${first}.${last}@example.com`.toLowerCase().replace(/[^a-z.@]/g, ''), phone: '+966 5' + String(10000000 + appIds.length * 7919).slice(0, 8),
+      city: jobIndex === 1 ? 'Jeddah' : 'Riyadh', current_title: title, experience_years: years, source, skills: jobs[jobIndex].skills,
+    }, { buffer, size: buffer.length, originalname: `${first}-${last}-cv.pdf`.toLowerCase() });
+    const appId = await rec.addToJob(ctx, id, jobIds[jobIndex], { source });
+    if (stage !== 'applied') await rec.moveStage(ctx, appId, stage, { reason: stage === 'rejected' ? 'Not enough backend experience' : undefined });
+    if (rating) await rec.rate(ctx, appId, rating);
+    appIds.push(appId);
+  }
+  await rec.addNote(ctx, appIds[0], 'Strong system design answers in the screening call. Move to technical interview.');
+  const at = (days, hm) => `${addDays(today, days)}T${hm}`;
+  await rec.scheduleInterview(ctx, appIds[0], { scheduled_at: at(1, '11:00'), duration_minutes: 60, mode: 'video', location: 'https://meet.example.com/rw-backend', interviewer_user_id: userIds.manager });
+  const ivDone = await rec.scheduleInterview(ctx, appIds[3], { scheduled_at: at(-3, '14:00'), duration_minutes: 45, mode: 'onsite', location: 'Riyadh HQ — Room 2', interviewer_user_id: userIds.owner });
+  await rec.submitFeedback(ctx, ivDone, { recommendation: 'strong_yes', rating: 5, feedback: 'Excellent architecture knowledge and clear communication. Recommend making an offer.' });
+  await rec.scheduleInterview(ctx, appIds[7], { scheduled_at: at(2, '10:30'), duration_minutes: 30, mode: 'phone', interviewer_user_id: userIds.hr });
+  await rec.addAssessment(ctx, appIds[7], { title: 'Customer scenario role-play', score: 17, max_score: 20, notes: 'Calm and empathetic.' });
+
+  await orgs.updateSettings(ctx, { careers_enabled: true, careers_intro: 'RemoteWay Demo Company builds HR software for growing teams across the Gulf. We value ownership, clarity and kindness.' });
+
+  // Onboarding for the newest employee (joined this month).
+  await onboarding.startPlan(ctx, empIds[18], { start_date: addDays(today, -3) });
+  const plan = await knex('onboarding_plans').where({ organization_id: ctx.organizationId, employee_id: empIds[18] }).first('id');
+  const firstTasks = await knex('onboarding_tasks').where({ plan_id: plan.id }).orderBy('due_date').limit(3);
+  for (const tk of firstTasks) await onboarding.setTaskDone(ctx, tk.id, true);
+}
+
 function monthsAgo(n) {
   const d = new Date();
   d.setUTCMonth(d.getUTCMonth() - n);
@@ -191,6 +255,7 @@ function monthsAgo(n) {
     }
 
     // Demo users (besides the owner) join through the same membership + role tables as invited users.
+    const userIds = {};
     for (const [slug, name, roleKey, empIndex] of DEMO_USERS) {
       let uid = ownerId;
       if (slug !== 'owner') {
@@ -201,9 +266,11 @@ function monthsAgo(n) {
         await knex('users').where({ id: uid }).update({ last_organization_id: organizationId });
       }
       await knex('employees').where({ id: empIds[empIndex] }).update({ user_id: uid });
+      userIds[slug] = uid;
     }
     await orgs.completeOnboarding(ctx);
     await seedPhase2(ctx, empIds);
+    await seedPhase3(ctx, empIds, userIds);
 
     console.log('\nRemoteWay Demo Company is ready.');
     console.log(`Password for all demo users: ${PASSWORD}\n`);

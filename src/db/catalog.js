@@ -39,6 +39,7 @@ const PERMISSIONS = [
   ['reports.view', 'reports', 'View reports'],
   ['tasks.view', 'tasks', 'View all tasks and projects'],
   ['tasks.manage', 'tasks', 'Create, assign and manage tasks and projects'],
+  ['onboarding.manage', 'onboarding', 'Run onboarding plans and templates'],
 ];
 
 const ALL = PERMISSIONS.map((p) => p[0]);
@@ -54,11 +55,11 @@ const ROLE_TEMPLATES = [
     permissions: ['users.view', 'employees.view', 'employees.create', 'employees.edit', 'employees.delete', 'employees.view_salary',
       'departments.manage', 'locations.manage', 'attendance.view', 'attendance.manage', 'leave.view', 'leave.request', 'leave.approve',
       'performance.view', 'performance.manage', 'recruitment.view', 'recruitment.manage', 'documents.view', 'documents.manage', 'reports.view',
-      'tasks.view', 'tasks.manage'],
+      'tasks.view', 'tasks.manage', 'onboarding.manage'],
   },
   {
     key: 'recruiter', name: 'Recruiter', description: 'Runs hiring pipelines',
-    permissions: ['employees.view', 'recruitment.view', 'recruitment.manage', 'documents.view', 'leave.request'],
+    permissions: ['employees.view', 'recruitment.view', 'recruitment.manage', 'documents.view', 'leave.request', 'onboarding.manage'],
   },
   {
     key: 'finance_manager', name: 'Finance Manager', description: 'Financial visibility and billing',
@@ -90,8 +91,8 @@ const FEATURES = [
   ['documents', 'Documents', 'workforce', 'available'],
   ['tasks', 'Tasks', 'remote_work', 'available'],
   ['basic_reports', 'Basic Reports', 'analytics', 'coming_soon'],
-  ['recruitment', 'Recruitment (ATS)', 'talent', 'coming_soon'],
-  ['onboarding', 'Onboarding', 'talent', 'coming_soon'],
+  ['recruitment', 'Recruitment (ATS)', 'talent', 'available'],
+  ['onboarding', 'Onboarding', 'talent', 'available'],
   ['payroll', 'Payroll', 'payroll', 'coming_soon'],
   ['performance', 'Performance', 'performance', 'coming_soon'],
   ['learning', 'Learning', 'learning', 'coming_soon'],
@@ -188,4 +189,17 @@ const LEAVE_TYPE_DEFAULTS = [
   { key: 'unpaid', name: 'Unpaid leave', name_ar: 'إجازة بدون راتب', days_per_year: 0, has_balance: false, is_paid: false, color: '#767676' },
 ];
 
-module.exports = { PERMISSIONS, ROLE_TEMPLATES, FEATURES, PLANS, ADDONS, COUNTRIES, LIMIT_KEYS, LEAVE_TYPE_DEFAULTS };
+// Default onboarding checklist (HR edits it per company). due = days relative to the start date.
+const ONBOARDING_DEFAULT = [
+  { title: 'Sign the employment contract', title_ar: 'توقيع عقد العمل', category: 'contract', assignee: 'hr', due: -3 },
+  { title: 'Prepare laptop and equipment', title_ar: 'تجهيز الجهاز والمعدات', category: 'equipment', assignee: 'hr', due: -1 },
+  { title: 'Create email and system accounts', title_ar: 'إنشاء البريد وحسابات الأنظمة', category: 'accounts', assignee: 'hr', due: -1 },
+  { title: 'Collect ID / Iqama copy', title_ar: 'استلام صورة الهوية / الإقامة', category: 'documents', assignee: 'hr', due: 0 },
+  { title: 'Provide bank details (IBAN)', title_ar: 'تزويد بيانات الحساب البنكي (IBAN)', category: 'bank', assignee: 'employee', due: 0 },
+  { title: 'Welcome meeting and team introduction', title_ar: 'اجتماع الترحيب والتعريف بالفريق', category: 'manager', assignee: 'manager', due: 0 },
+  { title: 'Read and accept company policies', title_ar: 'قراءة سياسات الشركة والموافقة عليها', category: 'policies', assignee: 'employee', due: 2 },
+  { title: 'Complete first-week training', title_ar: 'إكمال تدريب الأسبوع الأول', category: 'training', assignee: 'employee', due: 5 },
+  { title: '30-day check-in', title_ar: 'لقاء متابعة بعد 30 يوماً', category: 'manager', assignee: 'manager', due: 30 },
+];
+
+module.exports = { PERMISSIONS, ROLE_TEMPLATES, FEATURES, PLANS, ADDONS, COUNTRIES, LIMIT_KEYS, LEAVE_TYPE_DEFAULTS, ONBOARDING_DEFAULT };

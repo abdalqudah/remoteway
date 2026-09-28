@@ -1,0 +1,13 @@
+<% if ((today.onboardingTasks && today.onboardingTasks.length) || (today.interviews && today.interviews.length)) { var tzf = function (v) { return new Intl.DateTimeFormat(locale === 'ar' ? 'ar-SA-u-nu-latn' : 'en-GB', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', timeZone: organization.timezone }).format(new Date(v)); }; %>
+<section class="panel">
+  <div class="panel-head"><div><h2><%= t('dashboard.my_work') %></h2><div class="panel-sub"><%= t('dashboard.my_work_sub') %></div></div></div>
+  <ul class="action-list">
+    <% (today.interviews || []).forEach(function (iv) { %>
+      <li><a href="/app/recruitment/interviews/<%= iv.id %>"><span class="action-icon info"><%- icon('calendar-days', 'icon-sm') %></span><span class="grow small"><%= t('dashboard.interview_with', { name: iv.first_name + ' ' + iv.last_name }) %><span class="muted" style="display:block"><%= iv.job_title %> · <%= tzf(iv.scheduled_at) %></span></span><%- icon('chevron-right', 'icon-sm muted flip-rtl') %></a></li>
+    <% }) %>
+    <% (today.onboardingTasks || []).slice(0, 6).forEach(function (tk) { var due = tk.due_date instanceof Date ? tk.due_date.toISOString().slice(0, 10) : String(tk.due_date || ''); %>
+      <li><a href="/app/employee-onboarding/<%= tk.plan_id %>"><span class="action-icon <%= due && due < new Date().toISOString().slice(0, 10) ? 'warning' : '' %>"><%- icon('user-check', 'icon-sm') %></span><span class="grow small"><%= tk.title %><span class="muted" style="display:block"><%= t('dashboard.onboarding_for', { name: tk.first_name + ' ' + tk.last_name }) %><%= due ? ' · ' + fmt.date(due, { day: 'numeric', month: 'short' }) : '' %></span></span><%- icon('chevron-right', 'icon-sm muted flip-rtl') %></a></li>
+    <% }) %>
+  </ul>
+</section>
+<% } %>

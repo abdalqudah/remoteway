@@ -1,0 +1,53 @@
+<%
+  var j = job || {};
+  var val = function (k) { return old && old[k] !== undefined ? old[k] : j[k]; };
+  var skills = val('skills'); skills = Array.isArray(skills) ? skills.join(', ') : (skills || '');
+%>
+<div class="page-head">
+  <div><div class="eyebrow"><a href="/app/recruitment"><%= t('nav.recruitment') %></a><%- icon('chevron-right', 'icon-sm flip-rtl') %><%= job ? t('recruitment.edit_job') : t('recruitment.new_job') %></div><h1><%= job ? job.title : t('recruitment.new_job') %></h1></div>
+</div>
+<% if (formError) { %><div class="alert alert-error mb-4"><%= formError.message %></div><% } %>
+<form method="post" action="<%= job ? '/app/recruitment/jobs/' + job.id : '/app/recruitment/jobs' %>" novalidate>
+  <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+  <div class="grid grid-3">
+    <div class="span-2 stack-lg">
+      <section class="panel"><div class="panel-head"><h2><%= t('recruitment.job_details') %></h2></div>
+        <div class="panel-body stack">
+          <%- include('../../partials/field', { name: 'title', label: t('recruitment.job_title'), required: true, value: j.title, placeholder: t('recruitment.job_title_ph') }) %>
+          <%- include('../../partials/field', { name: 'description', label: t('recruitment.description'), type: 'textarea', value: j.description, help: t('recruitment.description_help') }) %>
+          <%- include('../../partials/field', { name: 'requirements', label: t('recruitment.requirements'), type: 'textarea', value: j.requirements }) %>
+          <%- include('../../partials/field', { name: 'skills', label: t('recruitment.skills'), value: skills, help: t('recruitment.skills_help') }) %>
+        </div>
+      </section>
+    </div>
+    <div class="stack-lg">
+      <section class="panel"><div class="panel-head"><h2><%= t('recruitment.job_setup') %></h2></div>
+        <div class="panel-body stack">
+          <%- include('../../partials/field', { name: 'department_id', label: t('fields.department'), type: 'select', placeholder: t('common.none'), value: j.department_id, options: departments.map(function (d) { return { value: d.id, label: d.name }; }) }) %>
+          <%- include('../../partials/field', { name: 'location_id', label: t('fields.location'), type: 'select', placeholder: t('common.none'), value: j.location_id, options: locations.map(function (l) { return { value: l.id, label: l.name }; }) }) %>
+          <%- include('../../partials/field', { name: 'work_mode', label: t('recruitment.work_mode'), type: 'select', value: j.work_mode || 'onsite', options: ['onsite', 'hybrid', 'remote'].map(function (m) { return { value: m, label: t('recruitment.mode_' + m) }; }) }) %>
+          <%- include('../../partials/field', { name: 'employment_type', label: t('recruitment.employment_type'), type: 'select', value: j.employment_type || 'full_time', options: ['full_time', 'part_time', 'contract', 'intern', 'freelance'].map(function (m) { return { value: m, label: t('recruitment.type_' + m) }; }) }) %>
+          <div class="form-grid">
+            <%- include('../../partials/field', { name: 'openings', label: t('recruitment.openings'), type: 'number', value: j.openings || 1, attrs: 'min="1" max="500"' }) %>
+            <%- include('../../partials/field', { name: 'experience_years', label: t('recruitment.experience_years'), type: 'number', value: j.experience_years, attrs: 'min="0" max="50"' }) %>
+          </div>
+          <%- include('../../partials/field', { name: 'hiring_manager_user_id', label: t('recruitment.hiring_manager'), type: 'select', placeholder: t('common.none'), value: j.hiring_manager_user_id, options: members.map(function (m) { return { value: m.id, label: m.name }; }) }) %>
+        </div>
+      </section>
+      <section class="panel"><div class="panel-head"><h2><%= t('recruitment.salary') %> <span class="muted small">(<%= organization.currency %>)</span></h2></div>
+        <div class="panel-body stack">
+          <div class="form-grid">
+            <%- include('../../partials/field', { name: 'salary_min', label: t('recruitment.salary_min'), type: 'number', value: j.salary_min != null ? Number(j.salary_min) : '', attrs: 'min="0" step="any"' }) %>
+            <%- include('../../partials/field', { name: 'salary_max', label: t('recruitment.salary_max'), type: 'number', value: j.salary_max != null ? Number(j.salary_max) : '', attrs: 'min="0" step="any"' }) %>
+          </div>
+          <label class="check"><input type="checkbox" name="show_salary"<%= (old && old.show_salary) || j.show_salary ? ' checked' : '' %>><%= t('recruitment.show_salary') %></label>
+        </div>
+      </section>
+      <div class="form-actions">
+        <a class="btn btn-ghost" href="<%= job ? '/app/recruitment/jobs/' + job.id : '/app/recruitment' %>"><%= t('common.cancel') %></a>
+        <% if (!job) { %><button class="btn btn-secondary" type="submit"><%= t('recruitment.save_draft') %></button><button class="btn btn-dark" type="submit" name="publish" value="1"><%- icon('send') %><%= t('recruitment.save_publish') %></button>
+        <% } else { %><button class="btn btn-dark" type="submit"><%= t('common.save_changes') %></button><% } %>
+      </div>
+    </div>
+  </div>
+</form>

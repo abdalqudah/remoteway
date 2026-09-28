@@ -1,0 +1,53 @@
+<% var applied = typeof applied !== 'undefined' && applied; var salary = job.show_salary && (job.salary_min != null || job.salary_max != null); %>
+<section class="careers-head" style="padding-bottom:24px">
+  <div class="container">
+    <a class="link small" href="/careers/<%= org.slug %>"><%- icon('arrow-left', 'icon-sm flip-rtl') %> <%= t('careers.all_jobs') %></a>
+    <h1 class="mt-4" style="font-size:clamp(26px,3.5vw,38px);margin-bottom:12px"><%= job.title %></h1>
+    <div class="row-sm wrap small muted">
+      <% if (job.department_name) { %><span><%- icon('building-2', 'icon-sm') %> <%= job.department_name %></span><% } %>
+      <span><%- icon('map-pin', 'icon-sm') %> <%= job.location_name ? job.location_name + ' · ' : '' %><%= t('recruitment.mode_' + job.work_mode) %></span>
+      <span><%- icon('clock', 'icon-sm') %> <%= t('recruitment.type_' + job.employment_type) %></span>
+      <% if (job.experience_years != null) { %><span><%= t('careers.experience', { n: job.experience_years }) %></span><% } %>
+      <% if (salary) { %><span><%- icon('wallet', 'icon-sm') %> <%= job.salary_min != null ? fmt.money(job.salary_min, job.salary_currency) : '' %><%= job.salary_min != null && job.salary_max != null ? ' – ' : '' %><%= job.salary_max != null ? fmt.money(job.salary_max, job.salary_currency) : '' %></span><% } %>
+    </div>
+  </div>
+</section>
+<div class="container">
+  <div class="careers-grid">
+    <div class="stack-lg">
+      <% if (job.description) { %><section class="panel"><div class="panel-head"><h2><%= t('careers.about_role') %></h2></div><div class="panel-body"><p dir="auto" class="prose"><%= job.description %></p></div></section><% } %>
+      <% if (job.requirements) { %><section class="panel"><div class="panel-head"><h2><%= t('recruitment.requirements') %></h2></div><div class="panel-body"><p dir="auto" class="prose"><%= job.requirements %></p></div></section><% } %>
+      <% if (job.skills.length) { %><section class="panel"><div class="panel-head"><h2><%= t('recruitment.skills') %></h2></div><div class="panel-body"><div class="tags"><% job.skills.forEach(function (s) { %><span class="tag"><%= s %></span><% }) %></div></div></section><% } %>
+    </div>
+    <section class="panel" id="apply">
+      <% if (applied) { %>
+        <div class="empty"><span class="empty-icon" style="background:var(--success-soft);color:var(--success)"><%- icon('circle-check') %></span><h3><%= t('careers.applied_title') %></h3><p><%= t('careers.applied_text', { org: org.name }) %></p><a class="btn btn-secondary mt-4" href="/careers/<%= org.slug %>"><%= t('careers.all_jobs') %></a></div>
+      <% } else { %>
+      <div class="panel-head"><div><h2><%= t('careers.apply_title') %></h2><div class="panel-sub"><%= t('careers.apply_sub') %></div></div></div>
+      <form method="post" action="/careers/<%= org.slug %>/jobs/<%= job.slug %>/apply" enctype="multipart/form-data" novalidate>
+        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+        <div class="panel-body stack">
+          <% if (formError && !Object.keys(errors).length) { %><div class="alert alert-error"><%= formError.message %></div><% } %>
+          <div class="form-grid">
+            <%- include('../../partials/field', { name: 'first_name', label: t('fields.first_name'), required: true, autocomplete: 'given-name' }) %>
+            <%- include('../../partials/field', { name: 'last_name', label: t('fields.last_name'), required: true, autocomplete: 'family-name' }) %>
+          </div>
+          <%- include('../../partials/field', { name: 'email', label: t('fields.email'), type: 'email', required: true, autocomplete: 'email' }) %>
+          <div class="form-grid">
+            <%- include('../../partials/field', { name: 'phone', label: t('fields.phone'), type: 'tel', autocomplete: 'tel' }) %>
+            <%- include('../../partials/field', { name: 'city', label: t('recruitment.city') }) %>
+          </div>
+          <%- include('../../partials/field', { name: 'linkedin_url', label: t('recruitment.linkedin'), type: 'url', placeholder: 'https://' }) %>
+          <div class="field"><label class="label" for="apply-cv"><%= t('recruitment.cv') %><span class="req">*</span></label><input class="file-input" id="apply-cv" type="file" name="file" required accept=".pdf,.doc,.docx">
+            <% if (errors.file) { %><span class="field-error"><%= errors.file %></span><% } else { %><span class="help"><%= t('recruitment.cv_help') %></span><% } %></div>
+          <%- include('../../partials/field', { name: 'cover_note', label: t('careers.cover_note'), type: 'textarea' }) %>
+          <div class="hp-field" aria-hidden="true"><label for="apply-website">Website</label><input id="apply-website" type="text" name="website" tabindex="-1" autocomplete="off"></div>
+          <label class="check"><input type="checkbox" name="consent" required<%= old.consent ? ' checked' : '' %>><span class="small"><%= t('careers.consent', { org: org.name }) %></span></label>
+          <% if (errors.consent) { %><span class="field-error"><%= errors.consent %></span><% } %>
+        </div>
+        <div class="panel-foot"><button class="btn btn-primary btn-block" type="submit"><%- icon('send') %><%= t('careers.submit') %></button></div>
+      </form>
+      <% } %>
+    </section>
+  </div>
+</div>

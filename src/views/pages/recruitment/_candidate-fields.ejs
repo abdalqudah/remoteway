@@ -1,0 +1,18 @@
+<%
+  // Param: c (candidate or {}). Uses old/errors from the page.
+  var sk = c.skills; sk = Array.isArray(sk) ? sk.join(', ') : (sk || '');
+%>
+<div class="form-grid">
+  <%- include('../../partials/field', { name: 'first_name', label: t('fields.first_name'), required: true, value: c.first_name }) %>
+  <%- include('../../partials/field', { name: 'last_name', label: t('fields.last_name'), required: true, value: c.last_name }) %>
+  <%- include('../../partials/field', { name: 'email', label: t('fields.email'), type: 'email', required: true, value: c.email }) %>
+  <%- include('../../partials/field', { name: 'phone', label: t('fields.phone'), value: c.phone }) %>
+  <%- include('../../partials/field', { name: 'current_title', label: t('recruitment.current_title'), value: c.current_title }) %>
+  <%- include('../../partials/field', { name: 'experience_years', label: t('recruitment.experience_years'), type: 'number', value: c.experience_years, attrs: 'min="0" max="60"' }) %>
+  <%- include('../../partials/field', { name: 'city', label: t('recruitment.city'), value: c.city }) %>
+  <%- include('../../partials/field', { name: 'source', label: t('recruitment.source'), type: 'select', value: c.source || 'manual', options: sources.map(function (s) { return { value: s, label: t('recruitment.source_' + s) }; }) }) %>
+</div>
+<%- include('../../partials/field', { name: 'linkedin_url', label: t('recruitment.linkedin'), type: 'url', value: c.linkedin_url, placeholder: 'https://' }) %>
+<%- include('../../partials/field', { name: 'skills', label: t('recruitment.skills'), value: sk, help: t('recruitment.skills_help') }) %>
+<div class="field"><label class="label" for="cv-file"><%= t('recruitment.cv') %></label><input class="file-input" id="cv-file" type="file" name="file" accept=".pdf,.doc,.docx">
+  <% if (errors.file) { %><span class="field-error"><%= errors.file %></span><% } else { %><span class="help"><%= c.cv_name ? t('recruitment.cv_replace', { name: c.cv_name }) : t('recruitment.cv_help') %></span><% } %></div>

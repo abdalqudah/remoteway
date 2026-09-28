@@ -34,6 +34,11 @@
   <% groups.slice(1).forEach(function (g) { %>
   <div class="nav-group">
     <div class="nav-title"><%= t(g[1]) %></div>
+    <% if (g[0] === 'talent') { %>
+      <% if (can('recruitment.view')) { %><a href="/app/recruitment" class="<%= isActive('/app/recruitment') ? 'active' : '' %><%= hasFeature('recruitment') ? '' : ' is-soon' %>"><%- icon('briefcase') %><%= t('nav.recruitment') %><% if (!hasFeature('recruitment')) { %><span class="badge badge-soon"><%- icon('lock', 'icon-sm') %></span><% } %></a>
+      <% } else if (hasFeature('recruitment')) { %><a href="/app/recruitment/interviews" class="<%= isActive('/app/recruitment') ? 'active' : '' %>"><%- icon('briefcase') %><%= t('recruitment.my_interviews') %></a><% } %>
+      <a href="/app/employee-onboarding" class="<%= isActive('/app/employee-onboarding') ? 'active' : '' %><%= hasFeature('onboarding') ? '' : ' is-soon' %>"><%- icon('user-check') %><%= t('nav.onboarding_module') %><% if (!hasFeature('onboarding')) { %><span class="badge badge-soon"><%- icon('lock', 'icon-sm') %></span><% } %></a>
+    <% } %>
     <% MODULES.filter(function (m) { return m.group === g[0]; }).forEach(function (m) { %>
       <a href="/app/modules/<%= m.key %>" class="is-soon <%= isActive('/app/modules/' + m.key) ? 'active' : '' %>"><%- icon(m.icon) %><%= t('nav.' + m.key) %><span class="badge badge-soon"><%= m.status === 'integration' ? t('common.setup_required') : t('common.soon') %></span></a>
     <% }) %>

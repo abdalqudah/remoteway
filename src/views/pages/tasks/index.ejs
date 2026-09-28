@@ -26,13 +26,13 @@
 </section>
 
 <% if (view === 'board') { %>
-<div class="board" data-board>
+<div class="board" data-board data-endpoint="/app/tasks/:id/status" data-field="status">
   <% statuses.forEach(function (s) { var col = rows.filter(function (r) { return r.status === s; }); %>
   <div class="board-col" data-status="<%= s %>">
     <div class="board-head"><span class="row-sm"><span class="st st-<%= s %>"><%= t('tasks.status_' + s) %></span></span><span class="muted small"><%= col.length %></span></div>
     <div class="board-list">
       <% col.forEach(function (r) { var due = dd(r.due_date); %>
-      <article class="task-card" draggable="true" data-task="<%= r.id %>">
+      <article class="task-card" draggable="true" data-id="<%= r.id %>">
         <a class="t" href="/app/tasks/<%= r.id %>"><%= r.title %></a>
         <div class="meta">
           <span class="prio prio-<%= r.priority %>"><%= t('tasks.prio_' + r.priority) %></span>

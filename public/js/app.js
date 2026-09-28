@@ -196,7 +196,7 @@
     var items = []; var active = 0; var seq = 0; var debounce;
 
     var esc = function (s) { var d = document.createElement('div'); d.textContent = s == null ? '' : String(s); return d.innerHTML; };
-    var iconSvg = function (name) { return '<svg class="icon icon-sm" aria-hidden="true"><use href="/icons.svg#i-' + name + '"></use></svg>'; };
+    var iconSvg = function (name) { return '<svg class="icon icon-sm" aria-hidden="true"><use href="/icons.svg?v=' + (document.documentElement.getAttribute('data-v') || '') + '#i-' + name + '"></use></svg>'; };
 
     function render(groups) {
       items = [];
@@ -229,6 +229,8 @@
           render([
             { title: i18n.employees, items: (d.employees || []).map(function (x) { return Object.assign({ icon: 'user' }, x); }) },
             { title: i18n.departments, items: (d.departments || []).map(function (x) { return Object.assign({ icon: 'building-2' }, x); }) },
+            { title: i18n.jobs, items: (d.jobs || []).map(function (x) { return Object.assign({ icon: 'briefcase' }, x); }) },
+            { title: i18n.candidates, items: (d.candidates || []).map(function (x) { return Object.assign({ icon: 'user' }, x); }) },
             { title: i18n.pages, items: matchedPages },
           ]);
         })
@@ -253,11 +255,14 @@
     if (kbd && /Mac|iPhone|iPad/.test(navigator.platform || '')) kbd.textContent = '⌘K';
   }
 
-  /* ---------- Task board drag & drop (falls back to the status form without JS) ---------- */
-  var board = $('[data-board]');
-  if (board) {
+  /* ---------- Board drag & drop (tasks, recruitment pipeline). Falls back to plain forms without JS ----------
+     Board: data-board, data-endpoint="/app/x/:id/status", data-field="status". Column: data-status. Card: data-id.
+     A column with data-dialog opens that dialog instead of posting (e.g. "Hired" opens the hire form). */
+  $$('[data-board]').forEach(function (board) {
+    var endpoint = board.getAttribute('data-endpoint') || '/app/tasks/:id/status';
+    var field = board.getAttribute('data-field') || 'status';
     var dragged = null;
-    $$('.task-card', board).forEach(function (card) {
+    $$('[draggable="true"]', board).forEach(function (card) {
       card.addEventListener('dragstart', function (e) { dragged = card; card.classList.add('dragging'); e.dataTransfer.effectAllowed = 'move'; });
       card.addEventListener('dragend', function () { card.classList.remove('dragging'); dragged = null; });
     });
@@ -271,14 +276,34 @@
         var card = dragged;
         var from = card.closest('.board-col');
         if (from === col) return;
+        var id = card.getAttribute('data-id') || card.getAttribute('data-task');
+        var dialogTpl = col.getAttribute('data-dialog');
+        if (dialogTpl) {
+          var dlg = document.getElementById(dialogTpl.replace(':id', id));
+          if (dlg && dlg.showModal) dlg.showModal(); else window.location.href = card.querySelector('a').href;
+          return;
+        }
         col.querySelector('.board-list').prepend(card);
-        var body = new URLSearchParams({ status: col.getAttribute('data-status'), _csrf: csrf });
-        fetch('/app/tasks/' + card.getAttribute('data-task') + '/status', { method: 'POST', body: body, credentials: 'same-origin', headers: { 'x-csrf-token': csrf } })
-          .then(function (r) { if (!r.ok) throw new Error('failed'); window.location.reload(); })
+        var body = new URLSearchParams({ _csrf: csrf });
+        body.set(field, col.getAttribute('data-status'));
+        fetch(endpoint.replace(':id', id), { method: 'POST', body: body, credentials: 'same-origin', headers: { 'x-csrf-token': csrf, 'x-requested-with': 'fetch' } })
+          .then(function () { window.location.reload(); }) // the server flashes the outcome (including refusals)
           .catch(function () { from.querySelector('.board-list').prepend(card); });
       });
     });
-  }
+  });
+
+  /* ---------- Repeatable rows (onboarding template editor) ---------- */
+  $$('[data-repeater]').forEach(function (box) {
+    var rows = box.querySelector('[data-rows]');
+    var tpl = box.querySelector('template[data-row-template]');
+    box.addEventListener('click', function (e) {
+      var add = e.target.closest('[data-add-row]');
+      var rm = e.target.closest('[data-remove-row]');
+      if (add && rows && tpl) { rows.appendChild(tpl.content.cloneNode(true)); var inputs = rows.querySelectorAll('input[name="item_title"]'); if (inputs.length) inputs[inputs.length - 1].focus(); }
+      if (rm) { var row = rm.closest('[data-row]'); if (row && rows.querySelectorAll('[data-row]').length > 1) row.remove(); else if (row) row.querySelector('input').value = ''; }
+    });
+  });
 
   // Keep csrf available for fetch-based features.
   window.RemoteWay = { csrf: csrf };

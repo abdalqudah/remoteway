@@ -1,0 +1,50 @@
+<%
+  var tz = organization.timezone;
+  var dt = function (v) { return new Intl.DateTimeFormat(locale === 'ar' ? 'ar-SA-u-nu-latn-ca-gregory' : 'en-GB', { dateStyle: 'full', timeStyle: 'short', timeZone: tz }).format(new Date(v)); };
+  var mayFeedback = (can('recruitment.manage') || iv.interviewer_user_id === currentUser.id) && iv.status !== 'cancelled';
+  var isUrl = iv.location && /^https?:\/\//i.test(iv.location);
+%>
+<div class="page-head">
+  <div>
+    <div class="eyebrow"><a href="/app/recruitment/interviews"><%= t('recruitment.interviews') %></a></div>
+    <h1><%= t('recruitment.interview_with', { name: iv.first_name + ' ' + iv.last_name }) %></h1>
+    <div class="row-sm wrap mt-2 small muted"><span class="st st-<%= iv.status %>"><%= t('recruitment.iv_status_' + iv.status) %></span><span><%= iv.job_title %></span><% if (iv.current_title) { %><span><%= iv.current_title %></span><% } %></div>
+  </div>
+  <div class="page-actions">
+    <% if (iv.cv_name && can('recruitment.view')) { %><a class="btn btn-secondary" href="/app/recruitment/candidates/<%= iv.candidate_id %>/cv?inline=1" target="_blank" rel="noopener"><%- icon('file-text') %><%= t('recruitment.view_cv') %></a><% } %>
+    <% if (can('recruitment.view')) { %><a class="btn btn-secondary" href="/app/recruitment/applications/<%= iv.application_id %>"><%= t('recruitment.open_application') %></a><% } %>
+    <% if (can('recruitment.manage') && iv.status === 'scheduled') { %><form method="post" action="/app/recruitment/interviews/<%= iv.id %>/cancel" data-confirm="<%= t('recruitment.confirm_cancel_iv') %>"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><button class="btn btn-danger-ghost" type="submit"><%= t('recruitment.cancel_interview') %></button></form><% } %>
+  </div>
+</div>
+<div class="grid grid-3">
+  <section class="panel">
+    <div class="panel-head"><h2><%= t('recruitment.details') %></h2></div>
+    <div class="panel-body"><dl class="dl" style="grid-template-columns:1fr">
+      <dt><%= t('recruitment.when') %></dt><dd><%= dt(iv.scheduled_at) %> <span class="muted small">(<%= tz %>)</span></dd>
+      <dt><%= t('recruitment.duration') %></dt><dd><%= t('recruitment.minutes_n', { n: iv.duration_minutes }) %></dd>
+      <dt><%= t('recruitment.iv_mode') %></dt><dd><%= t('recruitment.iv_mode_' + iv.mode) %></dd>
+      <dt><%= t('recruitment.iv_location') %></dt><dd><% if (isUrl) { %><a class="link" href="<%= iv.location %>" target="_blank" rel="noopener nofollow"><%= iv.location %></a><% } else { %><%= iv.location || '—' %><% } %></dd>
+      <dt><%= t('recruitment.interviewer') %></dt><dd><%= iv.interviewer_name || '—' %></dd>
+    </dl></div>
+  </section>
+  <section class="panel span-2">
+    <div class="panel-head"><h2><%= t('recruitment.feedback') %></h2></div>
+    <% if (mayFeedback) { %>
+    <form method="post" action="/app/recruitment/interviews/<%= iv.id %>/feedback" novalidate>
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+      <div class="panel-body stack">
+        <% if (formError) { %><div class="alert alert-error"><%= Object.values(errors)[0] || formError.message %></div><% } %>
+        <div class="field"><span class="label"><%= t('recruitment.recommendation') %><span class="req">*</span></span>
+          <div class="row-sm wrap"><% ['strong_yes', 'yes', 'no', 'strong_no'].forEach(function (r) { %>
+            <label class="check" style="border:1px solid var(--border);border-radius:var(--radius);padding:8px 12px"><input type="radio" name="recommendation" value="<%= r %>"<%= (old.recommendation || iv.recommendation) === r ? ' checked' : '' %> required><%= t('recruitment.rec_' + r) %></label>
+          <% }) %></div></div>
+        <%- include('../../partials/field', { name: 'rating', label: t('recruitment.rating'), type: 'select', placeholder: '—', value: iv.rating, options: [5, 4, 3, 2, 1].map(function (n) { return { value: n, label: '★'.repeat(n) + ' (' + n + ')' }; }) }) %>
+        <%- include('../../partials/field', { name: 'feedback', label: t('recruitment.feedback_notes'), type: 'textarea', required: true, value: iv.feedback }) %>
+      </div>
+      <div class="panel-foot"><button class="btn btn-dark btn-sm" type="submit"><%= iv.status === 'completed' ? t('recruitment.update_feedback') : t('recruitment.submit_feedback') %></button></div>
+    </form>
+    <% } else if (iv.feedback) { %>
+      <div class="panel-body"><p><strong><%= t('recruitment.rec_' + iv.recommendation) %></strong><%= iv.rating ? ' · ' + iv.rating + '/5' : '' %></p><p dir="auto" class="prose mt-2"><%= iv.feedback %></p></div>
+    <% } else { %><div class="empty" style="padding:28px"><p><%= t('recruitment.no_feedback') %></p></div><% } %>
+  </section>
+</div>

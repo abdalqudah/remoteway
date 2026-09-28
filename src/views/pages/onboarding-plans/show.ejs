@@ -1,0 +1,44 @@
+<%
+  var p = plan; var manage = can('onboarding.manage');
+  var todayStr = new Date().toISOString().slice(0, 10);
+  var dd = function (v) { return v ? (v instanceof Date ? v.toISOString().slice(0, 10) : String(v).slice(0, 10)) : null; };
+  var groups = ['hr', 'manager', 'employee'];
+%>
+<div class="page-head">
+  <div class="row">
+    <span class="avatar avatar-lg"><%= initials(p.first_name + ' ' + p.last_name) %></span>
+    <div>
+      <div class="eyebrow"><a href="/app/employee-onboarding"><%= t('nav.onboarding_module') %></a></div>
+      <h1><%= p.first_name %> <%= p.last_name %></h1>
+      <div class="row-sm wrap mt-2 small muted"><span class="st st-<%= p.status %>"><%= t('onboarding_plans.status_' + p.status) %></span><span><%= p.job_title || '' %></span><span><%= t('onboarding_plans.starts', { date: fmt.date(p.start_date) }) %></span></div>
+    </div>
+  </div>
+  <div class="page-actions">
+    <% if (can('employees.view')) { %><a class="btn btn-secondary" href="/app/employees/<%= p.employee_id %>"><%- icon('user') %><%= t('onboarding_plans.open_profile') %></a><% } %>
+    <% if (manage && p.status === 'active') { %><form method="post" action="/app/employee-onboarding/<%= p.id %>/cancel" data-confirm="<%= t('onboarding_plans.confirm_cancel') %>"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><button class="btn btn-danger-ghost" type="submit"><%= t('onboarding_plans.cancel_plan') %></button></form><% } %>
+  </div>
+</div>
+<section class="panel mb-6"><div class="panel-body">
+  <div class="row between mb-2"><strong><%= t('onboarding_plans.progress') %></strong><span class="small"><%= t('onboarding_plans.done_of', { done: p.done_count, total: p.task_count }) %> · <%= p.progress %>%</span></div>
+  <div class="progress"><span style="width:<%= p.progress %>%"></span></div>
+</div></section>
+<div class="grid grid-3">
+  <% groups.forEach(function (g) { var list = p.tasks.filter(function (x) { return x.assignee === g; }); %>
+  <section class="panel">
+    <div class="panel-head"><h2><%= t('onboarding_plans.assignee_' + g) %></h2><span class="muted small"><%= list.filter(function (x) { return x.completed_at; }).length %>/<%= list.length %></span></div>
+    <% if (!list.length) { %><div class="empty" style="padding:24px"><p>—</p></div><% } else { %>
+    <ul class="checklist"><% list.forEach(function (tk) { var due = dd(tk.due_date); var mine = manage || tk.assignee_user_id === currentUser.id; var done = !!tk.completed_at; %>
+      <li class="<%= done ? 'done' : '' %>">
+        <form method="post" action="/app/employee-onboarding/tasks/<%= tk.id %>"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><input type="hidden" name="done" value="<%= done ? '0' : '1' %>">
+          <button class="tick <%= done ? 'on' : '' %>" type="submit"<%= mine && p.status !== 'cancelled' ? '' : ' disabled' %> aria-label="<%= done ? t('onboarding_plans.mark_undone') : t('onboarding_plans.mark_done') %>"><%- icon('check', 'icon-sm') %></button>
+        </form>
+        <div class="grow">
+          <div class="ttl small" style="font-weight:600"><%= tk.title %></div>
+          <div class="tiny muted mt-1"><%= t('onboarding_plans.cat_' + tk.category) %> · <%= tk.assignee_name || t('onboarding_plans.unassigned') %><% if (due) { %> · <span class="<%= !done && due < todayStr ? 'overdue' : '' %>"><%= fmt.date(due, { day: 'numeric', month: 'short' }) %></span><% } %></div>
+          <% if (done) { %><div class="tiny muted"><%= t('onboarding_plans.done_by', { name: tk.completed_by_name || '—', date: fmt.date(tk.completed_at, { day: 'numeric', month: 'short' }) }) %></div><% } %>
+        </div>
+      </li>
+    <% }) %></ul><% } %>
+  </section>
+  <% }) %>
+</div>

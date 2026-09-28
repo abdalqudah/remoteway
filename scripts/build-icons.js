@@ -13,6 +13,7 @@ const ICONS = [
   'arrow-right', 'arrow-left', 'download', 'upload', 'mail', 'key-round', 'history', 'eye', 'ellipsis',
   'clock', 'circle-check', 'circle-x', 'rocket', 'layers', 'gauge', 'receipt', 'hard-drive', 'globe',
   'copy', 'external-link', 'panel-left', 'columns-3', 'user-cog', 'badge-check', 'package', 'zap',
+  'phone', 'video', 'star', 'message-square', 'link', 'send', 'clipboard-list', 'user-round-plus',
 ];
 
 const dir = path.join(__dirname, '..', 'node_modules', 'lucide-static', 'icons');

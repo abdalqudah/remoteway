@@ -43,6 +43,8 @@
   </div>
 </section>
 
+<% if ((today.onboardingTasks && today.onboardingTasks.length) || (today.interviews && today.interviews.length)) { %><div class="mt-6"><%- include('../../partials/my-work') %></div><% } %>
+
 <% if (clock || today.attendance) { %>
 <div class="grid grid-3 mt-6">
   <% if (clock) { %><div class="span-2"><%- include('../../partials/clock-widget', { today: clock }) %></div><% } %>
@@ -123,7 +125,12 @@
       <% if (today.approvals !== null) { %><li><a href="/app/leave?tab=approvals"><span class="action-icon <%= today.approvals ? 'warning' : '' %>"><%- icon('plane', 'icon-sm') %></span><span class="grow small"><%= t('dashboard.op_leave_pending') %></span><strong class="num"><%= fmt.number(today.approvals) %></strong></a></li><% } %>
       <% if (today.docs) { %><li><a href="/app/documents?expiry=expiring"><span class="action-icon <%= today.docs.expired ? 'danger' : today.docs.expiring ? 'warning' : '' %>"><%- icon('file-text', 'icon-sm') %></span><span class="grow small"><%= t('dashboard.op_docs') %></span><strong class="num"><%= fmt.number(today.docs.expiring + today.docs.expired) %></strong></a></li><% } %>
       <% if (openTasks !== null) { %><li><a href="/app/tasks"><span class="action-icon"><%- icon('list-checks', 'icon-sm') %></span><span class="grow small"><%= t('dashboard.op_tasks') %></span><strong class="num"><%= fmt.number(openTasks) %></strong></a></li><% } %>
-      <% [['recruitment', 'briefcase', 'dashboard.op_recruitment'], ['payroll', 'wallet', 'dashboard.op_payroll']].forEach(function (m) { var mod = MODULES.find(function (x) { return x.key === m[0]; }); %>
+      <% if (today.recruitment) { %>
+        <li><a href="/app/recruitment?status=open"><span class="action-icon"><%- icon('briefcase', 'icon-sm') %></span><span class="grow small"><%= t('dashboard.op_open_jobs') %></span><strong class="num"><%= fmt.number(today.recruitment.openJobs) %></strong></a></li>
+        <li><a href="/app/recruitment/candidates"><span class="action-icon <%= today.recruitment.newApplications ? 'info' : '' %>"><%- icon('user-plus', 'icon-sm') %></span><span class="grow small"><%= t('dashboard.op_new_applications') %></span><strong class="num"><%= fmt.number(today.recruitment.newApplications) %></strong></a></li>
+        <li><a href="/app/recruitment/interviews"><span class="action-icon"><%- icon('calendar-days', 'icon-sm') %></span><span class="grow small"><%= t('dashboard.op_interviews') %></span><strong class="num"><%= fmt.number(today.recruitment.upcomingInterviews) %></strong></a></li>
+      <% } %>
+      <% [['payroll', 'wallet', 'dashboard.op_payroll']].forEach(function (m) { var mod = MODULES.find(function (x) { return x.key === m[0]; }); %>
         <li><a href="/app/modules/<%= m[0] %>"><span class="action-icon"><%- icon(m[1], 'icon-sm') %></span><span class="grow small muted"><%= t(m[2]) %></span><span class="badge badge-soon"><%= t('common.phase', { n: mod.phase }) %></span></a></li>
       <% }) %>
     </ul>

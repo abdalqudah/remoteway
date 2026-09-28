@@ -1,0 +1,23 @@
+<%
+  // Params: app (application row), dialogId. Uses managers, old, errors, openDialog.
+  var isOpen = openDialog === 'hire' && typeof hireOpen !== 'undefined' && hireOpen;
+  var ov = function (k, d) { return isOpen && old && old[k] !== undefined ? old[k] : d; };
+%>
+<dialog class="dialog" id="<%= dialogId %>"<%= isOpen ? ' data-open-on-load' : '' %>>
+  <form method="post" action="/app/recruitment/applications/<%= app.id %>/hire" novalidate>
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+    <div class="dialog-head"><div><h2><%= t('recruitment.hire_title', { name: app.first_name + ' ' + app.last_name }) %></h2><p class="muted small mt-1"><%= t('recruitment.hire_sub') %></p></div><button class="btn btn-ghost btn-icon btn-sm" type="button" data-close-dialog aria-label="<%= t('common.close') %>"><%- icon('x') %></button></div>
+    <div class="dialog-body stack">
+      <% if (isOpen && formError) { %><div class="alert alert-error"><%= formError.message %></div><% } %>
+      <div class="form-grid">
+        <%- include('../../partials/field', { name: 'joining_date', label: t('fields.joining_date'), type: 'date', required: true, value: ov('joining_date', ''), errors: isOpen ? errors : {} , old: {} }) %>
+        <%- include('../../partials/field', { name: 'job_title', label: t('fields.job_title'), value: ov('job_title', app.job_title), errors: isOpen ? errors : {}, old: {} }) %>
+        <%- include('../../partials/field', { name: 'manager_id', label: t('fields.manager'), type: 'select', placeholder: t('common.none'), value: ov('manager_id', ''), options: managers.map(function (m) { return { value: m.id, label: m.first_name + ' ' + m.last_name }; }), errors: isOpen ? errors : {}, old: {} }) %>
+        <%- include('../../partials/field', { name: 'base_salary', label: t('fields.base_salary') + ' (' + organization.currency + ')', type: 'number', value: ov('base_salary', ''), attrs: 'min="0" step="any"', errors: isOpen ? errors : {}, old: {} }) %>
+      </div>
+      <% if (hasFeature('onboarding')) { %><label class="check"><input type="checkbox" name="start_onboarding" checked><%= t('recruitment.start_onboarding') %></label><input type="hidden" name="start_onboarding" value="off"><% } %>
+      <p class="help"><%= t('recruitment.hire_seat_note') %></p>
+    </div>
+    <div class="dialog-foot"><button class="btn btn-ghost" type="button" data-close-dialog><%= t('common.cancel') %></button><button class="btn btn-primary" type="submit"><%- icon('user-check') %><%= t('recruitment.hire') %></button></div>
+  </form>
+</dialog>

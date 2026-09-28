@@ -74,13 +74,15 @@ async function getUsage(organizationId, trx = knex) {
   const metered = await trx('usage_records').where({ organization_id: organizationId, period: currentPeriod() });
   const m = Object.fromEntries(metered.map((r) => [r.metric, Number(r.quantity)]));
   const storage = await trx('document_versions').where({ organization_id: organizationId }).sum({ q: 'size_bytes' }).first();
+  const cvs = await trx('candidates').where({ organization_id: organizationId }).sum({ q: 'cv_size' }).first();
+  const [{ jobs }] = await trx('jobs').where({ organization_id: organizationId, status: 'open' }).count({ jobs: '*' });
   return {
     employees: Number(employees),
     users: Number(users) + Number(invites),
-    storage_mb: Math.ceil(Number(storage?.q || 0) / (1024 * 1024)),
+    storage_mb: Math.ceil((Number(storage?.q || 0) + Number(cvs?.q || 0)) / (1024 * 1024)),
     api_calls_monthly: m.api_calls || 0,
     ai_requests_monthly: m.ai_requests || 0,
-    active_jobs: 0,
+    active_jobs: Number(jobs),
   };
 }
 

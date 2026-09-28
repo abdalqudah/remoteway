@@ -1,0 +1,47 @@
+<% var manage = can('onboarding.manage'); %>
+<div class="page-head">
+  <div><h1><%= t('nav.onboarding_module') %></h1><p><%= manage ? t('onboarding_plans.subtitle') : t('onboarding_plans.subtitle_self') %></p></div>
+  <% if (manage) { %><div class="page-actions">
+    <a class="btn btn-secondary" href="/app/employee-onboarding/templates"><%- icon('clipboard-list') %><%= t('onboarding_plans.templates') %></a>
+    <button class="btn btn-dark" type="button" data-open-dialog="start-dialog"><%- icon('rocket') %><%= t('onboarding_plans.start') %></button>
+  </div><% } %>
+</div>
+<nav class="tabs mb-4">
+  <% ['active', 'completed', 'cancelled'].forEach(function (s) { %><a href="?status=<%= s %>" class="<%= status === s ? 'active' : '' %>"><%= t('onboarding_plans.status_' + s) %></a><% }) %>
+</nav>
+<section class="panel">
+  <% if (!plans.length) { %>
+    <div class="empty"><span class="empty-icon"><%- icon('user-check') %></span><h3><%= t('onboarding_plans.empty_title') %></h3><p><%= t(manage ? 'onboarding_plans.empty_text' : 'onboarding_plans.empty_text_self') %></p></div>
+  <% } else { %>
+  <div class="table-wrap"><table class="table">
+    <thead><tr><th><%= t('onboarding_plans.employee') %></th><th><%= t('fields.department') %></th><th><%= t('onboarding_plans.start_date') %></th><th style="width:30%"><%= t('onboarding_plans.progress') %></th><th></th></tr></thead>
+    <tbody><% plans.forEach(function (p) { %>
+      <tr>
+        <td><a class="person" href="/app/employee-onboarding/<%= p.id %>"><span class="avatar"><%= initials(p.first_name + ' ' + p.last_name) %></span><span><span class="person-name"><%= p.first_name %> <%= p.last_name %></span><span class="person-sub" style="display:block"><%= p.job_title || '—' %></span></span></a></td>
+        <td class="muted"><%= p.department_name || '—' %></td>
+        <td class="nowrap"><%= fmt.date(p.start_date) %></td>
+        <td><div class="row-sm"><div class="progress grow"><span style="width:<%= p.progress %>%"></span></div><span class="small nowrap"><%= p.done_count %>/<%= p.task_count %></span></div></td>
+        <td class="text-end"><a class="btn btn-secondary btn-sm" href="/app/employee-onboarding/<%= p.id %>"><%= t('recruitment.open') %></a></td>
+      </tr>
+    <% }) %></tbody>
+  </table></div><% } %>
+</section>
+<% if (manage) { %>
+<dialog class="dialog" id="start-dialog"<%= openDialog === 'start' ? ' data-open-on-load' : '' %>>
+  <form method="post" action="/app/employee-onboarding" novalidate>
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+    <div class="dialog-head"><div><h2><%= t('onboarding_plans.start') %></h2><p class="muted small mt-1"><%= t('onboarding_plans.start_sub') %></p></div><button class="btn btn-ghost btn-icon btn-sm" type="button" data-close-dialog aria-label="<%= t('common.close') %>"><%- icon('x') %></button></div>
+    <div class="dialog-body stack">
+      <% if (formError) { %><div class="alert alert-error"><%= formError.message %></div><% } %>
+      <% if (!candidates.length) { %><p class="muted"><%= t('onboarding_plans.no_candidates') %></p><% } else { %>
+      <%- include('../../partials/field', { name: 'employee_id', label: t('onboarding_plans.employee'), type: 'select', required: true, placeholder: t('onboarding_plans.choose_employee'), options: candidates.map(function (e) { return { value: e.id, label: e.first_name + ' ' + e.last_name + (e.job_title ? ' · ' + e.job_title : '') }; }) }) %>
+      <div class="form-grid">
+        <%- include('../../partials/field', { name: 'template_id', label: t('onboarding_plans.template'), type: 'select', value: (templates.find(function (x) { return x.is_default; }) || {}).id, options: templates.map(function (x) { return { value: x.id, label: x.name + ' (' + x.items.length + ')' }; }) }) %>
+        <%- include('../../partials/field', { name: 'start_date', label: t('onboarding_plans.start_date'), type: 'date', help: t('onboarding_plans.start_date_help') }) %>
+      </div>
+      <% } %>
+    </div>
+    <div class="dialog-foot"><button class="btn btn-ghost" type="button" data-close-dialog><%= t('common.cancel') %></button><% if (candidates.length) { %><button class="btn btn-dark" type="submit"><%= t('onboarding_plans.start') %></button><% } %></div>
+  </form>
+</dialog>
+<% } %>

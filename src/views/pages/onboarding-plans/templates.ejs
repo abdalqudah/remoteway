@@ -1,0 +1,45 @@
+<%
+  var rowHtml = function (it) {
+    it = it || {};
+    var o = '<div class="tpl-row" data-row>';
+    o += '<input class="input" name="item_title" maxlength="200" value="' + escapeHtml(it.title || '') + '" placeholder="' + escapeHtml(t('onboarding_plans.task_ph')) + '" aria-label="' + escapeHtml(t('onboarding_plans.task')) + '">';
+    o += '<select class="select" name="item_category" aria-label="' + escapeHtml(t('onboarding_plans.category')) + '">' + categories.map(function (c) { return '<option value="' + c + '"' + (it.category === c ? ' selected' : '') + '>' + escapeHtml(t('onboarding_plans.cat_' + c)) + '</option>'; }).join('') + '</select>';
+    o += '<select class="select" name="item_assignee" aria-label="' + escapeHtml(t('onboarding_plans.assignee')) + '">' + assignees.map(function (a) { return '<option value="' + a + '"' + (it.assignee === a ? ' selected' : '') + '>' + escapeHtml(t('onboarding_plans.assignee_' + a)) + '</option>'; }).join('') + '</select>';
+    o += '<input class="input" type="number" name="item_due" min="-90" max="365" value="' + (it.due_offset_days != null ? it.due_offset_days : 0) + '" aria-label="' + escapeHtml(t('onboarding_plans.due_offset')) + '" title="' + escapeHtml(t('onboarding_plans.due_offset')) + '">';
+    o += '<button class="btn btn-ghost btn-icon btn-sm" type="button" data-remove-row aria-label="' + escapeHtml(t('common.delete')) + '">' + icon('x', 'icon-sm') + '</button></div>';
+    return o;
+  };
+  var editor = function (tpl, idx) { %>
+    <form method="post" action="/app/employee-onboarding/templates" novalidate>
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>"><% if (tpl) { %><input type="hidden" name="id" value="<%= tpl.id %>"><% } %>
+      <div class="panel-body stack">
+        <div class="field"><label class="label" for="tpl-name-<%= idx %>"><%= t('onboarding_plans.template_name') %><span class="req">*</span></label><input class="input" id="tpl-name-<%= idx %>" name="name" maxlength="120" required value="<%= tpl ? tpl.name : '' %>"></div>
+        <div class="tpl-row tiny muted hide-sm"><span><%= t('onboarding_plans.task') %></span><span><%= t('onboarding_plans.category') %></span><span><%= t('onboarding_plans.assignee') %></span><span><%= t('onboarding_plans.due_offset_short') %></span><span></span></div>
+        <div class="stack-sm" data-rows>
+          <% (tpl ? tpl.items : [{}, {}, {}]).forEach(function (it) { %><%- rowHtml(it) %><% }) %>
+        </div>
+        <template data-row-template><%- rowHtml({}) %></template>
+        <div><button class="btn btn-ghost btn-sm" type="button" data-add-row><%- icon('plus', 'icon-sm') %><%= t('onboarding_plans.add_task') %></button></div>
+        <p class="help"><%= t('onboarding_plans.due_offset_help') %></p>
+      </div>
+      <div class="panel-foot"><button class="btn btn-dark btn-sm" type="submit"><%= tpl ? t('common.save_changes') : t('onboarding_plans.create_template') %></button></div>
+    </form>
+<% }; %>
+<div class="page-head">
+  <div><div class="eyebrow"><a href="/app/employee-onboarding"><%= t('nav.onboarding_module') %></a></div><h1><%= t('onboarding_plans.templates') %></h1><p><%= t('onboarding_plans.templates_sub') %></p></div>
+</div>
+<% if (formError) { %><div class="alert alert-error mb-4"><%= Object.values(errors)[0] || formError.message %></div><% } %>
+<div class="stack-lg">
+  <% templates.forEach(function (tpl, i) { %>
+  <details class="panel" data-repeater<%= i === 0 ? ' open' : '' %>>
+    <summary class="panel-head" style="cursor:pointer"><div><h2><%= tpl.name %> <% if (tpl.is_default) { %><span class="badge badge-brand"><%= t('onboarding_plans.default') %></span><% } %></h2><div class="panel-sub"><%= t('onboarding_plans.tasks_n', { n: tpl.items.length }) %></div></div>
+      <% if (!tpl.is_default) { %><form method="post" action="/app/employee-onboarding/templates/<%= tpl.id %>/default"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><button class="btn btn-ghost btn-sm" type="submit"><%= t('onboarding_plans.make_default') %></button></form><% } %>
+    </summary>
+    <% editor(tpl, i); %>
+  </details>
+  <% }) %>
+  <details class="panel" data-repeater<%= formError ? ' open' : '' %>>
+    <summary class="panel-head" style="cursor:pointer"><h2><%- icon('plus', 'icon-sm') %> <%= t('onboarding_plans.new_template') %></h2></summary>
+    <% editor(null, 'new'); %>
+  </details>
+</div>

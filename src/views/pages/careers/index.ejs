@@ -1,0 +1,31 @@
+<section class="careers-head">
+  <div class="container">
+    <div class="eyebrow-tag mb-4"><%- icon('briefcase', 'icon-sm') %><%= t('careers.title') %></div>
+    <h1 style="font-size:clamp(28px,4vw,44px);margin:0 0 12px"><%= t('careers.headline', { org: org.name }) %></h1>
+    <p class="muted" style="max-width:680px;white-space:pre-wrap"><%= org.intro || t('careers.default_intro') %></p>
+  </div>
+</section>
+<section style="padding-bottom:72px">
+  <div class="container">
+    <h2 class="mb-4" style="font-size:18px"><%= t('careers.open_positions') %> <span class="muted">(<%= jobs.length %>)</span></h2>
+    <% if (!jobs.length) { %>
+      <div class="panel"><div class="empty"><span class="empty-icon"><%- icon('briefcase') %></span><h3><%= t('careers.none_title') %></h3><p><%= t('careers.none_text') %></p></div></div>
+    <% } else { %>
+    <div class="careers-list">
+      <% jobs.forEach(function (j) { %>
+      <a class="careers-job" href="/careers/<%= org.slug %>/jobs/<%= j.slug %>">
+        <div style="min-width:0">
+          <h3><%= j.title %></h3>
+          <div class="row-sm wrap small muted">
+            <% if (j.department_name) { %><span><%- icon('building-2', 'icon-sm') %> <%= j.department_name %></span><% } %>
+            <span><%- icon('map-pin', 'icon-sm') %> <%= j.location_name ? j.location_name + ' · ' : '' %><%= t('recruitment.mode_' + j.work_mode) %></span>
+            <span><%- icon('clock', 'icon-sm') %> <%= t('recruitment.type_' + j.employment_type) %></span>
+          </div>
+        </div>
+        <span class="btn btn-secondary btn-sm"><%= t('careers.view_job') %><%- icon('arrow-right', 'icon-sm flip-rtl') %></span>
+      </a>
+      <% }) %>
+    </div>
+    <% } %>
+  </div>
+</section>

@@ -613,3 +613,50 @@ body.site { background: var(--surface); }
 tr.row-error td { background: var(--danger-soft); }
 
 @media print { .sidebar, .topbar, .page-actions, .banner { display: none !important; } .shell { display: block; } .content { padding: 0; } }
+
+/* ---------- Recruitment ---------- */
+.st-applied, .st-draft { background: var(--surface-sunken); color: var(--text-2); }
+.st-screening, .st-shortlisted, .st-scheduled { background: var(--info-soft); color: var(--info); }
+.st-interview, .st-assessment, .st-offer { background: var(--warning-soft); color: var(--warning); }
+.st-hired, .st-open, .st-completed, .st-active { background: var(--success-soft); color: var(--success); }
+.st-closed { background: var(--surface-sunken); color: var(--text-3); }
+.board-pipeline { grid-template-columns: repeat(8, minmax(210px, 1fr)); }
+@media (max-width: 960px) { .board-pipeline { grid-template-columns: repeat(8, minmax(230px, 80vw)); } }
+.board-col.is-end { background: var(--surface-sunken); }
+.stars { display: inline-flex; gap: 1px; color: var(--warning); font-size: 12px; letter-spacing: 1px; }
+.stars .off { color: var(--border-strong); }
+.rate-form { display: inline-flex; gap: 2px; }
+.rate-form button { background: none; border: 0; padding: 2px; font-size: 18px; line-height: 1; cursor: pointer; color: var(--border-strong); }
+.rate-form button.on { color: var(--warning); }
+.rate-form button:hover, .rate-form button:focus-visible { color: var(--warning); }
+.tags { display: flex; flex-wrap: wrap; gap: 6px; }
+.tag { display: inline-flex; align-items: center; height: 24px; padding: 0 10px; border-radius: var(--pill); background: var(--surface-sunken); border: 1px solid var(--border); font-size: 12px; color: var(--text-2); }
+.funnel { display: flex; gap: 2px; height: 8px; border-radius: var(--pill); overflow: hidden; background: var(--surface-sunken); min-width: 120px; }
+.funnel span { display: block; height: 100%; }
+.job-row { display: flex; gap: 16px; align-items: center; padding: 16px 20px; border-bottom: 1px solid var(--border); }
+.job-row:last-child { border-bottom: 0; }
+.job-row .job-title { font-weight: 700; font-size: 15px; }
+.prose { white-space: pre-wrap; line-height: 1.75; color: var(--text-2); }
+.progress { height: 8px; border-radius: var(--pill); background: var(--surface-sunken); overflow: hidden; }
+.progress > span { display: block; height: 100%; background: var(--accent); border-radius: var(--pill); }
+.checklist { list-style: none; margin: 0; padding: 0; }
+.checklist li { display: flex; gap: 12px; align-items: flex-start; padding: 12px 20px; border-bottom: 1px solid var(--border); }
+.checklist li:last-child { border-bottom: 0; }
+.checklist li.done .ttl { text-decoration: line-through; color: var(--text-3); }
+.tick { width: 22px; height: 22px; border-radius: 50%; border: 2px solid var(--border-strong); background: var(--surface); display: inline-flex; align-items: center; justify-content: center; cursor: pointer; padding: 0; color: transparent; flex: none; }
+.tick:hover { border-color: var(--accent); }
+.tick.on { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.tick:disabled { cursor: default; opacity: .6; }
+.tpl-row { display: grid; grid-template-columns: minmax(0, 3fr) minmax(0, 1.4fr) minmax(0, 1.2fr) 90px 36px; gap: 8px; align-items: center; }
+@media (max-width: 720px) { .tpl-row { grid-template-columns: 1fr 1fr; } .tpl-row > :first-child { grid-column: 1 / -1; } }
+
+/* ---------- Public careers page ---------- */
+.careers-head { padding: 56px 0 32px; }
+.careers-head .org-mark { width: 56px; height: 56px; font-size: 20px; border-radius: 14px; }
+.careers-list { display: grid; gap: 12px; }
+.careers-job { display: flex; gap: 16px; align-items: center; justify-content: space-between; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 20px 24px; box-shadow: var(--shadow-sm); transition: border-color .15s; }
+.careers-job:hover { border-color: var(--accent); }
+.careers-job h3 { margin: 0 0 6px; font-size: 17px; }
+.careers-grid { display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr); gap: 24px; align-items: start; padding-bottom: 72px; }
+@media (max-width: 900px) { .careers-grid { grid-template-columns: 1fr; } }
+.hp-field { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); clip-path: inset(50%); white-space: nowrap; opacity: 0; pointer-events: none; }

@@ -1,0 +1,21 @@
+<% var tz = organization.timezone; var dt = function (v) { return new Intl.DateTimeFormat(locale === 'ar' ? 'ar-SA-u-nu-latn-ca-gregory' : 'en-GB', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', timeZone: tz }).format(new Date(v)); }; %>
+<div class="page-head">
+  <div><% if (can('recruitment.view')) { %><div class="eyebrow"><a href="/app/recruitment"><%= t('nav.recruitment') %></a></div><% } %><h1><%= mine ? t('recruitment.my_interviews') : t('recruitment.interviews') %></h1><p><%= t('recruitment.interviews_sub') %></p></div>
+  <% if (can('recruitment.view')) { %><div class="page-actions">
+    <a class="btn btn-sm <%= mine ? 'btn-ghost' : 'btn-dark' %>" href="/app/recruitment/interviews"><%= t('common.all') %></a>
+    <a class="btn btn-sm <%= mine ? 'btn-dark' : 'btn-ghost' %>" href="?mine=1"><%= t('recruitment.only_mine') %></a>
+  </div><% } %>
+</div>
+<section class="panel">
+  <% if (!rows.length) { %><div class="empty"><span class="empty-icon"><%- icon('calendar-days') %></span><h3><%= t('recruitment.no_upcoming_title') %></h3><p><%= t('recruitment.no_upcoming_text') %></p></div><% } else { %>
+  <div class="table-wrap"><table class="table">
+    <thead><tr><th><%= t('recruitment.when') %></th><th><%= t('recruitment.candidate') %></th><th><%= t('recruitment.job') %></th><th><%= t('recruitment.iv_mode') %></th><th><%= t('recruitment.interviewer') %></th><th></th></tr></thead>
+    <tbody><% rows.forEach(function (iv) { %>
+      <tr><td class="nowrap"><strong><%= dt(iv.scheduled_at) %></strong><div class="tiny muted"><%= t('recruitment.minutes_n', { n: iv.duration_minutes }) %></div></td>
+        <td><%= iv.first_name %> <%= iv.last_name %></td><td class="muted"><%= iv.job_title %></td>
+        <td><span class="row-sm small"><%- icon(iv.mode === 'phone' ? 'phone' : iv.mode === 'video' ? 'video' : 'map-pin', 'icon-sm') %><%= t('recruitment.iv_mode_' + iv.mode) %></span></td>
+        <td><%= iv.interviewer_name || '—' %></td>
+        <td class="text-end"><a class="btn btn-secondary btn-sm" href="/app/recruitment/interviews/<%= iv.id %>"><%= t('recruitment.open') %></a></td></tr>
+    <% }) %></tbody>
+  </table></div><% } %>
+</section>
