@@ -1,0 +1,4 @@
+<h1><%= t('payments.redirecting') %></h1>
+<p class="lead"><%= t('payments.redirecting_text', { gateway: gateway }) %></p>
+<a class="btn btn-dark btn-lg btn-block mt-6" href="<%= url %>" rel="noreferrer"><%- icon('credit-card') %><%= t('payments.continue') %></a>
+<p class="muted small mt-4"><%- icon('lock', 'icon-sm') %> <%= t('payments.secure_note') %></p>

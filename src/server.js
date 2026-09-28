@@ -120,6 +120,14 @@ async function start() {
   const sweep = () => automation.runScheduled().catch((e) => console.error('[automation]', e.message));
   setTimeout(sweep, 60_000).unref();
   setInterval(sweep, 30 * 60_000).unref();
+  // Billing: renewal invoices a week before a period ends, overdue subscriptions (hourly), and online
+  // payments whose customer never returned from the gateway (every 5 minutes).
+  const billing = require('./modules/billing/subscription.service');
+  const payments = require('./modules/payments/payments.service');
+  const renewals = () => billing.renewalSweep().catch((e) => console.error('[billing]', e.message));
+  setTimeout(renewals, 90_000).unref();
+  setInterval(renewals, 3600_000).unref();
+  setInterval(() => payments.reconcile().catch((e) => console.error('[payments]', e.message)), 5 * 60_000).unref();
   // Phusion Passenger / LiteSpeed (cPanel "Setup Node.js App") passes a socket path via PORT; listen() accepts both.
   const server = app.listen(PORT, () => console.log(`[remoteway] listening on ${PORT} (${config.env})`));
   const shutdown = () => server.close(() => knex.destroy().then(() => process.exit(0)));

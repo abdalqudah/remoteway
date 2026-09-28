@@ -268,6 +268,14 @@ Payroll / Employees ─► domain events (payroll.approved, employee.updated)
 - Sync runs as DB-queued jobs processed by a cron worker (`npm run worker`), with retry, backoff and a dead-letter state.
 - The employee-facing *My Pay → Earned Wage Access* screen stays disabled ("Integration required") until PayWay is certified. No transactions are simulated.
 
+## K2. Online payments (built)
+
+- `payments` table: one row per attempt (`provider`, `method`, `mode`, unguessable `token`, `provider_ref`, amount, currency, status initiated → paid / failed / cancelled / expired).
+- `src/modules/payments/gateways.js`: one adapter per gateway with `create` / `fetch` / `test`; `PAYMENTS_BASE_URL` points all of them at a stub for tests.
+- Trust model: browser returns (`/payments/return/:token`, GET or POST, no session needed) and webhooks (`/payments/webhook/:provider`) only identify a payment; `verify()` always reads the status from the gateway API and `settle()` checks amount and currency before `markInvoicePaidTrx` runs in the same transaction.
+- HyperPay's widget page gets its own Content-Security-Policy (the rest of the app keeps `script-src 'self'`).
+- `renewalSweep()` (hourly) issues renewal invoices 7 days ahead and marks unpaid ones past due; `reconcile()` (every 5 minutes, and in `scripts/run-jobs.js`) settles payments whose customer never came back.
+
 ## L. Development phases
 
 | Phase | Scope | Exit criteria |
@@ -284,6 +292,7 @@ Payroll / Employees ─► domain events (payroll.approved, employee.updated)
 | **Advanced Analytics** | Workforce, retention, absence (incl. Bradford factor), attendance, hiring funnel and payroll-cost analytics with period/department filters, permission-scoped sections, server-rendered SVG charts with table views and CSV | ✅ Done — 9 more tests (figures against hand-counted data, funnel from stage history, approved-only costs, permissions, plan gating, rendering/CSV, chart escaping and ticks) — 177 total |
 | **Compliance** | Ten rule-based checks (documents, WPS, GOSI, Art. 109 leave, Art. 53 probation, Art. 98 hours, policies, nationality), weighted score with daily snapshots, upcoming expiries, configurable rules, annual-leave fix, policy acknowledgements per version | ✅ Done — 5 more tests (each check on crafted data, fix, rules, acknowledgements & versions, permissions/plan) — 182 total |
 | **Advanced Automation** | Event and date triggers, conditions, notify / task / course / chat actions, outbox queuing, once-per-occurrence runs, loop protection, dry-run preview, run history, templates | ✅ Done — 7 more tests (event and date rules, conditions and skip log, all actions, once-only, no loops, preview, validation/permissions/isolation) — 189 total |
+| **Online payments** | Moyasar, Tap, HyperPay (mada + cards), PayTabs adapters; encrypted keys, connection tests, test/live mode; pay now on invoices; status read server-to-server on return / webhook / reconciler; amount check; idempotent settlement; double-payment flag; renewal invoices and past-due sweep | ✅ Done — 9 more tests against a local gateway stub — 198 total |
 
 **Definition of done per module:** migration + service + web UI + API + validation + permissions + tenant isolation + loading/empty/error states + responsive + Arabic + English + tests.
 

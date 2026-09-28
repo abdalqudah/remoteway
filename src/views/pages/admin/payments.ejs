@@ -1,0 +1,72 @@
+<% var mode = saved.mode; var anyOn = Object.keys(saved.providers).some(function (k) { return saved.providers[k] && saved.providers[k].enabled; }); %>
+<div class="page-head"><div><h1><%= t('admin.payments') %></h1><p><%= t('admin.pay_sub') %></p></div></div>
+
+<div class="alert <%= anyOn ? (mode === 'live' ? 'alert-success' : 'alert-warning') : 'alert-info' %> mb-6"><%- icon(anyOn ? (mode === 'live' ? 'circle-check' : 'triangle-alert') : 'info') %><div class="grow">
+  <div class="alert-title"><%= anyOn ? t('admin.pay_state_' + mode) : t('admin.pay_state_off') %></div>
+  <div class="small text-2"><%= t('admin.pay_how') %></div></div></div>
+
+<form class="panel mb-6" method="post" action="/admin/payments/mode">
+  <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+  <div class="panel-body row between wrap">
+    <fieldset class="field"><legend class="label"><%= t('admin.pay_mode') %></legend>
+      <div class="row-sm wrap">
+        <label class="check provider-choice"><input type="radio" name="mode" value="test"<%= mode === 'test' ? ' checked' : '' %>><%= t('admin.pay_mode_test') %></label>
+        <label class="check provider-choice"><input type="radio" name="mode" value="live"<%= mode === 'live' ? ' checked' : '' %>><%= t('admin.pay_mode_live') %></label>
+      </div>
+      <span class="help"><%= t('admin.pay_mode_help') %></span>
+    </fieldset>
+    <button class="btn btn-dark btn-sm" type="submit"><%= t('common.save') %></button>
+  </div>
+</form>
+
+<div class="grid grid-2">
+<% Object.keys(gateways).forEach(function (key) {
+  var g = gateways[key]; var s = saved.providers[key] || null; var mine = errorProvider === key;
+  var o = mine ? (old || {}) : {}; var errs = mine ? (errors || {}) : {};
+  var val = function (f) { return o[f] !== undefined ? o[f] : (s ? s[f] : ''); }; %>
+  <form class="panel" id="gw-<%= key %>" method="post" action="/admin/payments/<%= key %>" novalidate autocomplete="off">
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+    <div class="panel-head"><div><h2><%= g.label %></h2><div class="panel-sub"><%= t('admin.pay_gw_' + key) %></div></div>
+      <span class="badge badge-dot <%= s && s.enabled ? 'badge-success' : '' %>"><%= s ? (s.enabled ? t('admin.pay_enabled') : t('admin.pay_disabled')) : t('admin.pay_not_set') %></span></div>
+    <div class="panel-body stack">
+      <% if (mine && formError) { %><div class="alert alert-error"><%- icon('circle-alert') %><div class="grow small"><% if (formError.code === 'PAYMENT_GATEWAY_ERROR') { %><%= t('admin.pay_test_failed') %> <span dir="ltr"><%= formError.message %></span><% } else { %><%= Object.values(errs)[0] || formError.message %><% } %></div></div><% } %>
+      <% g.fields.forEach(function (f) {
+        var secret = g.secretFields.indexOf(f) !== -1; %>
+        <% if (f === 'region') { %>
+          <%- include('../../partials/field', { name: f, label: t('admin.pay_f_' + f), type: 'select', value: val(f) || 'sa', options: regions.map(function (r) { return { value: r, label: t('admin.pay_region_' + r) }; }), errors: errs, old: o }) %>
+        <% } else { %>
+          <%- include('../../partials/field', { name: f, label: t('admin.pay_f_' + f), type: secret ? 'password' : 'text', value: secret ? '' : val(f), autocomplete: 'off', attrs: 'dir="ltr" spellcheck="false"',
+            placeholder: secret && s && s[f + '_hint'] ? s[f + '_hint'] : '', help: secret && s ? t('admin.pay_keep_secret') : t('admin.pay_help_' + f), errors: errs, old: o }) %>
+        <% } %>
+      <% }) %>
+      <% if (key !== 'hyperpay') { %>
+        <div class="field"><span class="label"><%= t('admin.pay_webhook') %></span><code class="mono small" dir="ltr" style="word-break:break-all"><%= webhookBase + key %></code><span class="help"><%= t('admin.pay_webhook_' + key) %></span></div>
+      <% } else { %><p class="small text-2"><%= t('admin.pay_hyperpay_note') %></p><% } %>
+      <label class="check"><input type="checkbox" name="enabled"<%= (mine ? o.enabled === 'on' : (s ? s.enabled : true)) ? ' checked' : '' %>><%= t('admin.pay_enable') %></label>
+    </div>
+    <div class="panel-foot row-sm" style="justify-content:flex-end">
+      <% if (s) { %><button class="btn btn-danger-ghost btn-sm" type="submit" name="action" value="remove"><%= t('admin.pay_remove') %></button><% } %>
+      <button class="btn btn-secondary btn-sm" type="submit" formaction="/admin/payments/<%= key %>/test"><%- icon('zap', 'icon-sm') %><%= t('admin.pay_test') %></button>
+      <button class="btn btn-dark btn-sm" type="submit"><%= t('common.save') %></button>
+    </div>
+  </form>
+<% }) %>
+</div>
+
+<section class="panel mt-6">
+  <div class="panel-head"><h2><%= t('admin.pay_recent') %></h2>
+    <div class="row-sm wrap"><% ['', 'paid', 'initiated', 'failed'].forEach(function (st) { %><a class="btn btn-ghost btn-sm<%= (query.status || '') === st ? ' is-active' : '' %>" href="/admin/payments<%= st ? '?status=' + st : '' %>"><%= st ? t('payments.status_' + st) : t('common.all') %></a><% }) %></div></div>
+  <% if (!list.length) { %><div class="empty"><span class="empty-icon"><%- icon('credit-card') %></span><p><%= t('admin.pay_none') %></p></div><% } else { %>
+  <div class="table-wrap"><table class="table">
+    <thead><tr><th><%= t('billing.date') %></th><th><%= t('admin.organization') %></th><th><%= t('billing.invoice_number') %></th><th><%= t('payments.gateway') %></th><th class="text-end"><%= t('billing.amount') %></th><th><%= t('fields.status') %></th></tr></thead>
+    <tbody><% list.forEach(function (p) { %><tr>
+      <td class="nowrap small"><%= fmt.date(p.created_at, { dateStyle: 'short', timeStyle: 'short' }) %></td>
+      <td><a href="/admin/organizations/<%= p.organization_id %>"><%= p.organization_name %></a></td>
+      <td class="mono small"><%= p.invoice_number %></td>
+      <td class="small"><%= gateways[p.provider] ? gateways[p.provider].label : p.provider %><%= p.method ? ' · ' + t('payments.method_' + p.method) : '' %><% if (p.mode === 'test') { %> <span class="badge"><%= t('admin.pay_mode_test') %></span><% } %><div class="muted tiny mono" dir="ltr"><%= p.provider_ref || '' %></div></td>
+      <td class="text-end num"><%= fmt.money(p.amount, p.currency) %></td>
+      <td><span class="st st-<%= p.status === 'paid' ? 'approved' : p.status === 'initiated' ? 'pending' : 'rejected' %>"><%= t('payments.status_' + p.status) %></span>
+        <% if (p.note) { %><div class="small" style="color:var(--danger)"><%= t('admin.pay_note_' + p.note) %></div><% } else if (p.failure_reason && p.status !== 'paid') { %><div class="muted tiny" dir="ltr"><%= p.failure_reason.slice(0, 100) %></div><% } %></td>
+    </tr><% }) %></tbody>
+  </table></div><% } %>
+</section>

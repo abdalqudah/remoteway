@@ -4,6 +4,8 @@ const { wrap, form, flash } = require('../../routes/helpers');
 const { can } = require('../../middleware/context');
 const subscriptions = require('./subscription.service');
 const ent = require('./entitlements.service');
+const payments = require('../payments/payments.service');
+const { GATEWAYS } = require('../payments/gateways');
 
 const router = express.Router();
 
@@ -36,9 +38,29 @@ router.post('/activate', can('billing.manage'), form(async (req, res) => {
   res.redirect(`/app/billing/invoices/${invoiceId}`);
 }, renderBilling));
 
-router.get('/invoices/:id', can('billing.view'), wrap(async (req, res) => {
-  const invoice = await subscriptions.getInvoice(req.ctx.organizationId, Number(req.params.id));
-  res.page('pages/billing/invoice', { title: invoice.number, invoice });
-}));
+const PAYMENT_RESULTS = new Set(['paid', 'failed', 'cancelled', 'expired', 'initiated']);
+const renderInvoice = async (req, res, extra = {}) => {
+  const id = Number(req.params.id);
+  const invoice = await subscriptions.getInvoice(req.ctx.organizationId, id);
+  const [gateways, attempts] = await Promise.all([payments.available(), payments.listForInvoice(req.ctx.organizationId, id)]);
+  res.page('pages/billing/invoice', {
+    title: invoice.number, invoice, gateways, attempts,
+    inlineFormError: invoice.status === 'issued' && gateways.length > 0 && req.ctx.permissions.has('billing.manage'), // the pay panel shows it
+    paymentResult: PAYMENT_RESULTS.has(req.query.payment) ? req.query.payment : null, ...extra,
+  });
+};
+router.get('/invoices/:id', can('billing.view'), wrap((req, res) => renderInvoice(req, res)));
+
+router.post('/invoices/:id/pay', can('billing.manage'), form(async (req, res) => {
+  const [provider, method] = String(req.body.gateway || '').split(':');
+  const { payment, url, widget } = await payments.start(req.ctx, Number(req.params.id), {
+    provider, method, baseUrl: res.locals.baseUrl, locale: res.locals.locale, user: req.user,
+  });
+  if (widget) return res.redirect(303, `/payments/hyperpay/${payment.token}`);
+  // The browser policy only allows forms to post to RemoteWay, so the hand-off to the gateway is a page, not a redirect.
+  res.set('Refresh', `0; url=${url}`);
+  res.set('Cache-Control', 'no-store');
+  return res.page('pages/payments/redirect', { layout: 'auth', title: req.t('payments.redirecting'), url, gateway: GATEWAYS[provider].label });
+}, renderInvoice));
 
 module.exports = router;

@@ -83,6 +83,8 @@ function tokenValid(req, sent) {
 function csrf(req, res, next) {
   if (['GET', 'HEAD', 'OPTIONS'].includes(req.method)) return next();
   if (req.apiToken) return next();
+  // Payment gateways post back from their own servers/pages: no session, verified with the gateway instead.
+  if (/^\/payments\/(return\/[a-f0-9]{48}|webhook\/[a-z]+)\/?$/.test(req.path)) return next();
   if (req.is('multipart/form-data')) {
     if (MULTIPART_ROUTES.some((r) => r.test(req.path))) {
       req.csrfDeferred = true;

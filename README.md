@@ -9,11 +9,18 @@
 | Runtime | Node.js ≥ 20 (Express 4, server-rendered EJS, no build step) |
 | Database | MySQL 8 / MariaDB ≥ 10.3 (all data, including sessions, lives in the database) |
 | Hosting | Any cPanel host with **Setup Node.js App** (e.g. Orange Host), or any VPS |
-| Status | **Phases 1–9 + Advanced Analytics + Compliance + Automation** (SaaS Core, Workforce, Talent, Payroll, Performance, Learning, Integrations, AI, Enterprise, Analytics, Compliance, Automation) complete and tested (see `docs/ARCHITECTURE.md`) |
+| Status | **Phases 1–9 + Advanced Analytics + Compliance + Automation + Online payments** (SaaS Core, Workforce, Talent, Payroll, Performance, Learning, Integrations, AI, Enterprise, Analytics, Compliance, Automation, Payments) complete and tested (see `docs/ARCHITECTURE.md`) |
 
 ---
 
 ## What works today
+
+**Online payments** (Super Admin → Payments):
+
+- **Saudi gateways:** Moyasar (hosted invoice), Tap Payments (hosted charge), HyperPay COPYandPAY (widget; separate mada and Visa/Mastercard entities) and PayTabs (hosted page, any region). Keys are stored encrypted, each gateway has a connection test, and the platform switches between test and live mode.
+- **Pay now** on every open subscription invoice. A payment counts only after RemoteWay reads its status from the gateway itself (on return, from a webhook, or by the 5-minute reconciler) and the amount and currency match; the invoice is then paid and the subscription activated. Double payments are flagged for refund.
+- **Renewals:** the renewal invoice is issued a week before a paid period ends; an unpaid renewal moves the subscription to past due with 7 days of grace. Bank transfers can still be recorded by the super admin.
+- Recurring automatic card charges (saved cards) are not built yet.
 
 **Advanced Automation** (Professional and Enterprise — Insights → Automation):
 - "When … only if … then …" rules. **When:** an event (employee added or leaving, onboarding completed, leave requested/approved/rejected, employee document uploaded, candidate hired, review completed, course completed) or a date (document or training certificate about to expire, probation about to end, N days after joining, work anniversary). **Only if:** department, employment type, nationality, leave type, minimum leave days. **Then (up to 5):** send a notification (employee, manager, department head, anyone with a role, a person), create a task with a due date, assign a course, post to team chat. Messages use placeholders such as {{name}}, {{date}}, {{years}}.
@@ -98,7 +105,7 @@
 - **Organizations:** multiple workspaces per user, organization switcher, company profile, working-week settings from the country policy (Saudi Arabia first).
 - **RBAC:** 9 system roles plus a super admin, 39 permissions, a permission matrix, custom roles (Enterprise), team-scoped data for managers, and salary visibility controlled by permission.
 - **Subscription engine:** plans, features, limits, add-ons, trials, grace periods, and usage metering all live in the database. Employee, user and API limits are **enforced on the backend**, with row locking.
-- **Billing foundation:** invoices with VAT from the country policy. Offline payments are confirmed by a super admin; there is no card gateway yet, and the app says so.
+- **Billing foundation:** invoices with VAT from the country policy. Online payment through Saudi gateways (see above) or offline payments confirmed by a super admin.
 - **Employees:** enterprise table (search, filters, sort, column visibility, pagination, CSV export), profile, create/edit, end employment, reactivate, delete.
 - **Departments & locations**, **real dashboard** (every number comes from SQL), **action center**, **audit log** with old/new values, **Ctrl/⌘ + K search**.
 - **Super Admin:** tenants, subscription overrides and custom limits, plan pricing/limits/features editor, invoices, platform audit log.

@@ -1,0 +1,9 @@
+<h1><%= t('payments.pay_title') %></h1>
+<p class="lead"><%= t('payments.amount_line', { amount: fmt.money(payment.amount, payment.currency) }) %></p>
+<div class="hp-widget mt-6">
+  <script src="/js/hyperpay.js?v=<%= assetV %>"></script>
+  <script src="<%= script %>"></script>
+  <form action="<%= returnUrl %>" class="paymentWidgets" data-brands="<%= brands %>"></form>
+</div>
+<p class="muted small mt-4"><%- icon('lock', 'icon-sm') %> <%= t('payments.secure_note') %></p>
+<a class="btn btn-ghost btn-sm mt-4" href="/app/billing/invoices/<%= payment.invoice_id %>"><%= t('common.cancel') %></a>

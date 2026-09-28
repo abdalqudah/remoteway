@@ -195,23 +195,74 @@ async function requestActivation(ctx) {
 
 /** Super admin records an offline payment; the subscription becomes active for one billing period. */
 async function markInvoicePaid(ctx, invoiceId, reference) {
-  return knex.transaction(async (trx) => {
-    const invoice = await trx('invoices').where({ id: invoiceId }).forUpdate().first();
-    if (!invoice) throw E.notFound('Invoice');
-    if (invoice.status !== 'issued') throw E.conflict('INVOICE_NOT_PAYABLE', 'Only issued invoices can be marked as paid.');
-    const now = new Date();
-    await trx('invoices').where({ id: invoiceId }).update({ status: 'paid', paid_at: now, payment_reference: reference || null });
-    if (invoice.subscription_id) {
-      const sub = await trx('subscriptions').where({ id: invoice.subscription_id }).first();
-      await trx('subscriptions').where({ id: sub.id }).update({
-        status: 'active', current_period_start: now, current_period_end: addPeriod(now, sub.billing_cycle), grace_ends_at: null,
-      });
-    }
-    await audit.record({ ...ctx, organizationId: invoice.organization_id }, 'invoice.paid', {
-      entityType: 'invoice', entityId: invoiceId, newValues: { payment_reference: reference || null },
-    }, trx);
-    ent.invalidate(invoice.organization_id);
-  });
+  return knex.transaction((trx) => markInvoicePaidTrx(trx, ctx, invoiceId, reference));
+}
+
+/** Same, inside the caller's transaction (online payments settle the payment row and the invoice together). */
+async function markInvoicePaidTrx(trx, ctx, invoiceId, reference) {
+  const invoice = await trx('invoices').where({ id: invoiceId }).forUpdate().first();
+  if (!invoice) throw E.notFound('Invoice');
+  if (invoice.status !== 'issued') throw E.conflict('INVOICE_NOT_PAYABLE', 'Only issued invoices can be marked as paid.');
+  const now = new Date();
+  await trx('invoices').where({ id: invoiceId }).update({ status: 'paid', paid_at: now, payment_reference: reference || null });
+  if (invoice.subscription_id) {
+    const sub = await trx('subscriptions').where({ id: invoice.subscription_id }).forUpdate().first();
+    // A renewal paid before the period ends extends it; otherwise the new period starts today.
+    const current = sub.current_period_end ? new Date(sub.current_period_end) : null;
+    const start = sub.status === 'active' && current && current > now ? current : now;
+    await trx('subscriptions').where({ id: sub.id }).update({
+      status: 'active', current_period_start: start, current_period_end: addPeriod(start, sub.billing_cycle), grace_ends_at: null,
+    });
+  }
+  await audit.record({ ...ctx, organizationId: invoice.organization_id }, 'invoice.paid', {
+    entityType: 'invoice', entityId: invoiceId, newValues: { payment_reference: reference || null },
+  }, trx);
+  ent.invalidate(invoice.organization_id);
+}
+
+const RENEWAL_NOTICE_DAYS = 7;
+const OVERDUE_GRACE_DAYS = 7;
+
+/**
+ * Daily billing sweep: issues the renewal invoice a week before a paid period ends, and moves a
+ * subscription whose period ended with the renewal still unpaid to past due (7 days of grace).
+ */
+async function renewalSweep(now = new Date()) {
+  const notifications = require('../notifications/notification.service'); // eslint-disable-line global-require
+  let issued = 0; let overdue = 0;
+  const due = await knex('subscriptions as s').join('plans as p', 'p.id', 's.plan_id')
+    .where('s.status', 'active').whereNotNull('s.current_period_end').where('s.current_period_end', '<=', addDays(now, RENEWAL_NOTICE_DAYS))
+    .where('p.is_custom', false).whereNotNull('p.price_monthly')
+    .whereNotExists(function open() { this.select('*').from('invoices as i').whereRaw('i.subscription_id = s.id').where('i.status', 'issued'); })
+    .select('s.id', 's.organization_id');
+  for (const row of due) {
+    const invoiceId = await knex.transaction(async (trx) => {
+      const sub = await trx('subscriptions').where({ id: row.id }).forUpdate().first();
+      if (sub.status !== 'active' || await trx('invoices').where({ subscription_id: sub.id, status: 'issued' }).first()) return null;
+      const plan = await trx('plans').where({ id: sub.plan_id }).first();
+      const items = await buildLineItems(trx, sub, plan, sub.billing_cycle);
+      const id = await issueInvoice(trx, { organizationId: sub.organization_id, subscriptionId: sub.id, cycle: sub.billing_cycle, items, periodStart: new Date(sub.current_period_end) });
+      // Due when the current period ends, not 7 days after issue.
+      const dueDate = new Date(sub.current_period_end) > now ? new Date(sub.current_period_end) : addDays(now, 1);
+      await trx('invoices').where({ id }).update({ due_date: dueDate });
+      await audit.record({ organizationId: sub.organization_id, userId: null }, 'invoice.issued', { entityType: 'invoice', entityId: id, newValues: { renewal: true } }, trx);
+      const inv = await trx('invoices').where({ id }).first('number', 'total', 'currency');
+      const managers = await notifications.usersWithPermission(sub.organization_id, 'billing.manage', trx);
+      await notifications.notify(sub.organization_id, managers, 'renewal_invoice', { number: inv.number }, `/app/billing/invoices/${id}`, trx);
+      return id;
+    });
+    if (invoiceId) issued += 1;
+  }
+  const late = await knex('subscriptions as s').where('s.status', 'active').whereNotNull('s.current_period_end').where('s.current_period_end', '<', now)
+    .whereExists(function open() { this.select('*').from('invoices as i').whereRaw('i.subscription_id = s.id').where('i.status', 'issued'); })
+    .select('s.id', 's.organization_id', 's.current_period_end');
+  for (const sub of late) {
+    await knex('subscriptions').where({ id: sub.id, status: 'active' }).update({ status: 'past_due', grace_ends_at: addDays(new Date(sub.current_period_end), OVERDUE_GRACE_DAYS) });
+    await audit.record({ organizationId: sub.organization_id, userId: null }, 'subscription.past_due', { entityType: 'subscription', entityId: sub.id });
+    ent.invalidate(sub.organization_id);
+    overdue += 1;
+  }
+  return { issued, overdue };
 }
 
 async function cancel(ctx) {
@@ -232,5 +283,5 @@ async function getInvoice(organizationId, invoiceId) {
 }
 
 module.exports = {
-  listPublicPlans, listAddons, startTrial, changePlan, setAddon, requestActivation, markInvoicePaid, cancel, listInvoices, getInvoice,
+  listPublicPlans, listAddons, startTrial, changePlan, setAddon, requestActivation, markInvoicePaid, markInvoicePaidTrx, renewalSweep, cancel, listInvoices, getInvoice,
 };

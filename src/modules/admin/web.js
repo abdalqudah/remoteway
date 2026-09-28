@@ -246,6 +246,40 @@ router.post('/ai/test', form(async (req, res) => {
   res.redirect('/admin/ai');
 }, renderAi));
 
+// ---------- Online payments (Saudi gateways) ----------
+const payments = require('../payments/payments.service');
+const { GATEWAYS, PAYTABS_REGIONS } = require('../payments/gateways');
+
+const renderPayments = async (req, res, extra = {}) => {
+  const baseUrl = res.locals.baseUrl;
+  res.page('pages/admin/payments', {
+    layout: 'admin', title: req.t('admin.payments'), saved: await payments.rawConfig(), gateways: GATEWAYS, regions: Object.keys(PAYTABS_REGIONS),
+    list: await payments.adminList({ status: ['initiated', 'paid', 'failed', 'cancelled', 'expired'].includes(req.query.status) ? req.query.status : null }),
+    webhookBase: `${baseUrl}/payments/webhook/`, inlineFormError: true, errorProvider: extra.formError ? req.params.provider || null : null, ...extra,
+  });
+};
+router.get('/payments', wrap((req, res) => renderPayments(req, res)));
+router.post('/payments/mode', form(async (req, res) => {
+  await payments.setMode(req.ctx, String(req.body.mode || ''));
+  flash(req, 'success', req.t('common.saved'));
+  res.redirect('/admin/payments');
+}, renderPayments));
+router.post('/payments/:provider', form(async (req, res) => {
+  const { provider } = req.params;
+  if (!GATEWAYS[provider]) throw E.notFound('Payment gateway');
+  if (req.body.action === 'remove') await payments.removeProvider(req.ctx, provider);
+  else await payments.saveProvider(req.ctx, provider, req.body);
+  flash(req, 'success', req.t('common.saved'));
+  res.redirect(`/admin/payments#gw-${provider}`);
+}, renderPayments));
+router.post('/payments/:provider/test', form(async (req, res) => {
+  const { provider } = req.params;
+  if (!GATEWAYS[provider]) throw E.notFound('Payment gateway');
+  const r = await payments.testProvider(req.ctx, provider, req.body);
+  flash(req, 'success', req.t('admin.pay_test_ok', { gateway: GATEWAYS[provider].label, ms: r.ms }));
+  res.redirect(`/admin/payments#gw-${provider}`);
+}, renderPayments));
+
 // ---------- Support inbox (client success) ----------
 const support = require('../support/support.service');
 router.get('/support', wrap(async (req, res) => {
