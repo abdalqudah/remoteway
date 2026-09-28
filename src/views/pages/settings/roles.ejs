@@ -1,0 +1,67 @@
+<%
+  var modules = [];
+  permissions.forEach(function (p) { if (modules.indexOf(p.module) < 0) modules.push(p.module); });
+  var system = roles.filter(function (r) { return r.is_system; });
+  var custom = roles.filter(function (r) { return !r.is_system; });
+%>
+<div class="page-head">
+  <div><h1><%= t('nav.settings') %></h1><p><%= t('settings.roles_sub') %></p></div>
+  <div class="page-actions">
+    <% if (customRoles) { %><button class="btn btn-dark" type="button" data-open-dialog="role-dialog" data-reset-form><%- icon('plus') %><%= t('settings.new_role') %></button>
+    <% } else { %><span class="badge"><%- icon('lock', 'icon-sm') %><%= t('settings.custom_roles_plan') %></span><% } %>
+  </div>
+</div>
+<%- include('../../partials/settings-nav') %>
+
+<% if (custom.length) { %>
+<section class="panel mb-6">
+  <div class="panel-head"><h2><%= t('settings.custom_roles') %></h2></div>
+  <div class="table-wrap"><table class="table"><tbody>
+    <% custom.forEach(function (r) { %>
+    <tr><td><strong><%= r.name %></strong><div class="muted small"><%= r.description || '' %></div></td><td class="muted"><%= t('settings.n_permissions', { n: r.permissions.length }) %></td><td class="muted"><%= t('settings.n_members', { n: r.members }) %></td>
+      <td class="actions">
+        <button class="btn btn-ghost btn-sm" type="button" data-open-dialog="role-dialog" data-fill="<%= JSON.stringify({ id: r.id, name: r.name, description: r.description || '', permissions: r.permissions }) %>"><%- icon('pencil', 'icon-sm') %><%= t('common.edit') %></button>
+        <form method="post" action="/app/settings/roles/<%= r.id %>/delete" style="display:inline" data-confirm="<%= t('structure.confirm_delete', { name: r.name }) %>"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><button class="btn btn-danger-ghost btn-sm" type="submit"><%- icon('trash-2', 'icon-sm') %></button></form>
+      </td></tr>
+    <% }) %>
+  </tbody></table></div>
+</section>
+<% } %>
+
+<section class="panel">
+  <div class="panel-head"><div><h2><%= t('settings.permission_matrix') %></h2><div class="panel-sub"><%= t('settings.permission_matrix_sub') %></div></div></div>
+  <div class="table-wrap"><table class="table matrix">
+    <thead><tr><th><%= t('settings.permission') %></th><% system.concat(custom).forEach(function (r) { %><th title="<%= r.description || '' %>"><%= roleName(r) %></th><% }) %></tr></thead>
+    <tbody>
+    <% modules.forEach(function (mod) { %>
+      <tr><td colspan="<%= system.length + custom.length + 1 %>" style="background:var(--surface-2);font-weight:700;font-size:12px"><%= t('modules.' + mod) %></td></tr>
+      <% permissions.filter(function (p) { return p.module === mod; }).forEach(function (p) { %>
+      <tr><td><div><%= t('permissions.' + p.key.replace('.', '_')) %></div><div class="muted tiny mono"><%= p.key %></div></td>
+        <% system.concat(custom).forEach(function (r) { var has = r.permissions.indexOf(p.key) >= 0; %><td class="<%= has ? 'yes' : 'no' %>"><%- has ? icon('check', 'icon-sm') : '·' %></td><% }) %>
+      </tr>
+      <% }) %>
+    <% }) %>
+    </tbody>
+  </table></div>
+</section>
+
+<% if (customRoles) { %>
+<dialog class="dialog" id="role-dialog" style="width:min(760px,calc(100vw - 32px))"<%= typeof openDialog !== 'undefined' && openDialog === 'role' ? ' data-open-on-load' : '' %>>
+  <form method="post" action="/app/settings/roles" novalidate>
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>"><input type="hidden" name="id" value="">
+    <div class="dialog-head"><h2><%= t('settings.role') %></h2><button class="btn btn-ghost btn-icon btn-sm" type="button" data-close-dialog aria-label="<%= t('common.close') %>"><%- icon('x') %></button></div>
+    <div class="dialog-body stack">
+      <div class="form-grid">
+        <%- include('../../partials/field', { name: 'name', label: t('fields.name'), required: true }) %>
+        <%- include('../../partials/field', { name: 'description', label: t('fields.description') }) %>
+      </div>
+      <% modules.forEach(function (mod) { %>
+        <div><div class="fieldset-title"><%= t('modules.' + mod) %></div><div class="perm-grid">
+          <% permissions.filter(function (p) { return p.module === mod; }).forEach(function (p) { %><label class="check"><input type="checkbox" name="permissions" value="<%= p.key %>"><%= t('permissions.' + p.key.replace('.', '_')) %></label><% }) %>
+        </div></div>
+      <% }) %>
+    </div>
+    <div class="dialog-foot"><button class="btn btn-ghost" type="button" data-close-dialog><%= t('common.cancel') %></button><button class="btn btn-dark" type="submit"><%= t('common.save') %></button></div>
+  </form>
+</dialog>
+<% } %>

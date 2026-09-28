@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="<%= locale %>" dir="<%= dir %>"<% if (theme !== 'system') { %> data-theme="<%= theme %>"<% } %>>
+<head><%- include('../partials/head') %></head>
+<body class="site">
+<header class="site-nav">
+  <div class="inner">
+    <a href="/" aria-label="RemoteWay"><%- include('../partials/logo') %></a>
+    <nav class="site-links" aria-label="<%= t('nav.main') %>">
+      <a href="/#platform"><%= t('site.nav_platform') %></a>
+      <a href="/#modules"><%= t('site.nav_modules') %></a>
+      <a href="/#security"><%= t('site.nav_security') %></a>
+      <a href="/pricing"><%= t('site.pricing') %></a>
+      <a href="/#faq"><%= t('site.nav_faq') %></a>
+    </nav>
+    <div class="right">
+      <a class="btn btn-ghost btn-sm" href="<%= langUrl(locale === 'ar' ? 'en' : 'ar') %>"><%- icon('languages') %><%= locale === 'ar' ? 'English' : 'العربية' %></a>
+      <button class="btn btn-ghost btn-icon hide-sm" type="button" data-theme-toggle aria-label="<%= t('common.toggle_theme') %>"><%- icon('moon', 'theme-moon') %><%- icon('sun', 'theme-sun hidden') %></button>
+      <% if (currentUser) { %>
+        <a class="btn btn-dark btn-sm" href="/app"><%= t('site.open_app') %></a>
+      <% } else { %>
+        <a class="btn btn-ghost btn-sm hide-sm" href="/login"><%= t('auth.login') %></a>
+        <a class="btn btn-primary btn-sm" href="/signup"><%= t('site.start_free') %></a>
+      <% } %>
+    </div>
+  </div>
+</header>
+<main>
+  <% if (flash && flash.length) { %><div class="container mt-4"><%- include('../partials/flash') %></div><% } %>
+  <%- body %>
+</main>
+<footer class="footer">
+  <div class="container inner">
+    <div class="row"><%- include('../partials/logo') %></div>
+    <div class="row wrap small"><span>© <%= new Date().getFullYear() %> RemoteWay</span><span>·</span><span><%= t('site.footer_tagline') %></span></div>
+  </div>
+</footer>
+<script src="/js/app.js?v=1" defer></script>
+</body>
+</html>

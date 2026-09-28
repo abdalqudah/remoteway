@@ -1,0 +1,30 @@
+<section class="panel">
+  <form class="table-toolbar" method="get" data-autosubmit>
+    <select class="select" name="action" aria-label="<%= t('settings.filter_action') %>">
+      <option value=""><%= t('settings.all_actions') %></option>
+      <% ['auth','employee','department','location','member','invitation','role','organization','subscription','invoice','api_token','platform'].forEach(function (a) { %><option value="<%= a %>"<%= query.action === a ? ' selected' : '' %>><%= t('audit.group_' + a) %></option><% }) %>
+    </select>
+  </form>
+  <% if (!result.data.length) { %><div class="empty"><span class="empty-icon"><%- icon('history') %></span><p><%= t('settings.no_audit') %></p></div><% } else { %>
+  <div class="table-wrap"><table class="table">
+    <thead><tr><th><%= t('settings.when') %></th><th><%= t('settings.who') %></th><th><%= t('settings.action') %></th><% if (showOrg) { %><th><%= t('admin.organization') %></th><% } %><th><%= t('settings.changes') %></th><th>IP</th></tr></thead>
+    <tbody>
+    <% result.data.forEach(function (a) { %>
+      <tr>
+        <td class="nowrap muted"><%= fmt.date(a.created_at, { dateStyle: 'medium', timeStyle: 'short' }) %></td>
+        <td><%= a.user_name || t('audit.system') %><div class="muted tiny"><%= a.user_email || '' %></div></td>
+        <td><% var lbl = t('audit.' + a.action); %><%= lbl === 'audit.' + a.action ? a.action : lbl %><div class="muted tiny mono"><%= a.entity_type || '' %><%= a.entity_id ? ' #' + a.entity_id : '' %></div></td>
+        <% if (showOrg) { %><td class="muted"><%= a.organization_id || '—' %></td><% } %>
+        <td class="small">
+          <% var nv = a.new_values || {}; var ov = a.old_values || {}; Object.keys(nv).slice(0, 4).forEach(function (k) { %>
+            <div><span class="muted"><%= k %>:</span> <% if (ov[k] !== undefined) { %><s class="muted"><%= String(ov[k]).slice(0, 40) %></s> → <% } %><%= String(nv[k] === null ? '—' : nv[k]).slice(0, 60) %></div>
+          <% }) %>
+        </td>
+        <td class="muted mono tiny"><%= a.ip || '' %></td>
+      </tr>
+    <% }) %>
+    </tbody>
+  </table></div>
+  <%- include('pagination', { meta: Object.assign({ per_page: 30 }, result.meta) }) %>
+  <% } %>
+</section>

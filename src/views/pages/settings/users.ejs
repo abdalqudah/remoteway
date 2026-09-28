@@ -1,0 +1,69 @@
+<% var max = entitlements.limits.users; %>
+<div class="page-head">
+  <div><h1><%= t('nav.settings') %></h1><p><%= t('settings.users_sub') %><% if (max !== null && max !== undefined) { %> · <%= t('settings.users_of', { used: fmt.number(usage.users), max: fmt.number(max) }) %><% } %></p></div>
+  <% if (can('users.manage')) { %><div class="page-actions"><button class="btn btn-dark" type="button" data-open-dialog="invite-dialog"><%- icon('mail') %><%= t('settings.invite_user') %></button></div><% } %>
+</div>
+<%- include('../../partials/settings-nav') %>
+
+<% if (inviteLink) { %>
+<div class="alert alert-success mb-4"><%- icon('mail') %><div class="grow"><div class="alert-title"><%= t('settings.invite_link_title') %></div><div class="text-2"><%= t('settings.invite_link_text') %></div><div class="row mt-2"><code class="code-box grow" data-copy-source><%= inviteLink %></code><button class="btn btn-secondary btn-sm" type="button" data-copy><%- icon('copy', 'icon-sm') %><%= t('common.copy') %></button></div></div></div>
+<% } %>
+
+<section class="panel">
+  <div class="panel-head"><h2><%= t('settings.members') %></h2></div>
+  <div class="table-wrap"><table class="table">
+    <thead><tr><th><%= t('fields.name') %></th><th><%= t('fields.role') %></th><th><%= t('fields.status') %></th><th><%= t('settings.last_login') %></th><th class="actions"></th></tr></thead>
+    <tbody>
+    <% members.forEach(function (m) { %>
+      <tr>
+        <td><div class="person"><span class="avatar"><%= initials(m.name) %></span><span><span class="person-name"><%= m.name %><% if (m.is_owner) { %> <span class="badge badge-brand"><%= t('settings.owner') %></span><% } %></span><span class="person-sub" style="display:block"><%= m.email %></span></span></div></td>
+        <td>
+          <% if (can('users.manage') && !m.is_owner && m.id !== currentUser.id) { %>
+          <form method="post" action="/app/settings/users/<%= m.id %>/role" class="row-sm" data-autosubmit><input type="hidden" name="_csrf" value="<%= csrfToken %>">
+            <select class="select" name="role_id" style="height:32px;font-size:13px;min-width:180px" aria-label="<%= t('fields.role') %>"><% roles.forEach(function (r) { %><option value="<%= r.id %>"<%= r.id === m.role_id ? ' selected' : '' %>><%= roleName(r) %></option><% }) %></select>
+          </form>
+          <% } else { %><%= roleName({ key: m.role_key, name: m.role_name }) %><% } %>
+        </td>
+        <td><span class="badge badge-dot <%= m.status === 'active' ? 'badge-success' : 'badge-danger' %>"><%= t('statuses.member_' + m.status) %></span></td>
+        <td class="muted"><%= m.last_login_at ? fmt.date(m.last_login_at, { dateStyle: 'medium', timeStyle: 'short' }) : t('settings.never') %></td>
+        <td class="actions">
+          <% if (can('users.manage') && !m.is_owner && m.id !== currentUser.id) { %>
+          <form method="post" action="/app/settings/users/<%= m.id %>/status" style="display:inline"<% if (m.status === 'active') { %> data-confirm="<%= t('settings.confirm_disable', { name: m.name }) %>"<% } %>><input type="hidden" name="_csrf" value="<%= csrfToken %>"><input type="hidden" name="status" value="<%= m.status === 'active' ? 'disabled' : 'active' %>">
+            <button class="btn <%= m.status === 'active' ? 'btn-danger-ghost' : 'btn-secondary' %> btn-sm" type="submit"><%= m.status === 'active' ? t('settings.disable') : t('settings.enable') %></button></form>
+          <% } %>
+        </td>
+      </tr>
+    <% }) %>
+    </tbody>
+  </table></div>
+</section>
+
+<% if (invitations.length) { %>
+<section class="panel mt-6">
+  <div class="panel-head"><h2><%= t('settings.pending_invitations') %></h2></div>
+  <div class="table-wrap"><table class="table">
+    <thead><tr><th><%= t('fields.email') %></th><th><%= t('fields.role') %></th><th><%= t('settings.invited_by') %></th><th><%= t('settings.expires') %></th><th class="actions"></th></tr></thead>
+    <tbody>
+    <% invitations.forEach(function (i) { %>
+      <tr><td><%= i.email %></td><td><%= i.role_name %></td><td class="muted"><%= i.invited_by_name || '—' %></td><td class="muted"><%= fmt.date(i.expires_at) %></td>
+        <td class="actions"><% if (can('users.manage')) { %><form method="post" action="/app/settings/users/invitations/<%= i.id %>/revoke"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><button class="btn btn-danger-ghost btn-sm" type="submit"><%= t('settings.revoke') %></button></form><% } %></td></tr>
+    <% }) %>
+    </tbody>
+  </table></div>
+</section>
+<% } %>
+
+<% if (can('users.manage')) { %>
+<dialog class="dialog" id="invite-dialog"<%= typeof openDialog !== 'undefined' && openDialog === 'invite' ? ' data-open-on-load' : '' %>>
+  <form method="post" action="/app/settings/users/invite" novalidate>
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+    <div class="dialog-head"><div><h2><%= t('settings.invite_user') %></h2><p class="muted small mt-1"><%= t('settings.invite_sub') %></p></div><button class="btn btn-ghost btn-icon btn-sm" type="button" data-close-dialog aria-label="<%= t('common.close') %>"><%- icon('x') %></button></div>
+    <div class="dialog-body stack">
+      <%- include('../../partials/field', { name: 'email', label: t('fields.email'), type: 'email', required: true }) %>
+      <%- include('../../partials/field', { name: 'role_id', label: t('fields.role'), type: 'select', required: true, value: (roles.find(function (r) { return r.key === 'employee'; }) || {}).id, options: roles.map(function (r) { return { value: r.id, label: roleName(r) }; }) }) %>
+      <div class="alert alert-info"><%- icon('info') %><div class="grow small"><%= t('settings.invite_email_note') %></div></div>
+    </div>
+    <div class="dialog-foot"><button class="btn btn-ghost" type="button" data-close-dialog><%= t('common.cancel') %></button><button class="btn btn-dark" type="submit"><%= t('settings.create_invite') %></button></div>
+  </form>
+</dialog>
+<% } %>

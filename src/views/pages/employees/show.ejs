@@ -1,0 +1,97 @@
+<%
+  var e = employee;
+  var tabs = [['overview', true], ['employment', true], ['contract', false], ['documents', false], ['attendance', false], ['leave', false], ['payroll', false], ['performance', false], ['training', false], ['activity', false]];
+%>
+<div class="page-head">
+  <div class="row" style="align-items:center">
+    <span class="avatar avatar-lg"><%= initials(e.full_name) %></span>
+    <div>
+      <div class="eyebrow"><a href="/app/employees"><%= t('nav.employees') %></a><%- icon('chevron-right', 'icon-sm flip-rtl') %><span class="num"><%= e.employee_number %></span></div>
+      <h1><%= e.full_name %></h1>
+      <div class="row-sm mt-1 wrap"><span class="muted"><%= e.job_title || '—' %></span><%- include('../../partials/status-badge', { status: e.status }) %></div>
+    </div>
+  </div>
+  <div class="page-actions">
+    <% if (can('employees.edit') && e.status !== 'terminated') { %><a class="btn btn-secondary" href="/app/employees/<%= e.id %>/edit"><%- icon('pencil') %><%= t('common.edit') %></a><% } %>
+    <% if (can('employees.edit') && e.status === 'terminated') { %>
+      <form method="post" action="/app/employees/<%= e.id %>/reactivate"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><button class="btn btn-secondary" type="submit"><%- icon('user-check') %><%= t('employees.reactivate') %></button></form>
+    <% } %>
+    <% if (can('employees.delete')) { %>
+    <details class="dropdown"><summary class="btn btn-secondary btn-icon" aria-label="<%= t('common.more') %>"><%- icon('ellipsis') %></summary>
+      <div class="menu">
+        <% if (e.status !== 'terminated') { %><button type="button" data-open-dialog="terminate-dialog"><%- icon('user-x', 'icon-sm') %><%= t('employees.terminate') %></button><% } %>
+        <button type="button" data-open-dialog="delete-dialog" style="color:var(--danger)"><%- icon('trash-2', 'icon-sm') %><%= t('employees.delete') %></button>
+      </div>
+    </details>
+    <% } %>
+  </div>
+</div>
+
+<nav class="tabs mb-6" aria-label="<%= t('employees.profile_sections') %>">
+  <% tabs.forEach(function (tb) { %><a href="?tab=<%= tb[0] %>" class="<%= tab === tb[0] ? 'active' : '' %><%= tb[1] ? '' : ' soon' %>"><%= t('employees.tab_' + tb[0]) %></a><% }) %>
+</nav>
+
+<% if (tab === 'overview') { %>
+<div class="grid grid-3">
+  <section class="panel span-2">
+    <div class="panel-head"><h2><%= t('employees.section_personal') %></h2></div>
+    <div class="panel-body"><dl class="dl">
+      <dt><%= t('fields.work_email') %></dt><dd><%= e.email || '—' %></dd>
+      <dt><%= t('fields.phone') %></dt><dd dir="ltr" style="text-align:start"><%= e.phone || '—' %></dd>
+      <dt><%= t('fields.nationality') %></dt><dd><%= e.nationality || '—' %></dd>
+      <dt><%= t('employees.portal_access') %></dt><dd><%= e.user_id ? t('employees.portal_linked') : t('employees.portal_not_linked') %></dd>
+    </dl></div>
+  </section>
+  <section class="panel">
+    <div class="panel-head"><h2><%= t('employees.at_a_glance') %></h2></div>
+    <div class="panel-body"><dl class="dl" style="grid-template-columns:1fr">
+      <dt><%= t('fields.department') %></dt><dd><%= e.department_name || '—' %></dd>
+      <dt><%= t('fields.manager') %></dt><dd><% if (e.manager_id) { %><a class="link" href="/app/employees/<%= e.manager_id %>"><%= e.manager_name %></a><% } else { %>—<% } %></dd>
+      <dt><%= t('fields.joining_date') %></dt><dd><%= fmt.date(e.joining_date) %></dd>
+    </dl></div>
+  </section>
+</div>
+<% } else if (tab === 'employment') { %>
+<section class="panel">
+  <div class="panel-head"><h2><%= t('employees.section_employment') %></h2></div>
+  <div class="panel-body"><dl class="dl">
+    <dt><%= t('fields.employee_number') %></dt><dd class="num"><%= e.employee_number %></dd>
+    <dt><%= t('fields.job_title') %></dt><dd><%= e.job_title || '—' %></dd>
+    <dt><%= t('fields.department') %></dt><dd><%= e.department_name || '—' %></dd>
+    <dt><%= t('fields.location') %></dt><dd><%= e.location_name || '—' %></dd>
+    <dt><%= t('fields.manager') %></dt><dd><%= e.manager_name || '—' %></dd>
+    <dt><%= t('fields.employment_type') %></dt><dd><%= t('employment_types.' + e.employment_type) %></dd>
+    <dt><%= t('fields.work_mode') %></dt><dd><%= t('work_modes.' + e.work_mode) %></dd>
+    <dt><%= t('fields.joining_date') %></dt><dd><%= fmt.date(e.joining_date) %></dd>
+    <% if (e.termination_date) { %><dt><%= t('fields.termination_date') %></dt><dd><%= fmt.date(e.termination_date) %></dd><% } %>
+    <% if (e.base_salary !== undefined) { %><dt><%= t('fields.base_salary') %></dt><dd class="num"><%= e.base_salary !== null ? fmt.money(e.base_salary, e.salary_currency || organization.currency) : '—' %></dd><% } %>
+  </dl></div>
+</section>
+<% } else { %>
+<section class="panel"><div class="empty">
+  <span class="empty-icon"><%- icon('clock') %></span>
+  <h3><%= t('employees.tab_' + tab) %> · <%= t('common.soon') %></h3>
+  <p><%= t('employees.tab_soon_text') %></p>
+</div></section>
+<% } %>
+
+<% if (can('employees.delete')) { %>
+<dialog class="dialog" id="terminate-dialog">
+  <form method="post" action="/app/employees/<%= e.id %>/terminate">
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+    <div class="dialog-head"><h2><%= t('employees.terminate_title', { name: e.full_name }) %></h2><button class="btn btn-ghost btn-icon btn-sm" type="button" data-close-dialog aria-label="<%= t('common.close') %>"><%- icon('x') %></button></div>
+    <div class="dialog-body stack"><p class="text-2"><%= t('employees.terminate_text') %></p>
+      <div class="field"><label class="label" for="termination_date"><%= t('fields.termination_date') %></label><input class="input" type="date" id="termination_date" name="termination_date" value="<%= new Date().toISOString().slice(0, 10) %>"></div>
+    </div>
+    <div class="dialog-foot"><button class="btn btn-ghost" type="button" data-close-dialog><%= t('common.cancel') %></button><button class="btn btn-danger" type="submit"><%= t('employees.terminate') %></button></div>
+  </form>
+</dialog>
+<dialog class="dialog" id="delete-dialog">
+  <form method="post" action="/app/employees/<%= e.id %>/delete">
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+    <div class="dialog-head"><h2><%= t('employees.delete_title') %></h2><button class="btn btn-ghost btn-icon btn-sm" type="button" data-close-dialog aria-label="<%= t('common.close') %>"><%- icon('x') %></button></div>
+    <div class="dialog-body"><p class="text-2"><%= t('employees.delete_text', { name: e.full_name }) %></p></div>
+    <div class="dialog-foot"><button class="btn btn-ghost" type="button" data-close-dialog><%= t('common.cancel') %></button><button class="btn btn-danger" type="submit"><%= t('employees.delete') %></button></div>
+  </form>
+</dialog>
+<% } %>

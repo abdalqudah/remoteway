@@ -1,0 +1,13 @@
+<div class="<%= layout === 'public' ? 'container section' : '' %>" style="<%= layout === 'public' ? 'border-top:0' : '' %>">
+  <div class="panel"><div class="empty" style="padding:64px 24px">
+    <span class="empty-icon"><%- icon(status === 404 ? 'search' : status === 403 ? 'lock' : 'triangle-alert') %></span>
+    <div class="muted mono small"><%= status %> · <%= code %></div>
+    <h3><%= title %></h3>
+    <p><%= message %></p>
+    <div class="row wrap" style="justify-content:center">
+      <a class="btn btn-dark" href="<%= currentUser ? '/app' : '/' %>"><%= t('errors.go_home') %></a>
+      <% if (code === 'EMPLOYEE_LIMIT_REACHED' || code === 'FEATURE_NOT_IN_PLAN' || code === 'SUBSCRIPTION_INACTIVE') { %><a class="btn btn-secondary" href="/app/billing"><%= t('billing.go_to_billing') %></a><% } %>
+    </div>
+    <% if (stack) { %><pre class="code-box" style="text-align:start;max-width:100%;overflow:auto;white-space:pre-wrap"><%= stack %></pre><% } %>
+  </div></div>
+</div>

@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="<%= locale %>" dir="<%= dir %>"<% if (theme !== 'system') { %> data-theme="<%= theme %>"<% } %>>
+<head><%- include('../partials/head') %></head>
+<body>
+<div class="onb-shell">
+  <div class="onb-top">
+    <%- include('../partials/logo') %>
+    <div class="row-sm">
+      <a class="btn btn-ghost btn-sm" href="<%= langUrl(locale === 'ar' ? 'en' : 'ar') %>"><%- icon('languages') %><%= locale === 'ar' ? 'EN' : 'ع' %></a>
+      <form method="post" action="/app/onboarding/finish"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><button class="btn btn-ghost btn-sm" type="submit"><%= t('onboarding.skip_all') %></button></form>
+    </div>
+  </div>
+  <div class="onb-body">
+    <div class="steps" aria-label="<%= t('onboarding.progress') %>">
+      <div class="step done"><div class="bar"></div><div class="step-label"><%= t('onboarding.step_company') %></div></div>
+      <% steps.forEach(function (s, i) { var idx = steps.indexOf(step); %>
+        <div class="step <%= i < idx ? 'done' : i === idx ? 'current' : '' %>"><div class="bar"></div><div class="step-label"><%= t('onboarding.step_' + s) %></div></div>
+      <% }) %>
+    </div>
+    <%- include('../partials/flash') %>
+    <%- body %>
+  </div>
+</div>
+<script src="/js/app.js?v=1" defer></script>
+</body>
+</html>

@@ -1,0 +1,9 @@
+<h1><%= t('auth.login_title') %></h1>
+<p class="lead"><%= t('auth.login_lead') %></p>
+<form method="post" action="/login" class="stack mt-6" novalidate>
+  <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+  <%- include('../../partials/field', { name: 'email', label: t('fields.email'), type: 'email', required: true, autocomplete: 'email' }) %>
+  <%- include('../../partials/field', { name: 'password', label: t('fields.password'), type: 'password', required: true, autocomplete: 'current-password' }) %>
+  <button class="btn btn-dark btn-lg btn-block" type="submit"><%= t('auth.login') %><%- icon('arrow-right', 'flip-rtl') %></button>
+</form>
+<p class="mt-6 text-2"><%= t('auth.no_account') %> <a class="link" href="/signup"><%= t('auth.create_company') %></a></p>

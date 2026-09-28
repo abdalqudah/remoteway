@@ -1,0 +1,7 @@
+<%
+  var _a = entry;
+  var _label = t('audit.' + _a.action);
+  if (_label === 'audit.' + _a.action) _label = _a.action;
+  var _nv = _a.new_values ? (typeof _a.new_values === 'string' ? JSON.parse(_a.new_values) : _a.new_values) : null;
+  var _subject = _nv && (_nv.name || _nv.email || _nv.plan) ? (_nv.name || _nv.email || _nv.plan) : '';
+%><strong><%= _a.user_name || t('audit.system') %></strong> <%= _label %><% if (_subject) { %> · <span class="text-2"><%= _subject %></span><% } %>

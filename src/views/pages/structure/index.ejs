@@ -1,0 +1,96 @@
+<%
+  var isDept = tab === 'departments';
+  var o = old || {};
+%>
+<div class="page-head">
+  <div><h1><%= t('nav.structure') %></h1><p><%= t('structure.subtitle') %></p></div>
+  <div class="page-actions">
+    <% if (isDept && can('departments.manage')) { %><button class="btn btn-dark" type="button" data-open-dialog="department-dialog" data-reset-form><%- icon('plus') %><%= t('structure.add_department') %></button><% } %>
+    <% if (!isDept && can('locations.manage')) { %><button class="btn btn-dark" type="button" data-open-dialog="location-dialog" data-reset-form><%- icon('plus') %><%= t('structure.add_location') %></button><% } %>
+  </div>
+</div>
+<nav class="tabs mb-6">
+  <a href="?tab=departments" class="<%= isDept ? 'active' : '' %>"><%- icon('building-2', 'icon-sm') %><%= t('structure.departments') %> <span class="badge"><%= departments.length %></span></a>
+  <a href="?tab=locations" class="<%= !isDept ? 'active' : '' %>"><%- icon('map-pin', 'icon-sm') %><%= t('structure.locations') %> <span class="badge"><%= locations.length %></span></a>
+</nav>
+
+<section class="panel">
+<% if (isDept) { %>
+  <% if (!departments.length) { %>
+    <div class="empty"><span class="empty-icon"><%- icon('building-2') %></span><h3><%= t('structure.no_departments') %></h3><p><%= t('structure.no_departments_text') %></p><% if (can('departments.manage')) { %><button class="btn btn-primary" type="button" data-open-dialog="department-dialog"><%- icon('plus') %><%= t('structure.add_department') %></button><% } %></div>
+  <% } else { %>
+  <div class="table-wrap"><table class="table">
+    <thead><tr><th><%= t('fields.name') %></th><th><%= t('fields.code') %></th><th><%= t('structure.parent') %></th><th><%= t('structure.head') %></th><th class="text-end"><%= t('nav.employees') %></th><th class="actions"></th></tr></thead>
+    <tbody>
+    <% departments.forEach(function (d) { %>
+      <tr>
+        <td><a class="person-name" href="/app/employees?department_id=<%= d.id %>"><%= d.name %></a></td>
+        <td class="muted num"><%= d.code || '—' %></td>
+        <td><%= d.parent_name || '—' %></td>
+        <td><%= d.head_name || '—' %></td>
+        <td class="text-end num"><%= d.employee_count %></td>
+        <td class="actions">
+          <% if (can('departments.manage')) { %>
+          <button class="btn btn-ghost btn-sm" type="button" data-open-dialog="department-dialog" data-fill="<%= JSON.stringify({ id: d.id, name: d.name, code: d.code || "", parent_id: d.parent_id || "", head_employee_id: d.head_employee_id || "" }) %>"><%- icon('pencil', 'icon-sm') %><%= t('common.edit') %></button>
+          <form method="post" action="/app/departments/<%= d.id %>/delete" style="display:inline" data-confirm="<%= t('structure.confirm_delete', { name: d.name }) %>"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><button class="btn btn-danger-ghost btn-sm" type="submit"><%- icon('trash-2', 'icon-sm') %></button></form>
+          <% } %>
+        </td>
+      </tr>
+    <% }) %>
+    </tbody>
+  </table></div>
+  <% } %>
+<% } else { %>
+  <% if (!locations.length) { %>
+    <div class="empty"><span class="empty-icon"><%- icon('map-pin') %></span><h3><%= t('structure.no_locations') %></h3><p><%= t('structure.no_locations_text') %></p><% if (can('locations.manage')) { %><button class="btn btn-primary" type="button" data-open-dialog="location-dialog"><%- icon('plus') %><%= t('structure.add_location') %></button><% } %></div>
+  <% } else { %>
+  <div class="table-wrap"><table class="table">
+    <thead><tr><th><%= t('fields.name') %></th><th><%= t('fields.city') %></th><th><%= t('fields.country') %></th><th><%= t('structure.type') %></th><th class="text-end"><%= t('nav.employees') %></th><th class="actions"></th></tr></thead>
+    <tbody>
+    <% locations.forEach(function (l) { %>
+      <tr>
+        <td><a class="person-name" href="/app/employees?location_id=<%= l.id %>"><%= l.name %></a></td>
+        <td><%= l.city || '—' %></td>
+        <td><%= l.country_code || '—' %></td>
+        <td><span class="badge"><%= l.is_remote ? t('work_modes.remote') : t('structure.office') %></span></td>
+        <td class="text-end num"><%= l.employee_count %></td>
+        <td class="actions">
+          <% if (can('locations.manage')) { %>
+          <button class="btn btn-ghost btn-sm" type="button" data-open-dialog="location-dialog" data-fill="<%= JSON.stringify({ id: l.id, name: l.name, city: l.city || "", country_code: l.country_code || "", is_remote: !!l.is_remote }) %>"><%- icon('pencil', 'icon-sm') %><%= t('common.edit') %></button>
+          <form method="post" action="/app/locations/<%= l.id %>/delete" style="display:inline" data-confirm="<%= t('structure.confirm_delete', { name: l.name }) %>"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><button class="btn btn-danger-ghost btn-sm" type="submit"><%- icon('trash-2', 'icon-sm') %></button></form>
+          <% } %>
+        </td>
+      </tr>
+    <% }) %>
+    </tbody>
+  </table></div>
+  <% } %>
+<% } %>
+</section>
+
+<dialog class="dialog" id="department-dialog"<%= typeof openDialog !== 'undefined' && openDialog === 'department' ? ' data-open-on-load' : '' %>>
+  <form method="post" action="/app/departments" novalidate>
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>"><input type="hidden" name="id" value="<%= o.id || '' %>">
+    <div class="dialog-head"><h2><%= t('structure.department') %></h2><button class="btn btn-ghost btn-icon btn-sm" type="button" data-close-dialog aria-label="<%= t('common.close') %>"><%- icon('x') %></button></div>
+    <div class="dialog-body stack">
+      <%- include('../../partials/field', { name: 'name', label: t('fields.name'), required: true }) %>
+      <%- include('../../partials/field', { name: 'code', label: t('fields.code') }) %>
+      <%- include('../../partials/field', { name: 'parent_id', label: t('structure.parent'), type: 'select', placeholder: t('common.none'), options: departments.map(function (d) { return { value: d.id, label: d.name }; }) }) %>
+      <%- include('../../partials/field', { name: 'head_employee_id', label: t('structure.head'), type: 'select', placeholder: t('common.none'), options: managers.map(function (m) { return { value: m.id, label: m.first_name + ' ' + m.last_name }; }) }) %>
+    </div>
+    <div class="dialog-foot"><button class="btn btn-ghost" type="button" data-close-dialog><%= t('common.cancel') %></button><button class="btn btn-dark" type="submit"><%= t('common.save') %></button></div>
+  </form>
+</dialog>
+<dialog class="dialog" id="location-dialog"<%= typeof openDialog !== 'undefined' && openDialog === 'location' ? ' data-open-on-load' : '' %>>
+  <form method="post" action="/app/locations" novalidate>
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>"><input type="hidden" name="id" value="<%= o.id || '' %>">
+    <div class="dialog-head"><h2><%= t('structure.location') %></h2><button class="btn btn-ghost btn-icon btn-sm" type="button" data-close-dialog aria-label="<%= t('common.close') %>"><%- icon('x') %></button></div>
+    <div class="dialog-body stack">
+      <%- include('../../partials/field', { name: 'name', label: t('fields.name'), required: true }) %>
+      <%- include('../../partials/field', { name: 'city', label: t('fields.city') }) %>
+      <%- include('../../partials/field', { name: 'country_code', label: t('fields.country'), type: 'select', placeholder: t('common.select'), value: organization.country_code, options: countries.map(function (c) { return { value: c.country_code, label: locale === 'ar' ? (c.name_ar || c.name) : c.name }; }) }) %>
+      <label class="check"><input type="checkbox" name="is_remote"<%= o.is_remote ? ' checked' : '' %>><%= t('structure.is_remote') %></label>
+    </div>
+    <div class="dialog-foot"><button class="btn btn-ghost" type="button" data-close-dialog><%= t('common.cancel') %></button><button class="btn btn-dark" type="submit"><%= t('common.save') %></button></div>
+  </form>
+</dialog>

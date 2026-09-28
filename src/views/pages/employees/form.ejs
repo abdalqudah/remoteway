@@ -1,0 +1,54 @@
+<%
+  var e = employee || {};
+  var v = function (k) { return e[k] instanceof Date ? fmt.dateInput(e[k]) : e[k]; };
+  var isEdit = !!employee;
+  var max = entitlements.limits.employees;
+%>
+<div class="page-head">
+  <div>
+    <div class="eyebrow"><a href="/app/employees"><%= t('nav.employees') %></a><%- icon('chevron-right', 'icon-sm flip-rtl') %><% if (isEdit) { %><a href="/app/employees/<%= e.id %>"><%= e.full_name %></a><% } %></div>
+    <h1><%= isEdit ? t('employees.edit') : t('employees.add') %></h1>
+    <% if (!isEdit && max !== null && max !== undefined) { %><p><%= t('employees.seats_note', { used: fmt.number(usage.employees), max: fmt.number(max) }) %></p><% } %>
+  </div>
+</div>
+<form method="post" action="<%= isEdit ? '/app/employees/' + e.id : '/app/employees' %>" class="stack-lg" novalidate>
+  <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+  <section class="panel">
+    <div class="panel-head"><div><h2><%= t('employees.section_personal') %></h2></div></div>
+    <div class="panel-body form-grid">
+      <%- include('../../partials/field', { name: 'first_name', label: t('fields.first_name'), required: true, value: v('first_name') }) %>
+      <%- include('../../partials/field', { name: 'last_name', label: t('fields.last_name'), required: true, value: v('last_name') }) %>
+      <%- include('../../partials/field', { name: 'email', label: t('fields.work_email'), type: 'email', value: v('email'), help: t('employees.email_help') }) %>
+      <%- include('../../partials/field', { name: 'phone', label: t('fields.phone'), type: 'tel', value: v('phone') }) %>
+      <%- include('../../partials/field', { name: 'nationality', label: t('fields.nationality'), type: 'select', placeholder: t('common.select'), value: v('nationality'), options: countries.map(function (c) { return { value: c.country_code, label: locale === 'ar' ? (c.name_ar || c.name) : c.name }; }) }) %>
+    </div>
+  </section>
+  <section class="panel">
+    <div class="panel-head"><h2><%= t('employees.section_employment') %></h2></div>
+    <div class="panel-body form-grid">
+      <%- include('../../partials/field', { name: 'job_title', label: t('fields.job_title'), value: v('job_title') }) %>
+      <%- include('../../partials/field', { name: 'employee_number', label: t('fields.employee_number'), value: v('employee_number'), help: t('employees.number_help') }) %>
+      <%- include('../../partials/field', { name: 'department_id', label: t('fields.department'), type: 'select', placeholder: t('common.none'), value: v('department_id'), options: departments.map(function (d) { return { value: d.id, label: d.name }; }) }) %>
+      <%- include('../../partials/field', { name: 'location_id', label: t('fields.location'), type: 'select', placeholder: t('common.none'), value: v('location_id'), options: locations.map(function (l) { return { value: l.id, label: l.name }; }) }) %>
+      <%- include('../../partials/field', { name: 'manager_id', label: t('fields.manager'), type: 'select', placeholder: t('common.none'), value: v('manager_id'), options: managers.filter(function (m) { return m.id !== e.id; }).map(function (m) { return { value: m.id, label: m.first_name + ' ' + m.last_name + (m.job_title ? ' — ' + m.job_title : '') }; }) }) %>
+      <%- include('../../partials/field', { name: 'joining_date', label: t('fields.joining_date'), type: 'date', value: v('joining_date') }) %>
+      <%- include('../../partials/field', { name: 'employment_type', label: t('fields.employment_type'), type: 'select', value: v('employment_type') || 'full_time', options: ['full_time','part_time','contract','intern','freelance'].map(function (x) { return { value: x, label: t('employment_types.' + x) }; }) }) %>
+      <%- include('../../partials/field', { name: 'work_mode', label: t('fields.work_mode'), type: 'select', value: v('work_mode') || 'onsite', options: ['onsite','hybrid','remote'].map(function (x) { return { value: x, label: t('work_modes.' + x) }; }) }) %>
+      <% if (!isEdit || e.status !== 'terminated') { %>
+      <%- include('../../partials/field', { name: 'status', label: t('fields.status'), type: 'select', value: v('status') || 'active', options: ['active','probation','on_leave'].map(function (x) { return { value: x, label: t('statuses.' + x) }; }) }) %>
+      <% } %>
+    </div>
+  </section>
+  <% if (can('employees.view_salary')) { %>
+  <section class="panel">
+    <div class="panel-head"><div><h2><%= t('employees.section_compensation') %></h2><div class="panel-sub"><%= t('employees.compensation_sub') %></div></div></div>
+    <div class="panel-body form-grid">
+      <%- include('../../partials/field', { name: 'base_salary', label: t('fields.base_salary') + ' (' + (e.salary_currency || organization.currency) + ')', type: 'number', value: v('base_salary'), attrs: 'min="0" step="0.01" inputmode="decimal"' }) %>
+    </div>
+  </section>
+  <% } %>
+  <div class="form-actions">
+    <a class="btn btn-ghost" href="<%= isEdit ? '/app/employees/' + e.id : '/app/employees' %>"><%= t('common.cancel') %></a>
+    <button class="btn btn-dark" type="submit"><%- icon('check') %><%= isEdit ? t('common.save_changes') : t('employees.add') %></button>
+  </div>
+</form>

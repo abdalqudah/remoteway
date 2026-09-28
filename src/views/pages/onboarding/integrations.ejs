@@ -1,0 +1,9 @@
+<h1><%= t('onboarding.integrations_title') %></h1>
+<p class="muted mt-1 mb-6"><%= t('onboarding.integrations_lead') %></p>
+<div class="stack">
+  <% [['credit-card','payway'],['mail','email'],['zap','sms'],['receipt','accounting'],['wallet','payroll']].forEach(function (i) { %>
+    <div class="integration"><span class="logo-box"><%- icon(i[0]) %></span><div class="grow"><strong><%= t('site.int_' + i[1]) %></strong><div class="muted small"><%= t('site.int_' + i[1] + '_text') %></div></div><span class="badge badge-soon"><%= i[1] === 'payway' ? t('common.setup_required') : t('common.soon') %></span></div>
+  <% }) %>
+  <div class="alert alert-info"><%- icon('info') %><div class="grow small"><%= t('onboarding.integrations_note') %></div></div>
+</div>
+<form method="post" action="/app/onboarding/finish" class="form-actions mt-6"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><a class="btn btn-ghost" href="/app/onboarding/team"><%= t('common.back') %></a><button class="btn btn-primary btn-lg" type="submit"><%= t('onboarding.go_dashboard') %><%- icon('arrow-right', 'flip-rtl') %></button></form>

@@ -1,0 +1,1 @@
+<% var _map = { active: 'badge-success', probation: 'badge-info', on_leave: 'badge-warning', terminated: 'badge-danger' }; %><span class="badge badge-dot <%= _map[status] || '' %>"><%= t('statuses.' + status) %></span>

@@ -1,0 +1,40 @@
+<h1><%= t('onboarding.setup_title') %></h1>
+<p class="muted mt-1 mb-6"><%= t('onboarding.setup_lead') %></p>
+<div class="stack-lg">
+  <section class="panel" id="departments">
+    <div class="panel-head"><div><h2><%= t('structure.departments') %></h2><div class="panel-sub"><%= t('onboarding.departments_hint') %></div></div></div>
+    <div class="panel-body stack">
+      <% if (departments.length) { %><div class="row wrap"><% departments.forEach(function (d) { %><span class="badge"><%= d.name %></span><% }) %></div><% } %>
+      <form method="post" action="/app/onboarding/setup/department" class="row" novalidate><input type="hidden" name="_csrf" value="<%= csrfToken %>">
+        <input class="input grow" name="name" placeholder="<%= t('onboarding.department_ph') %>" aria-label="<%= t('fields.name') %>" required>
+        <button class="btn btn-secondary" type="submit"><%- icon('plus') %><%= t('common.add') %></button>
+      </form>
+    </div>
+  </section>
+  <section class="panel" id="locations">
+    <div class="panel-head"><div><h2><%= t('structure.locations') %></h2><div class="panel-sub"><%= t('onboarding.locations_hint') %></div></div></div>
+    <div class="panel-body stack">
+      <% if (locations.length) { %><div class="row wrap"><% locations.forEach(function (l) { %><span class="badge"><%- icon(l.is_remote ? 'globe' : 'map-pin', 'icon-sm') %><%= l.name %></span><% }) %></div><% } %>
+      <form method="post" action="/app/onboarding/setup/location" class="row wrap" novalidate><input type="hidden" name="_csrf" value="<%= csrfToken %>"><input type="hidden" name="country_code" value="<%= organization.country_code %>">
+        <input class="input grow" name="name" placeholder="<%= t('onboarding.location_ph') %>" aria-label="<%= t('fields.name') %>" required style="min-width:200px">
+        <input class="input" name="city" placeholder="<%= t('fields.city') %>" aria-label="<%= t('fields.city') %>" style="max-width:180px">
+        <label class="check"><input type="checkbox" name="is_remote"><%= t('structure.is_remote') %></label>
+        <button class="btn btn-secondary" type="submit"><%- icon('plus') %><%= t('common.add') %></button>
+      </form>
+    </div>
+  </section>
+  <form method="post" action="/app/onboarding/setup/work" class="panel" novalidate>
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+    <div class="panel-head"><div><h2><%= t('settings.work_policy') %></h2><div class="panel-sub"><%= t('onboarding.work_hint', { country: locale === 'ar' ? organization.country_name_ar : organization.country_name }) %></div></div></div>
+    <div class="panel-body stack">
+      <div class="row wrap"><% days.forEach(function (d) { %><label class="check"><input type="checkbox" name="working_days" value="<%= d %>"<%= (settings.working_days || []).indexOf(d) >= 0 ? ' checked' : '' %>><%= t('days.' + d) %></label><% }) %></div>
+      <% if (errors.working_days) { %><span class="field-error"><%= errors.working_days %></span><% } %>
+      <div class="form-grid">
+        <%- include('../../partials/field', { name: 'work_start', label: t('fields.work_start'), type: 'time', value: settings.work_start }) %>
+        <%- include('../../partials/field', { name: 'work_end', label: t('fields.work_end'), type: 'time', value: settings.work_end }) %>
+      </div>
+      <div class="alert alert-info"><%- icon('info') %><div class="grow small"><%= t('onboarding.leave_policies_note') %></div></div>
+    </div>
+    <div class="panel-foot"><button class="btn btn-dark btn-lg" type="submit"><%= t('common.continue') %><%- icon('arrow-right', 'flip-rtl') %></button></div>
+  </form>
+</div>

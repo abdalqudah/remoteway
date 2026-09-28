@@ -1,0 +1,105 @@
+<%
+  var sub = ent.subscription; var plan = ent.plan;
+  var statusTone = { trial: 'badge-info', active: 'badge-success', past_due: 'badge-warning', suspended: 'badge-danger', cancelled: 'badge-danger', trial_expired: 'badge-danger' };
+  var meters = [['employees', 'users', false], ['users', 'user-cog', false], ['storage_mb', 'hard-drive', true], ['api_calls_monthly', 'plug', false], ['ai_requests_monthly', 'sparkles', false]];
+  var addonQty = {}; ent.addons.forEach(function (a) { addonQty[a.key] = a.quantity; });
+  var canManage = can('billing.manage');
+  var openInvoice = invoices.find(function (i) { return i.status === 'issued'; });
+%>
+<div class="page-head"><div><h1><%= t('nav.billing') %></h1><p><%= t('billing.subtitle') %></p></div></div>
+
+<div class="grid grid-3">
+  <section class="panel span-2">
+    <div class="panel-head"><div><h2><%= t('billing.current_plan') %></h2></div><span class="badge badge-dot <%= statusTone[ent.status] || '' %>"><%= t('billing.status_' + ent.status) %></span></div>
+    <div class="panel-body">
+      <div class="row between wrap">
+        <div><div style="font-size:26px;font-weight:800"><%= plan.name %></div><div class="muted"><%= plan.is_custom || plan.price_monthly === null ? t('billing.custom_pricing') : (sub.billing_cycle === 'yearly' ? t('billing.per_year', { price: fmt.money(plan.price_yearly, plan.currency) }) : t('billing.per_month', { price: fmt.money(plan.price_monthly, plan.currency) })) %> · <%= t('billing.excl_vat', { rate: organization.vat_rate }) %></div></div>
+        <% if (canManage && ent.status !== 'active' && !(plan.is_custom || plan.price_monthly === null)) { %>
+          <form method="post" action="/app/billing/activate"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><button class="btn btn-primary" type="submit"><%- icon('badge-check') %><%= openInvoice ? t('billing.view_open_invoice') : t('billing.activate') %></button></form>
+        <% } %>
+      </div>
+      <hr class="divider">
+      <dl class="dl">
+        <dt><%= t('billing.billing_cycle') %></dt><dd><%= t('billing.' + sub.billing_cycle) %></dd>
+        <dt><%= t('billing.started') %></dt><dd><%= fmt.date(sub.started_at) %></dd>
+        <% if (sub.status === 'trial') { %><dt><%= t('billing.trial_ends') %></dt><dd><%= fmt.date(sub.trial_ends_at) %> · <%= t('billing.days_left', { n: ent.trialDaysLeft }) %></dd><% } %>
+        <% if (sub.current_period_end) { %><dt><%= t('billing.renews') %></dt><dd><%= fmt.date(sub.current_period_end) %></dd><% } %>
+        <% if (sub.grace_ends_at && ent.status === 'past_due') { %><dt><%= t('billing.grace_until') %></dt><dd><%= fmt.date(sub.grace_ends_at) %></dd><% } %>
+      </dl>
+      <div class="alert alert-info mt-4"><%- icon('info') %><div class="grow small"><%= t('billing.payment_note') %></div></div>
+    </div>
+  </section>
+  <section class="panel">
+    <div class="panel-head"><h2><%= t('billing.usage') %></h2></div>
+    <div class="panel-body stack">
+      <% meters.forEach(function (m) { var used = usage[m[0]]; var max = ent.limits[m[0]]; var pct = max ? Math.min(100, Math.round(used / max * 100)) : 0; %>
+        <div class="usage-row">
+          <span class="row-sm small"><%- icon(m[1], 'icon-sm muted') %><%= t('limits.' + m[0]) %></span>
+          <span class="small num"><strong><%= m[2] ? fmt.mb(used) : fmt.number(used) %></strong> <span class="muted">/ <%= max === 0 ? t('billing.not_included') : (m[2] ? fmt.mb(max) : fmt.number(max)) %></span></span>
+          <% if (max) { %><div class="meter <%= pct >= 100 ? 'full' : pct >= 90 ? 'warn' : '' %>"><span style="width:<%= pct %>%"></span></div><% } %>
+        </div>
+      <% }) %>
+    </div>
+  </section>
+</div>
+
+<section class="panel mt-6" id="plans">
+  <div class="panel-head"><div><h2><%= t('billing.change_plan') %></h2><div class="panel-sub"><%= ent.status === 'trial' ? t('billing.change_plan_trial') : t('billing.change_plan_active') %></div></div></div>
+  <div class="panel-body">
+    <div class="pricing">
+      <% plans.forEach(function (p) { var current = p.id === plan.id; var custom = p.is_custom || p.price_monthly === null; %>
+      <div class="price-card<%= current ? ' featured' : '' %>">
+        <div class="row between"><h3><%= p.name %></h3><% if (current) { %><span class="badge badge-brand"><%= t('billing.current') %></span><% } %></div>
+        <div><div class="amount num" style="font-size:24px"><%= custom ? t('billing.custom') : fmt.money(p.price_monthly, p.currency) %></div><div class="per"><%= custom ? t('billing.talk_to_sales') : t('billing.per_month_short') %></div></div>
+        <ul>
+          <li><%- icon('users') %><%= p.limits.employees === null ? t('billing.unlimited_employees') : t('billing.up_to_employees', { n: fmt.number(p.limits.employees) }) %></li>
+          <li><%- icon('user-cog') %><%= p.limits.users === null ? t('billing.unlimited_users') : t('billing.up_to_users', { n: fmt.number(p.limits.users) }) %></li>
+          <li><%- icon('layers') %><%= t('billing.n_features', { n: p.features.length }) %></li>
+        </ul>
+        <% if (canManage && !current) { %>
+          <% if (custom) { %><a class="btn btn-secondary btn-block" href="mailto:Info@remoteway.com?subject=RemoteWay%20Enterprise"><%= t('site.contact_sales') %></a>
+          <% } else { %>
+          <form method="post" action="/app/billing/plan" class="stack-sm"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><input type="hidden" name="plan" value="<%= p.key %>">
+            <select class="select" name="cycle" aria-label="<%= t('billing.billing_cycle') %>"><option value="monthly"><%= t('billing.monthly') %> · <%= fmt.money(p.price_monthly, p.currency) %></option><option value="yearly"<%= sub.billing_cycle === 'yearly' ? ' selected' : '' %>><%= t('billing.yearly') %> · <%= fmt.money(p.price_yearly, p.currency) %></option></select>
+            <button class="btn <%= p.sort_order > plan.sort_order ? 'btn-dark' : 'btn-secondary' %> btn-block" type="submit"><%= p.sort_order > plan.sort_order ? t('billing.upgrade') : t('billing.downgrade') %></button>
+          </form>
+          <% } %>
+        <% } %>
+      </div>
+      <% }) %>
+    </div>
+  </div>
+</section>
+
+<section class="panel mt-6" id="addons">
+  <div class="panel-head"><div><h2><%= t('billing.addons') %></h2><div class="panel-sub"><%= t('billing.addons_sub') %></div></div></div>
+  <div class="table-wrap"><table class="table">
+    <thead><tr><th><%= t('billing.addon') %></th><th><%= t('billing.price') %></th><th><%= t('fields.status') %></th><th class="actions"></th></tr></thead>
+    <tbody>
+    <% addons.forEach(function (a) { var qty = addonQty[a.key] || 0; var soon = a.feature_availability && a.feature_availability !== 'available'; %>
+      <tr>
+        <td><strong><%= t('addons.' + a.key) %></strong><% if (soon) { %> <span class="badge badge-soon"><%= a.feature_availability === 'integration_required' ? t('common.setup_required') : t('common.soon') %></span><% } %></td>
+        <td class="num"><%= Number(a.price_monthly) > 0 ? t('billing.per_month', { price: fmt.money(a.price_monthly, a.currency) }) : t('billing.included') %><%= a.limit_key ? ' · ' + t('billing.per_unit') : '' %></td>
+        <td><%= qty ? (a.limit_key ? t('billing.qty_active', { n: qty }) : t('billing.active')) : '—' %></td>
+        <td class="actions">
+          <% if (canManage && !soon) { %>
+          <form method="post" action="/app/billing/addons" class="row-sm" style="justify-content:flex-end"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><input type="hidden" name="addon" value="<%= a.key %>">
+            <% if (a.limit_key) { %><input class="input" type="number" name="quantity" min="0" max="100" value="<%= qty %>" style="width:80px;height:32px" aria-label="<%= t('billing.quantity') %>"><button class="btn btn-secondary btn-sm" type="submit"><%= t('common.update') %></button>
+            <% } else { %><input type="hidden" name="quantity" value="<%= qty ? 0 : 1 %>"><button class="btn <%= qty ? 'btn-danger-ghost' : 'btn-secondary' %> btn-sm" type="submit"><%= qty ? t('billing.remove') : t('billing.add') %></button><% } %>
+          </form>
+          <% } %>
+        </td>
+      </tr>
+    <% }) %>
+    </tbody>
+  </table></div>
+</section>
+
+<section class="panel mt-6">
+  <div class="panel-head"><h2><%= t('billing.invoices') %></h2></div>
+  <% if (!invoices.length) { %><div class="empty"><span class="empty-icon"><%- icon('receipt') %></span><p><%= t('billing.no_invoices') %></p></div><% } else { %>
+  <div class="table-wrap"><table class="table">
+    <thead><tr><th><%= t('billing.invoice_number') %></th><th><%= t('billing.date') %></th><th><%= t('billing.due') %></th><th class="text-end"><%= t('billing.total') %></th><th><%= t('fields.status') %></th><th class="actions"></th></tr></thead>
+    <tbody><% invoices.forEach(function (i) { %><tr><td class="mono"><%= i.number %></td><td><%= fmt.date(i.issue_date) %></td><td><%= fmt.date(i.due_date) %></td><td class="text-end num"><%= fmt.money(i.total, i.currency) %></td><td><span class="badge badge-dot <%= i.status === 'paid' ? 'badge-success' : i.status === 'issued' ? 'badge-warning' : '' %>"><%= t('billing.invoice_' + i.status) %></span></td><td class="actions"><a class="btn btn-ghost btn-sm" href="/app/billing/invoices/<%= i.id %>"><%= t('common.view') %></a></td></tr><% }) %></tbody>
+  </table></div><% } %>
+</section>

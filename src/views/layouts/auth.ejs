@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="<%= locale %>" dir="<%= dir %>"<% if (theme !== 'system') { %> data-theme="<%= theme %>"<% } %>>
+<head><%- include('../partials/head') %></head>
+<body>
+<div class="auth">
+  <div class="auth-side">
+    <a href="/" aria-label="RemoteWay"><img src="/brand/logo-white.png" alt="RemoteWay" width="1753" height="248"></a>
+    <div>
+      <h2><%= t('auth.side_title_1') %><br><%= t('auth.side_title_2') %></h2>
+      <p><%= t('auth.side_text') %></p>
+      <ul class="auth-points">
+        <li><%- icon('circle-check') %><%= t('auth.side_point_1') %></li>
+        <li><%- icon('circle-check') %><%= t('auth.side_point_2') %></li>
+        <li><%- icon('circle-check') %><%= t('auth.side_point_3') %></li>
+      </ul>
+    </div>
+    <div class="small" style="font-weight:600">#REMOTE WAY</div>
+  </div>
+  <div class="auth-main" style="position:relative">
+    <div class="auth-top">
+      <a class="btn btn-ghost btn-sm" href="<%= langUrl(locale === 'ar' ? 'en' : 'ar') %>"><%- icon('languages') %><%= locale === 'ar' ? 'English' : 'العربية' %></a>
+      <button class="btn btn-ghost btn-icon" type="button" data-theme-toggle aria-label="<%= t('common.toggle_theme') %>"><%- icon('moon', 'theme-moon') %><%- icon('sun', 'theme-sun hidden') %></button>
+    </div>
+    <div class="auth-card<%= typeof wide !== 'undefined' && wide ? ' wide' : '' %>">
+      <a class="auth-mobile-logo" href="/"><%- include('../partials/logo') %></a>
+      <%- include('../partials/flash') %>
+      <%- body %>
+    </div>
+  </div>
+</div>
+<script src="/js/app.js?v=1" defer></script>
+</body>
+</html>

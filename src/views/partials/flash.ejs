@@ -1,0 +1,13 @@
+<% if (flash && flash.length) { %><div class="stack-sm mb-4" role="status">
+<% flash.forEach(function (f) { %><div class="alert alert-<%= f.type %>" data-dismissible><%- icon(f.type === 'success' ? 'circle-check' : f.type === 'error' ? 'circle-alert' : 'info') %><div class="grow"><%= f.message %></div><button class="btn btn-ghost btn-icon btn-sm" type="button" data-dismiss aria-label="<%= t('common.close') %>"><%- icon('x', 'icon-sm') %></button></div><% }) %>
+</div><% } %>
+<% if (typeof formError !== 'undefined' && formError) { %>
+<div class="alert alert-<%= formError.code === 'VALIDATION_FAILED' ? 'error' : 'warning' %> mb-4" role="alert"><%- icon('circle-alert') %><div class="grow"><div class="alert-title"><%= formError.message %></div>
+<% if (formError.code === 'EMPLOYEE_LIMIT_REACHED' || formError.code === 'USAGE_LIMIT_REACHED') { %>
+<div class="text-2"><%= t('limits.limit_detail', { current: fmt.number(formError.details && formError.details.current), max: fmt.number(formError.details && formError.details.max) }) %></div>
+<% if (can('billing.manage')) { %><div class="mt-2"><a class="btn btn-dark btn-sm" href="/app/billing"><%- icon('rocket') %><%= t('billing.upgrade_plan') %></a></div><% } else { %><div class="text-2"><%= t('limits.ask_owner') %></div><% } %>
+<% } else if (formError.code === 'FEATURE_NOT_IN_PLAN' && can('billing.manage')) { %>
+<div class="mt-2"><a class="btn btn-dark btn-sm" href="/app/billing"><%= t('billing.upgrade_plan') %></a></div>
+<% } %>
+</div></div>
+<% } %>

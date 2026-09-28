@@ -1,0 +1,9 @@
+<h1><%= t('auth.new_org_title') %></h1>
+<p class="lead"><%= t('auth.new_org_lead') %></p>
+<form method="post" action="/organizations/new" class="stack mt-6" novalidate>
+  <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+  <%- include('../../partials/company-fields') %>
+  <div class="fieldset-title mt-2"><%= t('fields.plan') %></div>
+  <%- include('../../partials/plan-picker') %>
+  <div class="form-actions"><a class="btn btn-ghost" href="/app"><%= t('common.cancel') %></a><button class="btn btn-primary btn-lg" type="submit"><%= t('auth.create_workspace') %></button></div>
+</form>

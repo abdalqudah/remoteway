@@ -1,0 +1,34 @@
+<div class="pricing-toggle" role="tablist">
+  <a href="?cycle=monthly#pricing" class="<%= cycle === 'monthly' ? 'active' : '' %>"><%= t('billing.monthly') %></a>
+  <a href="?cycle=yearly#pricing" class="<%= cycle === 'yearly' ? 'active' : '' %>"><%= t('billing.yearly') %></a>
+</div>
+<div class="pricing">
+  <% plans.forEach(function (p) { var custom = p.is_custom || p.price_monthly === null; var price = cycle === 'yearly' ? p.price_yearly : p.price_monthly; %>
+  <div class="price-card<%= p.key === 'business' ? ' featured' : '' %>">
+    <div>
+      <div class="row between"><h3 style="font-size:18px"><%= p.name %></h3><% if (p.key === 'business') { %><span class="badge badge-brand"><%= t('site.popular') %></span><% } %></div>
+      <p class="muted mt-1 small"><%= locale === 'ar' ? (p.tagline_ar || p.tagline) : p.tagline %></p>
+    </div>
+    <div>
+      <% if (custom) { %><div class="amount"><%= t('billing.custom') %></div><div class="per"><%= t('billing.talk_to_sales') %></div>
+      <% } else { %><div class="amount num"><%= fmt.money(price, p.currency) %></div><div class="per"><%= cycle === 'yearly' ? t('billing.per_year_excl_vat') : t('billing.per_month_excl_vat') %></div><% } %>
+    </div>
+    <a class="btn <%= p.key === 'business' ? 'btn-primary' : 'btn-dark' %> btn-block" href="<%= custom ? 'mailto:Info@remoteway.com?subject=RemoteWay%20Enterprise' : '/signup?plan=' + p.key %>"><%= custom ? t('site.contact_sales') : (p.trial_days > 0 ? t('site.start_trial', { days: p.trial_days }) : t('site.get_started')) %></a>
+    <ul>
+      <li><%- icon('users') %><strong><%= p.limits.employees === null ? t('billing.unlimited_employees') : t('billing.up_to_employees', { n: fmt.number(p.limits.employees) }) %></strong></li>
+      <li><%- icon('user-cog') %><%= p.limits.users === null ? t('billing.unlimited_users') : t('billing.up_to_users', { n: fmt.number(p.limits.users) }) %></li>
+      <% p.features.forEach(function (f) { %>
+        <li class="<%= f.availability === 'available' ? '' : 'soon' %>"><%- icon(f.availability === 'available' ? 'check' : 'clock') %><span><%= t('features.' + f.key) %><% if (f.availability !== 'available') { %> <span class="tiny">(<%= f.availability === 'integration_required' ? t('common.setup_required') : t('common.soon') %>)</span><% } %></span></li>
+      <% }) %>
+    </ul>
+  </div>
+  <% }) %>
+</div>
+<% if (addons && addons.length) { %>
+<div class="panel mt-6">
+  <div class="panel-head"><div><h3><%= t('billing.addons') %></h3><div class="panel-sub"><%= t('billing.addons_sub') %></div></div></div>
+  <div class="table-wrap"><table class="table"><tbody>
+    <% addons.forEach(function (a) { %><tr><td><strong><%= t('addons.' + a.key) %></strong></td><td class="muted"><%= a.feature_availability && a.feature_availability !== 'available' ? (a.feature_availability === 'integration_required' ? t('common.setup_required') : t('common.soon')) : '' %></td><td class="text-end num"><%= Number(a.price_monthly) > 0 ? t('billing.per_month', { price: fmt.money(a.price_monthly, a.currency) }) : t('billing.included') %></td></tr><% }) %>
+  </tbody></table></div>
+</div>
+<% } %>

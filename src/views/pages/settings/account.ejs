@@ -1,0 +1,22 @@
+<div class="page-head"><div><h1><%= t('nav.settings') %></h1><p><%= t('settings.account_sub') %></p></div></div>
+<%- include('../../partials/settings-nav') %>
+<div class="grid grid-2">
+  <section class="panel">
+    <div class="panel-head"><h2><%= t('settings.profile') %></h2></div>
+    <div class="panel-body"><dl class="dl"><dt><%= t('fields.name') %></dt><dd><%= currentUser.name %></dd><dt><%= t('fields.email') %></dt><dd><%= currentUser.email %></dd></dl></div>
+    <form method="post" action="/app/settings/account/locale" class="panel-foot" style="justify-content:space-between">
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+      <select class="select" name="locale" style="width:auto" aria-label="<%= t('common.language') %>"><option value="ar"<%= locale === 'ar' ? ' selected' : '' %>>العربية</option><option value="en"<%= locale === 'en' ? ' selected' : '' %>>English</option></select>
+      <button class="btn btn-secondary" type="submit"><%= t('settings.save_language') %></button>
+    </form>
+  </section>
+  <form method="post" action="/app/settings/account/password" class="panel" novalidate>
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+    <div class="panel-head"><h2><%= t('settings.change_password') %></h2></div>
+    <div class="panel-body stack">
+      <%- include('../../partials/field', { name: 'current_password', label: t('settings.current_password'), type: 'password', required: true, autocomplete: 'current-password' }) %>
+      <%- include('../../partials/field', { name: 'new_password', label: t('settings.new_password'), type: 'password', required: true, autocomplete: 'new-password', help: t('auth.password_help') }) %>
+    </div>
+    <div class="panel-foot"><button class="btn btn-dark" type="submit"><%= t('settings.update_password') %></button></div>
+  </form>
+</div>

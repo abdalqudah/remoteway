@@ -1,0 +1,36 @@
+<%
+  var firstError = Object.keys(errors || {})[0];
+  var stepOf = { name: 0, email: 0, password: 0, company_name: 1, country_code: 1, industry: 1, company_size: 1, website: 1, phone: 1, plan: 2, terms: 2 };
+  var startStep = firstError !== undefined && stepOf[firstError] !== undefined ? stepOf[firstError] : 0;
+%>
+<h1><%= t('auth.signup_title') %></h1>
+<p class="lead"><%= t('auth.signup_lead') %></p>
+<form method="post" action="/signup" class="mt-6" data-wizard data-start="<%= startStep %>" novalidate>
+  <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+  <div class="steps">
+    <div class="step" data-step-ind><div class="bar"></div><div class="step-label">1 · <%= t('auth.step_account') %></div></div>
+    <div class="step" data-step-ind><div class="bar"></div><div class="step-label">2 · <%= t('auth.step_company') %></div></div>
+    <div class="step" data-step-ind><div class="bar"></div><div class="step-label">3 · <%= t('auth.step_plan') %></div></div>
+  </div>
+
+  <section class="stack" data-step>
+    <%- include('../../partials/field', { name: 'name', label: t('fields.full_name'), required: true, autocomplete: 'name' }) %>
+    <%- include('../../partials/field', { name: 'email', label: t('fields.work_email'), type: 'email', required: true, autocomplete: 'email' }) %>
+    <%- include('../../partials/field', { name: 'password', label: t('fields.password'), type: 'password', required: true, autocomplete: 'new-password', help: t('auth.password_help'), attrs: 'minlength="8"' }) %>
+    <p class="help"><%= t('auth.owner_note') %></p>
+    <div class="form-actions"><button class="btn btn-dark btn-lg" type="button" data-next><%= t('common.continue') %><%- icon('arrow-right', 'flip-rtl') %></button></div>
+  </section>
+
+  <section class="stack hidden" data-step>
+    <%- include('../../partials/company-fields') %>
+    <div class="form-actions"><button class="btn btn-ghost" type="button" data-prev><%= t('common.back') %></button><button class="btn btn-dark btn-lg" type="button" data-next><%= t('common.continue') %><%- icon('arrow-right', 'flip-rtl') %></button></div>
+  </section>
+
+  <section class="stack hidden" data-step>
+    <%- include('../../partials/plan-picker') %>
+    <label class="check"><input type="checkbox" name="terms"<%= old && old.terms ? ' checked' : '' %>><span><%= t('auth.accept_terms') %></span></label>
+    <% if (errors && errors.terms) { %><span class="field-error"><%= errors.terms %></span><% } %>
+    <div class="form-actions"><button class="btn btn-ghost" type="button" data-prev><%= t('common.back') %></button><button class="btn btn-primary btn-lg" type="submit"><%= t('auth.create_workspace') %></button></div>
+  </section>
+</form>
+<p class="mt-6 text-2"><%= t('auth.have_account') %> <a class="link" href="/login"><%= t('auth.login') %></a></p>

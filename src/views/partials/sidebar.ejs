@@ -1,0 +1,58 @@
+<%
+  var p = fullPath.split('?')[0];
+  var isActive = function (href, exact) { return exact ? p === href : p.indexOf(href) === 0; };
+  var groups = [['workforce', 'nav.group_workforce'], ['talent', 'nav.group_talent'], ['finance', 'nav.group_finance'], ['insights', 'nav.group_insights']];
+%>
+<div class="sidebar-brand"><a href="/app" aria-label="RemoteWay"><%- include('logo') %></a></div>
+<details class="dropdown org-switch">
+  <summary>
+    <span class="org-mark"><%= initials(organization.name) %></span>
+    <span class="grow"><span class="org-name truncate" style="display:block"><%= organization.name %></span><span class="org-plan"><%= entitlements.plan ? entitlements.plan.name : '' %> · <%= t('billing.status_' + entitlements.status) %></span></span>
+    <%- icon('chevrons-up-down', 'icon-sm muted') %>
+  </summary>
+  <div class="menu">
+    <div class="menu-label"><%= t('nav.organizations') %></div>
+    <% organizations.forEach(function (o) { %>
+      <form method="post" action="/organizations/switch"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><input type="hidden" name="organization_id" value="<%= o.id %>">
+        <button type="submit" class="<%= o.id === organization.id ? 'is-current' : '' %>"><span class="org-mark" style="width:22px;height:22px;font-size:10px;border-radius:6px"><%= initials(o.name) %></span><span class="grow truncate"><%= o.name %></span><% if (o.id === organization.id) { %><%- icon('check', 'icon-sm') %><% } %></button>
+      </form>
+    <% }) %>
+    <div class="sep"></div>
+    <a href="/organizations/new"><%- icon('plus', 'icon-sm') %><%= t('nav.new_organization') %></a>
+  </div>
+</details>
+<nav class="nav" aria-label="<%= t('nav.main') %>">
+  <a href="/app" class="<%= isActive('/app', true) ? 'active' : '' %>"><%- icon('layout-dashboard') %><%= t('nav.dashboard') %></a>
+  <div class="nav-group">
+    <div class="nav-title"><%= t('nav.group_workforce') %></div>
+    <% if (can('employees.view') || can('team.view')) { %><a href="/app/employees" class="<%= isActive('/app/employees') ? 'active' : '' %>"><%- icon('users') %><%= can('employees.view') ? t('nav.employees') : t('nav.my_team') %></a><% } %>
+    <% if (can('employees.view')) { %><a href="/app/structure" class="<%= isActive('/app/structure') ? 'active' : '' %>"><%- icon('building-2') %><%= t('nav.structure') %></a><% } %>
+    <% MODULES.filter(function (m) { return m.group === 'workforce'; }).forEach(function (m) { %>
+      <a href="/app/modules/<%= m.key %>" class="is-soon <%= isActive('/app/modules/' + m.key) ? 'active' : '' %>"><%- icon(m.icon) %><%= t('nav.' + m.key) %><span class="badge badge-soon"><%= t('common.soon') %></span></a>
+    <% }) %>
+  </div>
+  <% groups.slice(1).forEach(function (g) { %>
+  <div class="nav-group">
+    <div class="nav-title"><%= t(g[1]) %></div>
+    <% MODULES.filter(function (m) { return m.group === g[0]; }).forEach(function (m) { %>
+      <a href="/app/modules/<%= m.key %>" class="is-soon <%= isActive('/app/modules/' + m.key) ? 'active' : '' %>"><%- icon(m.icon) %><%= t('nav.' + m.key) %><span class="badge badge-soon"><%= m.status === 'integration' ? t('common.setup_required') : t('common.soon') %></span></a>
+    <% }) %>
+  </div>
+  <% }) %>
+  <div class="nav-group">
+    <div class="nav-title"><%= t('nav.group_admin') %></div>
+    <% if (can('billing.view')) { %><a href="/app/billing" class="<%= isActive('/app/billing') ? 'active' : '' %>"><%- icon('receipt') %><%= t('nav.billing') %></a><% } %>
+    <a href="/app/settings" class="<%= isActive('/app/settings') ? 'active' : '' %>"><%- icon('settings') %><%= t('nav.settings') %></a>
+    <% if (currentUser.is_super_admin) { %><a href="/admin"><%- icon('gauge') %><%= t('nav.super_admin') %></a><% } %>
+  </div>
+</nav>
+<% if (entitlements.limits && entitlements.limits.employees !== undefined && can('billing.view')) { %>
+<div class="sidebar-foot">
+  <a class="plan-card" href="/app/billing" style="display:block">
+    <div class="row between"><strong><%= entitlements.plan.name %></strong><span class="muted tiny"><%= t('billing.seats') %></span></div>
+    <% var _max = entitlements.limits.employees; var _pct = _max ? Math.min(100, Math.round(seatUsage / _max * 100)) : 0; %>
+    <div class="muted mt-1 tiny"><%= t('billing.employees_of', { used: fmt.number(seatUsage), max: _max === null ? '∞' : fmt.number(_max) }) %></div>
+    <% if (_max) { %><div class="meter mt-2 <%= _pct >= 100 ? 'full' : _pct >= 90 ? 'warn' : '' %>"><span style="width:<%= _pct %>%"></span></div><% } %>
+  </a>
+</div>
+<% } %>

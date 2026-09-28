@@ -1,0 +1,26 @@
+<div class="page-head"><div><h1><%= t('admin.plans') %></h1><p><%= t('admin.plans_sub') %></p></div></div>
+<div class="stack-lg">
+<% plans.forEach(function (p) { %>
+<form method="post" action="/admin/plans/<%= p.id %>" class="panel" id="plan-<%= p.id %>" novalidate>
+  <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+  <div class="panel-head"><div><h2><%= p.name %> <span class="muted mono small">(<%= p.key %>)</span></h2></div><div class="row"><label class="check"><input type="checkbox" name="is_active"<%= p.is_active ? ' checked' : '' %>><%= t('admin.active') %></label><label class="check"><input type="checkbox" name="is_public"<%= p.is_public ? ' checked' : '' %>><%= t('admin.public') %></label></div></div>
+  <div class="panel-body stack">
+    <div class="grid grid-4">
+      <div class="field"><label class="label"><%= t('fields.name') %></label><input class="input" name="name" value="<%= p.name %>" required></div>
+      <div class="field"><label class="label"><%= t('admin.price_monthly') %> (<%= p.currency %>)</label><input class="input" type="number" step="0.01" min="0" name="price_monthly" value="<%= p.price_monthly === null ? '' : p.price_monthly %>" placeholder="<%= t('billing.custom') %>"></div>
+      <div class="field"><label class="label"><%= t('admin.price_yearly') %> (<%= p.currency %>)</label><input class="input" type="number" step="0.01" min="0" name="price_yearly" value="<%= p.price_yearly === null ? '' : p.price_yearly %>" placeholder="<%= t('billing.custom') %>"></div>
+      <div class="field"><label class="label"><%= t('admin.trial_days') %></label><input class="input" type="number" min="0" max="365" name="trial_days" value="<%= p.trial_days %>"></div>
+      <div class="field span-2"><label class="label"><%= t('admin.tagline') %> (EN)</label><input class="input" name="tagline" value="<%= p.tagline || '' %>"></div>
+      <div class="field span-2"><label class="label"><%= t('admin.tagline') %> (AR)</label><input class="input" name="tagline_ar" value="<%= p.tagline_ar || '' %>" dir="rtl"></div>
+    </div>
+    <div><div class="fieldset-title"><%= t('admin.limits') %> <span class="muted small">— <%= t('admin.limits_hint') %></span></div>
+      <div class="grid grid-3 mt-2"><% limitKeys.forEach(function (k) { %><div class="field"><label class="label"><%= t('limits.' + k) %></label><input class="input" type="number" min="0" name="limits[<%= k %>]" value="<%= p.limits[k] === null || p.limits[k] === undefined ? '' : p.limits[k] %>" placeholder="∞"></div><% }) %></div>
+    </div>
+    <div><div class="fieldset-title"><%= t('admin.features') %></div>
+      <div class="perm-grid mt-2"><% features.forEach(function (f) { %><label class="check"><input type="checkbox" name="feature_ids" value="<%= f.id %>"<%= p.featureIds.indexOf(f.id) >= 0 ? ' checked' : '' %>><span><%= t('features.' + f.key) %><% if (f.availability !== 'available') { %> <span class="muted tiny">(<%= f.availability === 'integration_required' ? t('common.setup_required') : t('common.soon') %>)</span><% } %></span></label><% }) %></div>
+    </div>
+  </div>
+  <div class="panel-foot"><button class="btn btn-dark" type="submit"><%= t('common.save_changes') %></button></div>
+</form>
+<% }) %>
+</div>

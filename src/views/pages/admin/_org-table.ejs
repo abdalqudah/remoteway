@@ -1,0 +1,9 @@
+<% if (!orgs.length) { %><div class="empty"><p><%= t('admin.no_orgs') %></p></div><% } else { %>
+<div class="table-wrap"><table class="table">
+  <thead><tr><th><%= t('admin.organization') %></th><th><%= t('admin.owner') %></th><th><%= t('fields.plan') %></th><th><%= t('fields.status') %></th><th class="text-end"><%= t('nav.employees') %></th><th><%= t('admin.created') %></th></tr></thead>
+  <tbody><% orgs.forEach(function (o) { %>
+    <tr><td><a class="person-name" href="/admin/organizations/<%= o.id %>"><%= o.name %></a><div class="muted tiny"><%= o.country_code %> · #<%= o.id %></div></td><td class="muted"><%= o.owner_email %></td><td><%= o.plan_name || '—' %></td>
+      <td><span class="badge <%= o.status === 'suspended' ? 'badge-danger' : '' %>"><%= o.status === 'suspended' ? t('admin.suspended') : t('billing.status_' + o.sub_status) %></span></td>
+      <td class="text-end num"><%= o.employee_count %></td><td class="muted"><%= fmt.date(o.created_at) %></td></tr>
+  <% }) %></tbody>
+</table></div><% } %>

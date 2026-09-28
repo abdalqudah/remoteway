@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="<%= locale %>" dir="<%= dir %>"<% if (theme !== 'system') { %> data-theme="<%= theme %>"<% } %>>
+<head><%- include('../partials/head') %></head>
+<body>
+<div class="shell">
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-brand"><a href="/admin" aria-label="RemoteWay"><%- include('../partials/logo') %></a></div>
+    <div class="org-switch" style="margin:12px"><div class="row" style="padding:8px 10px;border:1px solid var(--border);border-radius:var(--radius);background:var(--surface-2)"><span class="org-mark"><%- icon('gauge', 'icon-sm') %></span><span><span class="org-name" style="display:block"><%= t('admin.title') %></span><span class="org-plan"><%= t('admin.subtitle') %></span></span></div></div>
+    <nav class="nav">
+      <a href="/admin" class="<%= adminSection === 'overview' ? 'active' : '' %>"><%- icon('layout-dashboard') %><%= t('admin.overview') %></a>
+      <a href="/admin/organizations" class="<%= adminSection === 'organizations' ? 'active' : '' %>"><%- icon('building-2') %><%= t('admin.organizations') %></a>
+      <a href="/admin/plans" class="<%= adminSection === 'plans' ? 'active' : '' %>"><%- icon('layers') %><%= t('admin.plans') %></a>
+      <a href="/admin/invoices" class="<%= adminSection === 'invoices' ? 'active' : '' %>"><%- icon('receipt') %><%= t('admin.invoices') %></a>
+      <a href="/admin/audit" class="<%= adminSection === 'audit' ? 'active' : '' %>"><%- icon('history') %><%= t('admin.audit') %></a>
+      <div class="nav-group"><div class="nav-title"><%= t('admin.workspace') %></div><a href="/app"><%- icon('arrow-left', 'flip-rtl') %><%= t('admin.back_to_app') %></a></div>
+    </nav>
+  </aside>
+  <div class="sidebar-backdrop" data-nav-close></div>
+  <div class="main">
+    <header class="topbar">
+      <button class="btn btn-ghost btn-icon mobile-only" type="button" data-nav-toggle aria-label="<%= t('nav.menu') %>"><%- icon('menu') %></button>
+      <span class="badge badge-brand"><%= t('admin.super_admin') %></span>
+      <div class="topbar-actions">
+        <a class="btn btn-ghost btn-sm" href="<%= langUrl(locale === 'ar' ? 'en' : 'ar') %>"><%- icon('languages') %><%= locale === 'ar' ? 'EN' : 'ع' %></a>
+        <button class="btn btn-ghost btn-icon" type="button" data-theme-toggle aria-label="<%= t('common.toggle_theme') %>"><%- icon('moon', 'theme-moon') %><%- icon('sun', 'theme-sun hidden') %></button>
+        <form method="post" action="/logout"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><button class="btn btn-ghost btn-sm" type="submit"><%- icon('log-out') %><%= t('auth.logout') %></button></form>
+      </div>
+    </header>
+    <main class="content"><%- include('../partials/flash') %><%- body %></main>
+  </div>
+</div>
+<script src="/js/app.js?v=1" defer></script>
+</body>
+</html>

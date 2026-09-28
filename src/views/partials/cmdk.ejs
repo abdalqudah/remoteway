@@ -1,0 +1,16 @@
+<div class="cmdk" data-cmdk role="dialog" aria-modal="true" aria-label="<%= t('search.open') %>">
+  <div class="cmdk-box">
+    <div class="cmdk-input"><%- icon('search', 'muted') %><input type="text" data-cmdk-input placeholder="<%= t('search.placeholder_long') %>" autocomplete="off" aria-label="<%= t('search.placeholder') %>"><span class="kbd">Esc</span></div>
+    <div class="cmdk-results" data-cmdk-results></div>
+  </div>
+  <script type="application/json" data-cmdk-pages><%- JSON.stringify([
+    { title: t('nav.dashboard'), href: '/app', icon: 'layout-dashboard' },
+    can('employees.view') || can('team.view') ? { title: t('nav.employees'), href: '/app/employees', icon: 'users' } : null,
+    can('employees.create') ? { title: t('employees.add'), href: '/app/employees/new', icon: 'user-plus' } : null,
+    can('employees.view') ? { title: t('nav.structure'), href: '/app/structure', icon: 'building-2' } : null,
+    can('users.view') ? { title: t('settings.users'), href: '/app/settings/users', icon: 'user-cog' } : null,
+    can('billing.view') ? { title: t('nav.billing'), href: '/app/billing', icon: 'receipt' } : null,
+    { title: t('nav.settings'), href: '/app/settings', icon: 'settings' }
+  ].filter(Boolean)).replace(/</g, '\\u003c') %></script>
+  <script type="application/json" data-cmdk-i18n><%- JSON.stringify({ pages: t('search.pages'), employees: t('nav.employees'), departments: t('structure.departments'), empty: t('search.no_results') }).replace(/</g, '\\u003c') %></script>
+</div>

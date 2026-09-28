@@ -1,0 +1,15 @@
+<%
+  var _q = Object.assign({}, query); delete _q.page;
+  var _qs = function (p) { var o = Object.assign({}, _q, { page: p }); return '?' + Object.keys(o).filter(function (k) { return o[k] !== undefined && o[k] !== ''; }).map(function (k) { return encodeURIComponent(k) + '=' + encodeURIComponent(o[k]); }).join('&'); };
+  var _pages = []; for (var i = Math.max(1, meta.page - 2); i <= Math.min(meta.pages, meta.page + 2); i++) _pages.push(i);
+%>
+<div class="table-foot">
+  <span><%= t('table.showing', { from: fmt.number(meta.total ? (meta.page - 1) * (meta.per_page || 30) + 1 : 0), to: fmt.number(Math.min(meta.total, meta.page * (meta.per_page || 30))), total: fmt.number(meta.total) }) %></span>
+  <% if (meta.pages > 1) { %>
+  <nav class="pagination" aria-label="<%= t('table.pagination') %>">
+    <% if (meta.page > 1) { %><a href="<%= _qs(meta.page - 1) %>" aria-label="<%= t('table.prev') %>"><%- icon('chevron-left', 'icon-sm flip-rtl') %></a><% } else { %><span class="disabled"><%- icon('chevron-left', 'icon-sm flip-rtl') %></span><% } %>
+    <% _pages.forEach(function (p) { %><% if (p === meta.page) { %><span class="current"><%= p %></span><% } else { %><a href="<%= _qs(p) %>"><%= p %></a><% } %><% }) %>
+    <% if (meta.page < meta.pages) { %><a href="<%= _qs(meta.page + 1) %>" aria-label="<%= t('table.next') %>"><%- icon('chevron-right', 'icon-sm flip-rtl') %></a><% } else { %><span class="disabled"><%- icon('chevron-right', 'icon-sm flip-rtl') %></span><% } %>
+  </nav>
+  <% } %>
+</div>

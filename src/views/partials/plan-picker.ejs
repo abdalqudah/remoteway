@@ -1,0 +1,14 @@
+<div class="plan-options" role="radiogroup" aria-label="<%= t('fields.plan') %>">
+  <% plans.forEach(function (p) { var custom = p.is_custom || p.price_monthly === null; %>
+  <label class="plan-option">
+    <input type="radio" name="plan" value="<%= p.key %>"<%= selectedPlan === p.key ? ' checked' : '' %>>
+    <span class="box">
+      <span class="row between"><span class="name"><%= p.name %></span><% if (p.trial_days > 0) { %><span class="badge badge-success"><%= t('billing.trial_days', { days: p.trial_days }) %></span><% } %></span>
+      <span class="price" style="display:block"><%= custom ? t('billing.custom_pricing') : t('billing.per_month', { price: fmt.money(p.price_monthly, p.currency) }) %></span>
+      <span class="meta" style="display:block"><%= p.limits.employees === null ? t('billing.unlimited_employees') : t('billing.up_to_employees', { n: fmt.number(p.limits.employees) }) %></span>
+    </span>
+  </label>
+  <% }) %>
+</div>
+<% if (typeof errors !== 'undefined' && errors.plan) { %><span class="field-error"><%= errors.plan %></span><% } %>
+<p class="help mt-2"><%= t('auth.plan_help') %></p>

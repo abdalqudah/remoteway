@@ -1,0 +1,5 @@
+<div class="page-head"><div><h1><%= t('admin.organizations') %></h1></div></div>
+<section class="panel">
+  <form class="table-toolbar" method="get"><div class="input-group"><%- icon('search', 'icon-sm') %><input class="input" type="search" name="q" value="<%= query.q || '' %>" placeholder="<%= t('admin.search_orgs') %>"></div><button class="btn btn-secondary btn-sm" type="submit"><%= t('common.search') %></button></form>
+  <%- include('_org-table', { orgs: orgs }) %>
+</section>

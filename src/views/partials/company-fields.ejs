@@ -1,0 +1,8 @@
+<div class="form-grid">
+  <%- include('field', { name: 'company_name', label: t('fields.company_name'), required: true, cls: 'full', autocomplete: 'organization' }) %>
+  <%- include('field', { name: 'country_code', label: t('fields.country'), type: 'select', required: true, value: 'SA', options: countries.map(function (c) { return { value: c.country_code, label: locale === 'ar' ? (c.name_ar || c.name) : c.name }; }) }) %>
+  <%- include('field', { name: 'industry', label: t('fields.industry'), type: 'select', placeholder: t('common.select'), options: ['technology','retail','healthcare','education','finance','construction','logistics','hospitality','manufacturing','government','professional_services','other'].map(function (k) { return { value: k, label: t('industries.' + k) }; }) }) %>
+  <%- include('field', { name: 'company_size', label: t('fields.company_size'), type: 'select', placeholder: t('common.select'), options: ['1-10','11-50','51-250','251-1000','1000+'].map(function (k) { return { value: k, label: k }; }) }) %>
+  <%- include('field', { name: 'phone', label: t('fields.phone'), type: 'tel', autocomplete: 'tel' }) %>
+  <%- include('field', { name: 'website', label: t('fields.website'), type: 'url', placeholder: 'https://', cls: 'full' }) %>
+</div>

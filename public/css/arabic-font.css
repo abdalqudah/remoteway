@@ -1,0 +1,4 @@
+/* Loaded only when the licensed Montserrat Arabic files exist in /public/fonts/. */
+@font-face { font-family: 'Montserrat Arabic'; font-weight: 400; font-display: swap; src: url('/fonts/MontserratArabic-Regular.woff2') format('woff2'); unicode-range: U+0600-06FF, U+0750-077F, U+FB50-FDFF, U+FE70-FEFF; }
+@font-face { font-family: 'Montserrat Arabic'; font-weight: 500 600; font-display: swap; src: url('/fonts/MontserratArabic-SemiBold.woff2') format('woff2'); unicode-range: U+0600-06FF, U+0750-077F, U+FB50-FDFF, U+FE70-FEFF; }
+@font-face { font-family: 'Montserrat Arabic'; font-weight: 700 800; font-display: swap; src: url('/fonts/MontserratArabic-Bold.woff2') format('woff2'); unicode-range: U+0600-06FF, U+0750-077F, U+FB50-FDFF, U+FE70-FEFF; }

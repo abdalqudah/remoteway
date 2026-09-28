@@ -1,0 +1,34 @@
+<% var e = org.entitlements; var sub = e.subscription; var custom = sub && sub.custom_limits ? (typeof sub.custom_limits === 'string' ? JSON.parse(sub.custom_limits) : sub.custom_limits) : {}; %>
+<div class="page-head">
+  <div><div class="eyebrow"><a href="/admin/organizations"><%= t('admin.organizations') %></a><%- icon('chevron-right', 'icon-sm flip-rtl') %>#<%= org.id %></div><h1><%= org.name %></h1><p><%= org.owner_name %> · <%= org.owner_email %></p></div>
+  <form method="post" action="/admin/organizations/<%= org.id %>/status" data-confirm="<%= org.status === 'active' ? t('admin.confirm_suspend') : t('admin.confirm_activate') %>"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><input type="hidden" name="status" value="<%= org.status === 'active' ? 'suspended' : 'active' %>">
+    <button class="btn <%= org.status === 'active' ? 'btn-danger' : 'btn-dark' %>" type="submit"><%= org.status === 'active' ? t('admin.suspend') : t('admin.reactivate') %></button></form>
+</div>
+<div class="grid grid-3">
+  <section class="panel">
+    <div class="panel-head"><h2><%= t('billing.usage') %></h2></div>
+    <div class="panel-body"><dl class="dl" style="grid-template-columns:1fr auto">
+      <% limitKeys.forEach(function (k) { %><dt><%= t('limits.' + k) %></dt><dd class="num"><%= fmt.number(org.usage[k]) %> / <%= e.limits[k] === null ? '∞' : fmt.number(e.limits[k]) %></dd><% }) %>
+    </dl></div>
+  </section>
+  <form method="post" action="/admin/organizations/<%= org.id %>/subscription" class="panel span-2" novalidate>
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+    <div class="panel-head"><div><h2><%= t('admin.subscription') %></h2><div class="panel-sub"><%= t('admin.subscription_sub') %></div></div><span class="badge"><%= t('billing.status_' + e.status) %></span></div>
+    <div class="panel-body stack">
+      <div class="form-grid">
+        <%- include('../../partials/field', { name: 'plan_id', label: t('fields.plan'), type: 'select', value: sub.plan_id, options: plans.map(function (p) { return { value: p.id, label: p.name }; }) }) %>
+        <%- include('../../partials/field', { name: 'status', label: t('fields.status'), type: 'select', value: sub.status, options: ['trial','active','past_due','suspended','cancelled'].map(function (s) { return { value: s, label: t('billing.status_' + s) }; }) }) %>
+        <%- include('../../partials/field', { name: 'trial_ends_at', label: t('billing.trial_ends'), type: 'date', value: fmt.dateInput(sub.trial_ends_at) }) %>
+      </div>
+      <div class="fieldset-title"><%= t('admin.custom_limits') %></div>
+      <div class="table-wrap"><table class="table"><thead><tr><th><%= t('admin.limit') %></th><th><%= t('admin.override') %></th><th><%= t('admin.unlimited') %></th></tr></thead><tbody>
+        <% limitKeys.forEach(function (k) { %><tr><td><%= t('limits.' + k) %></td><td><input class="input" type="number" min="0" name="custom[<%= k %>]" value="<%= custom[k] !== undefined && custom[k] !== null ? custom[k] : '' %>" placeholder="<%= t('admin.plan_default') %>" style="max-width:180px"></td><td><input type="checkbox" name="custom_unlimited" value="<%= k %>"<%= custom[k] === null ? ' checked' : '' %> aria-label="<%= t('admin.unlimited') %>"></td></tr><% }) %>
+      </tbody></table></div>
+    </div>
+    <div class="panel-foot"><button class="btn btn-dark" type="submit"><%= t('common.save_changes') %></button></div>
+  </form>
+</div>
+<section class="panel mt-6">
+  <div class="panel-head"><h2><%= t('billing.invoices') %></h2></div>
+  <%- include('_invoice-table', { invoices: org.invoices, showOrg: false }) %>
+</section>

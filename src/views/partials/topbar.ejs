@@ -1,0 +1,18 @@
+<header class="topbar">
+  <button class="btn btn-ghost btn-icon mobile-only" type="button" data-nav-toggle aria-label="<%= t('nav.menu') %>"><%- icon('menu') %></button>
+  <button class="search-trigger" type="button" data-cmdk-open aria-label="<%= t('search.open') %>"><%- icon('search', 'icon-sm') %><span class="label-text"><%= t('search.placeholder') %></span><span class="kbd">Ctrl K</span></button>
+  <div class="topbar-actions">
+    <a class="btn btn-ghost btn-sm" href="<%= langUrl(locale === 'ar' ? 'en' : 'ar') %>" title="<%= t('common.language') %>"><%- icon('languages') %><span><%= locale === 'ar' ? 'EN' : 'ع' %></span></a>
+    <button class="btn btn-ghost btn-icon" type="button" data-theme-toggle aria-label="<%= t('common.toggle_theme') %>"><%- icon('moon', 'theme-moon') %><%- icon('sun', 'theme-sun hidden') %></button>
+    <details class="dropdown">
+      <summary class="user-chip"><span class="avatar"><%= initials(currentUser.name) %></span><span class="user-name small" style="font-weight:600"><%= currentUser.name %></span><%- icon('chevron-down', 'icon-sm muted') %></summary>
+      <div class="menu">
+        <div class="menu-label truncate"><%= currentUser.email %></div>
+        <a href="/app/settings/account"><%- icon('user', 'icon-sm') %><%= t('settings.account') %></a>
+        <% if (currentUser.is_super_admin) { %><a href="/admin"><%- icon('gauge', 'icon-sm') %><%= t('nav.super_admin') %></a><% } %>
+        <div class="sep"></div>
+        <form method="post" action="/logout"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><button type="submit"><%- icon('log-out', 'icon-sm') %><%= t('auth.logout') %></button></form>
+      </div>
+    </details>
+  </div>
+</header>

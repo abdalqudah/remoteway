@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="<%= locale %>" dir="<%= dir %>"<% if (theme !== 'system') { %> data-theme="<%= theme %>"<% } %>>
+<head><%- include('../partials/head') %></head>
+<body>
+<div class="shell">
+  <aside class="sidebar" id="sidebar"><%- include('../partials/sidebar') %></aside>
+  <div class="sidebar-backdrop" data-nav-close></div>
+  <div class="main">
+    <% if (entitlements.status === 'trial' && entitlements.trialDaysLeft <= 7 && can('billing.view')) { %>
+      <div class="banner warning"><%- icon('clock') %><span><%= t('billing.trial_banner', { days: entitlements.trialDaysLeft }) %></span><a class="btn btn-dark btn-sm" href="/app/billing"><%= t('billing.choose_plan') %></a></div>
+    <% } else if (!entitlements.canWrite) { %>
+      <div class="banner danger"><%- icon('lock') %><span><%= t('billing.read_only_banner') %></span><% if (can('billing.view')) { %><a class="btn btn-dark btn-sm" href="/app/billing"><%= t('billing.go_to_billing') %></a><% } %></div>
+    <% } %>
+    <%- include('../partials/topbar') %>
+    <main class="content" id="main">
+      <%- include('../partials/flash') %>
+      <%- body %>
+    </main>
+  </div>
+</div>
+<%- include('../partials/cmdk') %>
+<script src="/js/app.js?v=1" defer></script>
+</body>
+</html>

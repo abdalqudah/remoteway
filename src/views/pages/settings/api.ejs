@@ -1,0 +1,33 @@
+<div class="page-head">
+  <div><h1><%= t('nav.settings') %></h1><p><%= t('settings.api_sub') %></p></div>
+</div>
+<%- include('../../partials/settings-nav') %>
+<% if (!apiEnabled) { %>
+  <section class="panel"><div class="empty"><span class="empty-icon"><%- icon('lock') %></span><h3><%= t('settings.api_locked_title') %></h3><p><%= t('settings.api_locked_text') %></p><% if (can('billing.manage')) { %><a class="btn btn-dark" href="/app/billing"><%= t('billing.upgrade_plan') %></a><% } %></div></section>
+<% } else { %>
+  <% if (newToken) { %>
+  <div class="alert alert-success mb-4"><%- icon('key-round') %><div class="grow"><div class="alert-title"><%= t('settings.token_created') %></div><div class="text-2"><%= t('settings.token_once') %></div><div class="row mt-2"><code class="code-box grow" data-copy-source><%= newToken %></code><button class="btn btn-secondary btn-sm" type="button" data-copy><%- icon('copy', 'icon-sm') %><%= t('common.copy') %></button></div></div></div>
+  <% } %>
+  <div class="grid grid-3">
+    <section class="panel span-2">
+      <div class="panel-head"><h2><%= t('settings.api_tokens') %></h2></div>
+      <% if (!tokens.length) { %><div class="empty"><p><%= t('settings.no_tokens') %></p></div><% } else { %>
+      <div class="table-wrap"><table class="table"><thead><tr><th><%= t('fields.name') %></th><th><%= t('settings.token') %></th><th><%= t('settings.created_by') %></th><th><%= t('settings.last_used') %></th><th class="actions"></th></tr></thead><tbody>
+        <% tokens.forEach(function (tk) { %><tr><td><strong><%= tk.name %></strong></td><td class="mono muted"><%= tk.token_prefix %>…</td><td class="muted"><%= tk.user_name %></td><td class="muted"><%= tk.last_used_at ? fmt.date(tk.last_used_at, { dateStyle: 'medium', timeStyle: 'short' }) : t('settings.never') %></td>
+          <td class="actions"><form method="post" action="/app/settings/api/<%= tk.id %>/revoke" data-confirm="<%= t('settings.confirm_revoke') %>"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><button class="btn btn-danger-ghost btn-sm" type="submit"><%= t('settings.revoke') %></button></form></td></tr><% }) %>
+      </tbody></table></div><% } %>
+    </section>
+    <section class="panel">
+      <form method="post" action="/app/settings/api" novalidate>
+        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+        <div class="panel-head"><h2><%= t('settings.new_token') %></h2></div>
+        <div class="panel-body stack">
+          <%- include('../../partials/field', { name: 'name', label: t('fields.name'), required: true, placeholder: t('settings.token_name_ph') }) %>
+          <div class="help"><%= t('settings.token_scope_note') %></div>
+          <div><div class="label mb-2"><%= t('settings.base_url') %></div><div class="code-box"><%= apiBase %></div></div>
+        </div>
+        <div class="panel-foot"><button class="btn btn-dark" type="submit"><%- icon('key-round') %><%= t('settings.create_token') %></button></div>
+      </form>
+    </section>
+  </div>
+<% } %>

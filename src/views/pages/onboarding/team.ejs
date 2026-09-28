@@ -1,0 +1,26 @@
+<% var max = entitlements.limits.employees; %>
+<h1><%= t('onboarding.team_title') %></h1>
+<p class="muted mt-1 mb-6"><%= t('onboarding.team_lead') %><% if (max !== null && max !== undefined) { %> <%= t('billing.employees_of', { used: fmt.number(usage.employees), max: fmt.number(max) }) %>.<% } %></p>
+<div class="stack-lg">
+  <form method="post" action="/app/onboarding/team/employee" class="panel" novalidate>
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+    <div class="panel-head"><h2><%= t('employees.add') %></h2></div>
+    <div class="panel-body form-grid">
+      <%- include('../../partials/field', { name: 'first_name', label: t('fields.first_name'), required: true }) %>
+      <%- include('../../partials/field', { name: 'last_name', label: t('fields.last_name'), required: true }) %>
+      <%- include('../../partials/field', { name: 'email', label: t('fields.work_email'), type: 'email' }) %>
+      <%- include('../../partials/field', { name: 'job_title', label: t('fields.job_title') }) %>
+      <%- include('../../partials/field', { name: 'department_id', label: t('fields.department'), type: 'select', placeholder: t('common.none'), options: departments.map(function (d) { return { value: d.id, label: d.name }; }) }) %>
+      <%- include('../../partials/field', { name: 'joining_date', label: t('fields.joining_date'), type: 'date' }) %>
+    </div>
+    <div class="panel-foot"><button class="btn btn-secondary" type="submit"><%- icon('user-plus') %><%= t('employees.add') %></button></div>
+  </form>
+  <% if (employees.length) { %>
+  <div class="list-inline">
+    <% employees.forEach(function (e) { %><div class="item"><span class="avatar"><%= initials(e.full_name) %></span><div class="grow"><div style="font-weight:600"><%= e.full_name %></div><div class="muted small"><%= [e.job_title, e.department_name].filter(Boolean).join(' · ') || '—' %></div></div><span class="muted num small"><%= e.employee_number %></span></div><% }) %>
+  </div>
+  <% } %>
+  <div class="panel panel-body row wrap"><%- icon('upload', 'muted') %><div class="grow"><strong><%= t('onboarding.csv_title') %></strong><div class="muted small"><%= t('onboarding.csv_text') %></div></div><span class="badge badge-soon"><%= t('common.soon') %></span></div>
+  <div class="panel panel-body row wrap"><%- icon('mail', 'muted') %><div class="grow"><strong><%= t('onboarding.invite_title') %></strong><div class="muted small"><%= t('onboarding.invite_text') %></div></div><a class="btn btn-secondary btn-sm" href="/app/settings/users?skip_onboarding=1"><%= t('settings.invite_user') %></a></div>
+  <div class="form-actions"><a class="btn btn-ghost" href="/app/onboarding/setup"><%= t('common.back') %></a><a class="btn btn-dark btn-lg" href="/app/onboarding/integrations"><%= t('common.continue') %><%- icon('arrow-right', 'flip-rtl') %></a></div>
+</div>

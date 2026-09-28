@@ -1,0 +1,48 @@
+{
+  "name": "remoteway",
+  "version": "0.1.0",
+  "description": "RemoteWay — Workforce Management & Remote Employment SaaS",
+  "main": "app.js",
+  "scripts": {
+    "start": "node app.js",
+    "dev": "node --watch app.js",
+    "migrate": "node scripts/migrate.js",
+    "migrate:fresh": "node scripts/migrate.js --fresh",
+    "seed:demo": "node scripts/seed-demo.js",
+    "test": "node --test --test-concurrency=1 tests/*.test.js",
+    "build:icons": "node scripts/build-icons.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/abdalqudah/remoteway.git"
+  },
+  "license": "UNLICENSED",
+  "bugs": {
+    "url": "https://github.com/abdalqudah/remoteway/issues"
+  },
+  "homepage": "https://github.com/abdalqudah/remoteway#readme",
+  "dependencies": {
+    "bcryptjs": "^3.0.3",
+    "compression": "^1.8.2",
+    "connect-session-knex": "^5.0.0",
+    "cookie-parser": "^1.4.7",
+    "dotenv": "^18.0.4",
+    "ejs": "^6.0.1",
+    "express": "^4.22.3",
+    "express-rate-limit": "^8.7.0",
+    "express-session": "^1.19.0",
+    "helmet": "^8.3.0",
+    "knex": "^3.3.0",
+    "mysql2": "^3.24.4",
+    "zod": "^4.6.5"
+  },
+  "devDependencies": {
+    "@fontsource/montserrat": "^5.3.0",
+    "lucide-static": "^1.48.0",
+    "supertest": "^7.3.0"
+  },
+  "private": true,
+  "engines": {
+    "node": ">=18.18"
+  }
+}

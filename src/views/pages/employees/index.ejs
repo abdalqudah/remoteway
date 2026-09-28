@@ -1,0 +1,110 @@
+<%
+  var f = result.filters;
+  var max = entitlements.limits.employees;
+  var atLimit = max !== null && max !== undefined && usage.employees >= max;
+  var sortLink = function (key) {
+    var o = Object.assign({}, query, { sort: key, dir: f.sort === key && f.dir === 'asc' ? 'desc' : 'asc' }); delete o.page;
+    return '?' + Object.keys(o).filter(function (k) { return o[k] !== undefined && o[k] !== ''; }).map(function (k) { return encodeURIComponent(k) + '=' + encodeURIComponent(o[k]); }).join('&');
+  };
+  var sortIcon = function (key) { return f.sort === key ? icon(f.dir === 'asc' ? 'chevron-down' : 'chevron-down', 'icon-sm') : icon('arrow-up-down', 'icon-sm muted'); };
+  var showSalary = can('employees.view_salary');
+  var exportQs = Object.keys(query).filter(function (k) { return k !== 'page'; }).map(function (k) { return encodeURIComponent(k) + '=' + encodeURIComponent(query[k]); }).join('&');
+  var cols = [['number', t('fields.employee_number')], ['department', t('fields.department')], ['manager', t('fields.manager')], ['location', t('fields.location')], ['type', t('fields.employment_type')], ['status', t('fields.status')], ['joining', t('fields.joining_date')]];
+  if (showSalary) cols.push(['salary', t('fields.base_salary')]);
+%>
+<div class="page-head">
+  <div><h1><%= can('employees.view') ? t('nav.employees') : t('nav.my_team') %></h1><p><%= t('employees.subtitle', { n: fmt.number(result.meta.total) }) %><% if (max !== null && max !== undefined) { %> · <%= t('billing.employees_of', { used: fmt.number(usage.employees), max: fmt.number(max) }) %><% } %></p></div>
+  <div class="page-actions">
+    <% if (can('employees.view')) { %><a class="btn btn-secondary" href="/app/employees/export.csv?<%= exportQs %>"><%- icon('download') %><%= t('common.export_csv') %></a><% } %>
+    <% if (can('employees.create')) { %><button class="btn btn-secondary is-disabled" type="button" disabled title="<%= t('employees.import_soon') %>"><%- icon('upload') %><%= t('common.import') %><span class="badge badge-soon"><%= t('common.soon') %></span></button><% } %>
+    <% if (can('employees.create')) { %>
+      <% if (atLimit) { %><a class="btn btn-dark" href="#limit" data-open-dialog="limit-dialog"><%- icon('user-plus') %><%= t('employees.add') %></a>
+      <% } else { %><a class="btn btn-dark" href="/app/employees/new"><%- icon('user-plus') %><%= t('employees.add') %></a><% } %>
+    <% } %>
+  </div>
+</div>
+
+<% if (atLimit && can('employees.create')) { %>
+<div class="alert alert-warning mb-4"><%- icon('triangle-alert') %><div class="grow"><div class="alert-title"><%= t('limits.employee_limit_title') %></div><div class="text-2"><%= t('limits.employee_limit_text', { max: fmt.number(max) }) %></div></div><% if (can('billing.manage')) { %><a class="btn btn-dark btn-sm" href="/app/billing"><%= t('billing.upgrade_plan') %></a><% } %></div>
+<% } %>
+
+<section class="panel">
+  <form class="table-toolbar" method="get" data-autosubmit>
+    <div class="input-group"><%- icon('search', 'icon-sm') %><input class="input" type="search" name="q" value="<%= f.q || '' %>" placeholder="<%= t('employees.search_placeholder') %>" aria-label="<%= t('common.search') %>"></div>
+    <select class="select" name="department_id" aria-label="<%= t('fields.department') %>"><option value=""><%= t('employees.all_departments') %></option><% departments.forEach(function (d) { %><option value="<%= d.id %>"<%= f.department_id === d.id ? ' selected' : '' %>><%= d.name %></option><% }) %></select>
+    <select class="select" name="location_id" aria-label="<%= t('fields.location') %>"><option value=""><%= t('employees.all_locations') %></option><% locations.forEach(function (l) { %><option value="<%= l.id %>"<%= f.location_id === l.id ? ' selected' : '' %>><%= l.name %></option><% }) %></select>
+    <select class="select" name="status" aria-label="<%= t('fields.status') %>">
+      <option value=""><%= t('employees.all_statuses') %></option>
+      <option value="current"<%= f.status === 'current' ? ' selected' : '' %>><%= t('employees.current') %></option>
+      <% ['active','probation','on_leave','terminated'].forEach(function (s) { %><option value="<%= s %>"<%= f.status === s ? ' selected' : '' %>><%= t('statuses.' + s) %></option><% }) %>
+    </select>
+    <select class="select" name="employment_type" aria-label="<%= t('fields.employment_type') %>"><option value=""><%= t('employees.all_types') %></option><% types.forEach(function (x) { %><option value="<%= x %>"<%= f.employment_type === x ? ' selected' : '' %>><%= t('employment_types.' + x) %></option><% }) %></select>
+    <input type="hidden" name="sort" value="<%= f.sort %>"><input type="hidden" name="dir" value="<%= f.dir %>">
+    <details class="dropdown" style="margin-inline-start:auto">
+      <summary class="btn btn-ghost btn-sm"><%- icon('columns-3') %><%= t('table.columns') %></summary>
+      <div class="menu" data-col-menu="employees">
+        <% cols.forEach(function (c) { %><label class="check" style="padding:6px 10px;display:flex"><input type="checkbox" data-col="<%= c[0] %>" checked><%= c[1] %></label><% }) %>
+      </div>
+    </details>
+    <noscript><button class="btn btn-secondary btn-sm" type="submit"><%= t('common.apply') %></button></noscript>
+  </form>
+
+  <% if (!result.data.length) { %>
+    <div class="empty">
+      <span class="empty-icon"><%- icon('users') %></span>
+      <% var filtered = f.q || f.department_id || f.location_id || (f.status && f.status !== 'current') || f.employment_type; %>
+      <h3><%= filtered ? t('employees.no_match_title') : t('employees.empty_title') %></h3>
+      <p><%= filtered ? t('employees.no_match_text') : t('employees.empty_text') %></p>
+      <% if (filtered) { %><a class="btn btn-secondary" href="/app/employees"><%= t('common.clear_filters') %></a><% } else if (can('employees.create')) { %><a class="btn btn-primary" href="/app/employees/new"><%- icon('user-plus') %><%= t('employees.add_first') %></a><% } %>
+    </div>
+  <% } else { %>
+  <div class="table-wrap">
+    <table class="table" data-col-table="employees">
+      <thead><tr>
+        <th><a href="<%= sortLink('name') %>"><%= t('fields.name') %><%- sortIcon('name') %></a></th>
+        <th data-col="number"><a href="<%= sortLink('number') %>"><%= t('fields.employee_number') %><%- sortIcon('number') %></a></th>
+        <th data-col="department"><a href="<%= sortLink('department') %>"><%= t('fields.department') %><%- sortIcon('department') %></a></th>
+        <th data-col="manager"><%= t('fields.manager') %></th>
+        <th data-col="location"><%= t('fields.location') %></th>
+        <th data-col="type"><%= t('fields.employment_type') %></th>
+        <th data-col="status"><a href="<%= sortLink('status') %>"><%= t('fields.status') %><%- sortIcon('status') %></a></th>
+        <th data-col="joining"><a href="<%= sortLink('joining_date') %>"><%= t('fields.joining_date') %><%- sortIcon('joining_date') %></a></th>
+        <% if (showSalary) { %><th data-col="salary" class="text-end"><%= t('fields.base_salary') %></th><% } %>
+        <th class="actions"><span class="sr-only"><%= t('common.actions') %></span></th>
+      </tr></thead>
+      <tbody>
+        <% result.data.forEach(function (e) { %>
+        <tr>
+          <td><a class="person" href="/app/employees/<%= e.id %>"><span class="avatar"><%= initials(e.full_name) %></span><span style="min-width:0"><span class="person-name truncate" style="display:block"><%= e.full_name %></span><span class="person-sub truncate" style="display:block"><%= e.job_title || e.email || '—' %></span></span></a></td>
+          <td data-col="number" class="num muted nowrap"><%= e.employee_number %></td>
+          <td data-col="department"><%= e.department_name || '—' %></td>
+          <td data-col="manager"><%= e.manager_name || '—' %></td>
+          <td data-col="location"><%= e.location_name || '—' %></td>
+          <td data-col="type" class="nowrap"><%= t('employment_types.' + e.employment_type) %></td>
+          <td data-col="status"><%- include('../../partials/status-badge', { status: e.status }) %></td>
+          <td data-col="joining" class="nowrap"><%= fmt.date(e.joining_date) %></td>
+          <% if (showSalary) { %><td data-col="salary" class="num text-end nowrap"><%= e.base_salary !== null && e.base_salary !== undefined ? fmt.money(e.base_salary, e.salary_currency || organization.currency) : '—' %></td><% } %>
+          <td class="actions">
+            <details class="dropdown"><summary class="btn btn-ghost btn-icon btn-sm" aria-label="<%= t('common.actions') %>"><%- icon('ellipsis') %></summary>
+              <div class="menu">
+                <a href="/app/employees/<%= e.id %>"><%- icon('eye', 'icon-sm') %><%= t('common.view') %></a>
+                <% if (can('employees.edit')) { %><a href="/app/employees/<%= e.id %>/edit"><%- icon('pencil', 'icon-sm') %><%= t('common.edit') %></a><% } %>
+              </div>
+            </details>
+          </td>
+        </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  </div>
+  <%- include('../../partials/pagination', { meta: result.meta }) %>
+  <% } %>
+</section>
+
+<% if (atLimit) { %>
+<dialog class="dialog" id="limit-dialog">
+  <div class="dialog-head"><h2><%= t('limits.employee_limit_title') %></h2><button class="btn btn-ghost btn-icon btn-sm" type="button" data-close-dialog aria-label="<%= t('common.close') %>"><%- icon('x') %></button></div>
+  <div class="dialog-body"><p class="text-2"><%= t('limits.employee_limit_text', { max: fmt.number(max) }) %></p></div>
+  <div class="dialog-foot"><button class="btn btn-ghost" type="button" data-close-dialog><%= t('common.close') %></button><% if (can('billing.manage')) { %><a class="btn btn-dark" href="/app/billing"><%- icon('rocket') %><%= t('billing.upgrade_plan') %></a><% } else { %><span class="muted small"><%= t('limits.ask_owner') %></span><% } %></div>
+</dialog>
+<% } %>

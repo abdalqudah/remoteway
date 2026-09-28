@@ -1,0 +1,120 @@
+<%
+  var o = data.overview;
+  var max = data.limits.employees;
+  var seatPct = max ? Math.min(100, Math.round(data.usage.employees / max * 100)) : 0;
+  var hour = new Date().getUTCHours();
+  var trendMax = Math.max.apply(null, data.trend.map(function (x) { return x.count; }).concat([1]));
+  var deptMax = Math.max.apply(null, data.departments.map(function (x) { return x.count; }).concat([1]));
+  var typesTotal = data.types.reduce(function (s, x) { return s + x.count; }, 0);
+  var modesTotal = data.workModes.reduce(function (s, x) { return s + x.count; }, 0);
+%>
+<div class="page-head">
+  <div>
+    <div class="eyebrow"><%= organization.name %></div>
+    <h1><%= t('dashboard.greeting', { name: currentUser.name.split(' ')[0] }) %></h1>
+    <p><%= t('dashboard.subtitle') %></p>
+  </div>
+  <div class="page-actions">
+    <% if (can('users.manage')) { %><a class="btn btn-secondary" href="/app/settings/users"><%- icon('mail') %><%= t('settings.invite_user') %></a><% } %>
+    <% if (can('employees.create')) { %><a class="btn btn-dark" href="/app/employees/new"><%- icon('user-plus') %><%= t('employees.add') %></a><% } %>
+  </div>
+</div>
+
+<% if (o.total === 0) { %>
+  <div class="panel mb-6"><div class="empty">
+    <span class="empty-icon"><%- icon('users') %></span>
+    <h3><%= t('dashboard.empty_title') %></h3>
+    <p><%= t('dashboard.empty_text') %></p>
+    <div class="row wrap" style="justify-content:center">
+      <% if (can('employees.create')) { %><a class="btn btn-primary" href="/app/employees/new"><%- icon('user-plus') %><%= t('employees.add_first') %></a><% } %>
+      <% if (can('settings.manage')) { %><a class="btn btn-secondary" href="/app/onboarding/setup"><%= t('dashboard.continue_setup') %></a><% } %>
+    </div>
+  </div></div>
+<% } %>
+
+<section class="kpis" aria-label="<%= t('dashboard.workforce_overview') %>">
+  <div class="kpi"><div class="kpi-label"><%- icon('users', 'icon-sm') %><%= t('dashboard.total_employees') %></div><div class="kpi-value"><%= fmt.number(o.total) %></div><div class="kpi-meta"><% if (o.new_this_month) { %><span class="up">+<%= fmt.number(o.new_this_month) %></span> <% } %><%= t('dashboard.new_this_month', { n: fmt.number(o.new_this_month) }) %></div></div>
+  <div class="kpi"><div class="kpi-label"><%- icon('user-check', 'icon-sm') %><%= t('dashboard.active') %></div><div class="kpi-value"><%= fmt.number(o.active) %></div><div class="kpi-meta"><%= t('dashboard.on_probation', { n: fmt.number(o.probation) }) %></div></div>
+  <div class="kpi"><div class="kpi-label"><%- icon('plane', 'icon-sm') %><%= t('dashboard.on_leave') %></div><div class="kpi-value"><%= fmt.number(o.on_leave) %></div><div class="kpi-meta"><%= t('dashboard.left_this_month', { n: fmt.number(o.left_this_month) }) %></div></div>
+  <div class="kpi">
+    <div class="kpi-label"><%- icon('gauge', 'icon-sm') %><%= t('dashboard.seats') %></div>
+    <div class="kpi-value"><%= fmt.number(data.usage.employees) %><span class="muted" style="font-size:16px;font-weight:600"> / <%= max === null ? '∞' : fmt.number(max) %></span></div>
+    <% if (max) { %><div class="meter mt-2 <%= seatPct >= 100 ? 'full' : seatPct >= 90 ? 'warn' : '' %>"><span style="width:<%= seatPct %>%"></span></div><div class="kpi-meta mt-1"><%= t('dashboard.seats_available', { n: fmt.number(Math.max(0, max - data.usage.employees)) }) %></div><% } else { %><div class="kpi-meta"><%= t('billing.unlimited_employees') %></div><% } %>
+  </div>
+</section>
+
+<div class="grid grid-3 mt-6">
+  <section class="panel span-2">
+    <div class="panel-head"><div><h2><%= t('dashboard.headcount_trend') %></h2><div class="panel-sub"><%= t('dashboard.headcount_trend_sub') %></div></div></div>
+    <div class="panel-body">
+      <svg class="chart" viewBox="0 0 600 200" role="img" aria-label="<%= t('dashboard.headcount_trend') %>">
+        <% [0, 0.5, 1].forEach(function (g) { var y = 170 - g * 140; %><line class="grid-line" x1="0" x2="600" y1="<%= y %>" y2="<%= y %>"/><% }) %>
+        <% data.trend.forEach(function (m, i) { var w = 56; var gap = (600 - w * 6) / 6; var x = gap / 2 + i * (w + gap); var h = Math.max(2, m.count / trendMax * 140); var xp = dir === 'rtl' ? 600 - x - w : x; %>
+          <rect class="col<%= i === 5 ? ' last' : '' %>" x="<%= xp %>" y="<%= 170 - h %>" width="<%= w %>" height="<%= h %>" rx="6"/>
+          <text class="val" x="<%= xp + w / 2 %>" y="<%= 162 - h %>" text-anchor="middle"><%= m.count %></text>
+          <text class="axis" x="<%= xp + w / 2 %>" y="192" text-anchor="middle"><%= fmt.date(m.month + '-01', { month: 'short' }) %></text>
+        <% }) %>
+      </svg>
+    </div>
+  </section>
+  <section class="panel">
+    <div class="panel-head"><div><h2><%= t('dashboard.action_center') %></h2><div class="panel-sub"><%= t('dashboard.action_center_sub') %></div></div></div>
+    <% if (!data.actions.length) { %>
+      <div class="empty" style="padding:32px 20px"><span class="empty-icon"><%- icon('circle-check') %></span><p><%= t('dashboard.all_clear') %></p></div>
+    <% } else { %>
+      <ul class="action-list">
+        <% data.actions.forEach(function (a) { %>
+          <li><a href="<%= a.href %>"><span class="action-icon <%= a.tone %>"><%- icon(a.tone === 'danger' ? 'lock' : a.tone === 'warning' ? 'triangle-alert' : a.tone === 'info' ? 'mail' : 'info', 'icon-sm') %></span><span class="grow small"><%= t('actions.' + a.key, { n: fmt.number(a.count), max: fmt.number(a.max) }) %></span><%- icon('chevron-right', 'icon-sm muted flip-rtl') %></a></li>
+        <% }) %>
+      </ul>
+    <% } %>
+  </section>
+</div>
+
+<div class="grid grid-3 mt-6">
+  <section class="panel">
+    <div class="panel-head"><h2><%= t('dashboard.by_department') %></h2><% if (can('employees.view')) { %><a class="btn btn-ghost btn-sm" href="/app/structure"><%= t('common.view_all') %></a><% } %></div>
+    <div class="panel-body">
+      <% if (!data.departments.length) { %><p class="muted small"><%= t('dashboard.no_data') %></p><% } else { %>
+      <div class="bars">
+        <% data.departments.slice(0, 7).forEach(function (d) { %>
+          <div class="bar-row"><span class="truncate"><%= d.name || t('dashboard.unassigned') %></span><span class="bar-track"><span class="bar-fill" style="display:block;width:<%= Math.round(d.count / deptMax * 100) %>%"></span></span><span class="num"><%= d.count %></span></div>
+        <% }) %>
+      </div><% } %>
+    </div>
+  </section>
+  <section class="panel">
+    <div class="panel-head"><h2><%= t('dashboard.composition') %></h2></div>
+    <div class="panel-body stack">
+      <div>
+        <div class="label mb-2"><%= t('fields.employment_type') %></div>
+        <% if (!typesTotal) { %><p class="muted small"><%= t('dashboard.no_data') %></p><% } else { %>
+        <div class="split"><% data.types.forEach(function (x, i) { %><span class="c<%= (i % 5) + 1 %>" style="width:<%= x.count / typesTotal * 100 %>%"></span><% }) %></div>
+        <div class="legend mt-2"><% data.types.forEach(function (x, i) { %><span><i class="c<%= (i % 5) + 1 %>"></i><%= t('employment_types.' + x.key) %> · <%= x.count %></span><% }) %></div><% } %>
+      </div>
+      <div>
+        <div class="label mb-2"><%= t('fields.work_mode') %></div>
+        <% if (!modesTotal) { %><p class="muted small"><%= t('dashboard.no_data') %></p><% } else { %>
+        <div class="split"><% data.workModes.forEach(function (x, i) { %><span class="c<%= (i % 5) + 1 %>" style="width:<%= x.count / modesTotal * 100 %>%"></span><% }) %></div>
+        <div class="legend mt-2"><% data.workModes.forEach(function (x, i) { %><span><i class="c<%= (i % 5) + 1 %>"></i><%= t('work_modes.' + x.key) %> · <%= x.count %></span><% }) %></div><% } %>
+      </div>
+    </div>
+  </section>
+  <section class="panel">
+    <div class="panel-head"><div><h2><%= t('dashboard.operations') %></h2><div class="panel-sub"><%= t('dashboard.operations_sub') %></div></div></div>
+    <ul class="action-list">
+      <% [['attendance', 'calendar-check', 'dashboard.op_attendance'], ['leave', 'plane', 'dashboard.op_leave'], ['recruitment', 'briefcase', 'dashboard.op_recruitment'], ['payroll', 'wallet', 'dashboard.op_payroll'], ['documents', 'file-text', 'dashboard.op_documents']].forEach(function (m) { var mod = MODULES.find(function (x) { return x.key === m[0]; }); %>
+        <li><a href="/app/modules/<%= m[0] %>"><span class="action-icon"><%- icon(m[1], 'icon-sm') %></span><span class="grow small"><%= t(m[2]) %></span><span class="badge badge-soon"><%= t('common.phase', { n: mod.phase }) %></span></a></li>
+      <% }) %>
+    </ul>
+  </section>
+</div>
+
+<% if (activity && activity.length) { %>
+<section class="panel mt-6">
+  <div class="panel-head"><h2><%= t('dashboard.recent_activity') %></h2><a class="btn btn-ghost btn-sm" href="/app/settings/audit"><%= t('common.view_all') %></a></div>
+  <ul class="feed">
+    <% activity.forEach(function (a) { %><li><span class="dot"></span><div class="grow"><div class="what"><%- include('../../partials/audit-text', { entry: a }) %></div><div class="when"><%= fmt.date(a.created_at, { dateStyle: 'medium', timeStyle: 'short' }) %></div></div></li><% }) %>
+  </ul>
+</section>
+<% } %>

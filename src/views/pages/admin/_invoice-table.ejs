@@ -1,0 +1,9 @@
+<% if (!invoices.length) { %><div class="empty"><p><%= t('billing.no_invoices') %></p></div><% } else { %>
+<div class="table-wrap"><table class="table">
+  <thead><tr><th><%= t('billing.invoice_number') %></th><% if (showOrg) { %><th><%= t('admin.organization') %></th><% } %><th><%= t('billing.date') %></th><th class="text-end"><%= t('billing.total') %></th><th><%= t('fields.status') %></th><th class="actions"></th></tr></thead>
+  <tbody><% invoices.forEach(function (i) { %>
+    <tr><td class="mono"><%= i.number %></td><% if (showOrg) { %><td><a class="link" href="/admin/organizations/<%= i.organization_id %>"><%= i.organization_name %></a></td><% } %><td><%= fmt.date(i.issue_date) %></td><td class="text-end num"><%= fmt.money(i.total, i.currency) %></td>
+      <td><span class="badge badge-dot <%= i.status === 'paid' ? 'badge-success' : i.status === 'issued' ? 'badge-warning' : '' %>"><%= t('billing.invoice_' + i.status) %></span><% if (i.payment_reference) { %><div class="muted tiny"><%= i.payment_reference %></div><% } %></td>
+      <td class="actions"><% if (i.status === 'issued') { %><form method="post" action="/admin/invoices/<%= i.id %>/paid" class="row-sm" style="justify-content:flex-end" data-confirm="<%= t('admin.confirm_paid') %>"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><input class="input" name="reference" placeholder="<%= t('admin.payment_reference') %>" style="height:32px;max-width:180px"><button class="btn btn-dark btn-sm" type="submit"><%= t('admin.mark_paid') %></button></form><% } %></td></tr>
+  <% }) %></tbody>
+</table></div><% } %>

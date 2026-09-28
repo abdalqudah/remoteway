@@ -1,0 +1,25 @@
+<% var i = invoice; %>
+<div class="page-head">
+  <div><div class="eyebrow"><a href="/app/billing"><%= t('nav.billing') %></a><%- icon('chevron-right', 'icon-sm flip-rtl') %></div><h1><%= t('billing.invoice') %> <span class="mono"><%= i.number %></span></h1></div>
+  <div class="page-actions"><button class="btn btn-secondary" type="button" data-print><%- icon('download') %><%= t('billing.print') %></button></div>
+</div>
+<section class="panel" style="max-width:860px">
+  <div class="panel-body stack-lg">
+    <div class="row between wrap" style="align-items:flex-start">
+      <div><%- include('../../partials/logo') %><div class="muted small mt-3">remoteway.com · Info@remoteway.com</div></div>
+      <div class="text-end"><span class="badge badge-dot <%= i.status === 'paid' ? 'badge-success' : 'badge-warning' %>"><%= t('billing.invoice_' + i.status) %></span><div class="small mt-2"><%= t('billing.date') %>: <%= fmt.date(i.issue_date) %></div><div class="small"><%= t('billing.due') %>: <%= fmt.date(i.due_date) %></div></div>
+    </div>
+    <div><div class="label"><%= t('billing.bill_to') %></div><div style="font-weight:700"><%= organization.name %></div><div class="muted small"><%= organization.address || '' %> <%= locale === 'ar' ? organization.country_name_ar : organization.country_name %></div></div>
+    <div class="table-wrap"><table class="table">
+      <thead><tr><th><%= t('fields.description') %></th><th class="text-end"><%= t('billing.quantity') %></th><th class="text-end"><%= t('billing.unit_price') %></th><th class="text-end"><%= t('billing.amount') %></th></tr></thead>
+      <tbody><% i.items.forEach(function (it) { %><tr><td><%= it.description %></td><td class="text-end num"><%= it.quantity %></td><td class="text-end num"><%= fmt.money(it.unit_price, i.currency) %></td><td class="text-end num"><%= fmt.money(it.amount, i.currency) %></td></tr><% }) %></tbody>
+    </table></div>
+    <dl class="dl" style="margin-inline-start:auto;max-width:320px;grid-template-columns:1fr auto">
+      <dt><%= t('billing.subtotal') %></dt><dd class="num text-end"><%= fmt.money(i.subtotal, i.currency) %></dd>
+      <dt><%= t('billing.vat_line', { rate: i.tax_rate }) %></dt><dd class="num text-end"><%= fmt.money(i.tax, i.currency) %></dd>
+      <dt style="font-weight:700;color:var(--text)"><%= t('billing.total') %></dt><dd class="num text-end" style="font-weight:800;font-size:18px"><%= fmt.money(i.total, i.currency) %></dd>
+    </dl>
+    <% if (i.status === 'issued') { %><div class="alert alert-info"><%- icon('info') %><div class="grow small"><%= t('billing.payment_instructions') %></div></div><% } %>
+    <% if (i.status === 'paid') { %><p class="muted small"><%= t('billing.paid_on', { date: fmt.date(i.paid_at) }) %><%= i.payment_reference ? ' · ' + i.payment_reference : '' %></p><% } %>
+  </div>
+</section>

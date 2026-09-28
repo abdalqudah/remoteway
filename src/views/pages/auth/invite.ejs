@@ -1,0 +1,19 @@
+<% if (!invitation) { %>
+  <div class="empty"><span class="empty-icon"><%- icon('mail') %></span><h3><%= t('auth.invite_invalid_title') %></h3><p><%= t('auth.invite_invalid_text') %></p><a class="btn btn-dark" href="/login"><%= t('auth.login') %></a></div>
+<% } else { %>
+  <h1><%= t('auth.invite_title') %></h1>
+  <p class="lead"><%= t('auth.invite_lead', { org: invitation.organization_name, role: invitation.role_name }) %></p>
+  <div class="code-box mt-4"><%= invitation.email %></div>
+  <form method="post" class="stack mt-6" novalidate>
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+    <% if (currentUser) { %>
+      <p class="text-2"><%= t('auth.invite_signed_in', { email: currentUser.email }) %></p>
+      <button class="btn btn-primary btn-lg btn-block" type="submit"><%= t('auth.invite_join') %></button>
+    <% } else { %>
+      <%- include('../../partials/field', { name: 'name', label: t('fields.full_name'), required: true, autocomplete: 'name' }) %>
+      <%- include('../../partials/field', { name: 'password', label: t('fields.password'), type: 'password', required: true, autocomplete: 'new-password', help: t('auth.password_help') }) %>
+      <button class="btn btn-primary btn-lg btn-block" type="submit"><%= t('auth.invite_join') %></button>
+      <p class="help"><%= t('auth.invite_existing') %> <a class="link" href="/login"><%= t('auth.login') %></a></p>
+    <% } %>
+  </form>
+<% } %>

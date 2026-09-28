@@ -1,0 +1,10 @@
+<div class="page-head"><div><div class="eyebrow"><%= t('common.phase', { n: mod.phase }) %></div><h1><%= t('nav.' + mod.key) %></h1></div></div>
+<section class="panel">
+  <div class="empty" style="padding:64px 24px">
+    <span class="empty-icon"><%- icon(mod.icon) %></span>
+    <h3><%= mod.status === 'integration' ? t('modules_page.integration_title') : t('modules_page.soon_title') %></h3>
+    <p><%= t('modules_page.' + mod.key) %></p>
+    <p class="small"><%= hasFeature(mod.feature) ? t('modules_page.included') : t('modules_page.not_included') %></p>
+    <a class="btn btn-secondary mt-2" href="/app"><%- icon('arrow-left', 'flip-rtl') %><%= t('modules_page.back') %></a>
+  </div>
+</section>

@@ -1,0 +1,40 @@
+<% var o = organization; var s = settings; %>
+<div class="page-head"><div><h1><%= t('nav.settings') %></h1><p><%= t('settings.subtitle') %></p></div></div>
+<%- include('../../partials/settings-nav') %>
+<div class="stack-lg">
+<form method="post" action="/app/settings/company" class="panel" novalidate>
+  <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+  <div class="panel-head"><div><h2><%= t('settings.company_profile') %></h2><div class="panel-sub"><%= t('settings.company_profile_sub') %></div></div></div>
+  <div class="panel-body form-grid">
+    <%- include('../../partials/field', { name: 'name', label: t('fields.company_name'), required: true, value: o.name }) %>
+    <%- include('../../partials/field', { name: 'country_code', label: t('fields.country'), type: 'select', value: o.country_code, options: countries.map(function (c) { return { value: c.country_code, label: locale === 'ar' ? (c.name_ar || c.name) : c.name }; }), help: t('settings.country_help') }) %>
+    <%- include('../../partials/field', { name: 'industry', label: t('fields.industry'), type: 'select', placeholder: t('common.select'), value: o.industry, options: ['technology','retail','healthcare','education','finance','construction','logistics','hospitality','manufacturing','government','professional_services','other'].map(function (k) { return { value: k, label: t('industries.' + k) }; }) }) %>
+    <%- include('../../partials/field', { name: 'company_size', label: t('fields.company_size'), type: 'select', placeholder: t('common.select'), value: o.company_size, options: ['1-10','11-50','51-250','251-1000','1000+'].map(function (k) { return { value: k, label: k }; }) }) %>
+    <%- include('../../partials/field', { name: 'website', label: t('fields.website'), type: 'url', value: o.website }) %>
+    <%- include('../../partials/field', { name: 'phone', label: t('fields.phone'), type: 'tel', value: o.phone }) %>
+    <%- include('../../partials/field', { name: 'address', label: t('fields.address'), value: o.address, cls: 'full' }) %>
+    <%- include('../../partials/field', { name: 'locale', label: t('fields.default_language'), type: 'select', value: o.locale, options: [{ value: 'ar', label: 'العربية' }, { value: 'en', label: 'English' }] }) %>
+    <div class="field"><span class="label"><%= t('settings.regional') %></span><div class="code-box"><%= o.currency %> · <%= o.timezone %> · <%= t('settings.vat', { rate: o.vat_rate }) %></div></div>
+  </div>
+  <div class="panel-foot"><button class="btn btn-dark" type="submit"><%= t('common.save_changes') %></button></div>
+</form>
+
+<% if (can('settings.manage')) { %>
+<form method="post" action="/app/settings/work" class="panel" id="work" novalidate>
+  <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+  <div class="panel-head"><div><h2><%= t('settings.work_policy') %></h2><div class="panel-sub"><%= t('settings.work_policy_sub') %></div></div></div>
+  <div class="panel-body stack">
+    <div class="field"><span class="label"><%= t('fields.working_days') %></span>
+      <div class="row wrap"><% days.forEach(function (d) { %><label class="check"><input type="checkbox" name="working_days" value="<%= d %>"<%= (s.working_days || []).indexOf(d) >= 0 ? ' checked' : '' %>><%= t('days.' + d) %></label><% }) %></div>
+      <% if (errors.working_days) { %><span class="field-error"><%= errors.working_days %></span><% } %>
+    </div>
+    <div class="form-grid">
+      <%- include('../../partials/field', { name: 'work_start', label: t('fields.work_start'), type: 'time', value: s.work_start }) %>
+      <%- include('../../partials/field', { name: 'work_end', label: t('fields.work_end'), type: 'time', value: s.work_end }) %>
+      <%- include('../../partials/field', { name: 'employee_number_prefix', label: t('fields.employee_number_prefix'), value: s.employee_number_prefix, help: t('settings.prefix_help') }) %>
+    </div>
+  </div>
+  <div class="panel-foot"><button class="btn btn-dark" type="submit"><%= t('common.save_changes') %></button></div>
+</form>
+<% } %>
+</div>

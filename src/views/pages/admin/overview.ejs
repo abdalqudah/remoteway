@@ -1,0 +1,11 @@
+<div class="page-head"><div><h1><%= t('admin.overview') %></h1><p><%= t('admin.overview_sub') %></p></div></div>
+<section class="kpis">
+  <div class="kpi"><div class="kpi-label"><%- icon('building-2', 'icon-sm') %><%= t('admin.organizations') %></div><div class="kpi-value"><%= fmt.number(stats.orgs) %></div><div class="kpi-meta"><%= t('admin.trial_active', { trial: fmt.number(stats.byStatus.trial || 0), active: fmt.number(stats.byStatus.active || 0) }) %></div></div>
+  <div class="kpi"><div class="kpi-label"><%- icon('user-cog', 'icon-sm') %><%= t('admin.users') %></div><div class="kpi-value"><%= fmt.number(stats.users) %></div></div>
+  <div class="kpi"><div class="kpi-label"><%- icon('users', 'icon-sm') %><%= t('admin.employees_managed') %></div><div class="kpi-value"><%= fmt.number(stats.employees) %></div></div>
+  <div class="kpi"><div class="kpi-label"><%- icon('receipt', 'icon-sm') %><%= t('admin.open_invoices') %></div><div class="kpi-value"><%= fmt.number(stats.openInvoices) %></div><div class="kpi-meta"><%= t('admin.paid_30d', { amount: fmt.number(stats.revenue30d) }) %></div></div>
+</section>
+<section class="panel mt-6">
+  <div class="panel-head"><h2><%= t('admin.latest_orgs') %></h2><a class="btn btn-ghost btn-sm" href="/admin/organizations"><%= t('common.view_all') %></a></div>
+  <%- include('_org-table', { orgs: orgs }) %>
+</section>
