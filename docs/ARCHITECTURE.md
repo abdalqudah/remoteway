@@ -196,17 +196,17 @@ Auth is `Authorization: Bearer rw_…` (Settings → API; requires the `api` fea
 |---|---|:-:|:-:|:-:|:-:|
 | Employee Management (`employees`) | available | ✓ | ✓ | ✓ | ✓ |
 | Departments & Locations (`departments`) | available | ✓ | ✓ | ✓ | ✓ |
-| Attendance (`attendance`) | coming_soon | ✓ | ✓ | ✓ | ✓ |
-| Leave (`leave`) | coming_soon | ✓ | ✓ | ✓ | ✓ |
-| Documents (`documents`) | coming_soon | ✓ | ✓ | ✓ | ✓ |
-| Tasks (`tasks`) | coming_soon | ✓ | ✓ | ✓ | ✓ |
+| Attendance (`attendance`) | available | ✓ | ✓ | ✓ | ✓ |
+| Leave (`leave`) | available | ✓ | ✓ | ✓ | ✓ |
+| Documents (`documents`) | available | ✓ | ✓ | ✓ | ✓ |
+| Tasks (`tasks`) | available | ✓ | ✓ | ✓ | ✓ |
 | Basic Reports (`basic_reports`) | coming_soon | ✓ | ✓ | ✓ | ✓ |
-| Recruitment (ATS) (`recruitment`) | coming_soon |  | ✓ | ✓ | ✓ |
-| Onboarding (`onboarding`) | coming_soon |  | ✓ | ✓ | ✓ |
-| Payroll (`payroll`) | coming_soon |  | ✓ | ✓ | ✓ |
-| Performance (`performance`) | coming_soon |  | ✓ | ✓ | ✓ |
-| Learning (`learning`) | coming_soon |  | ✓ | ✓ | ✓ |
-| Projects (`projects`) | coming_soon |  | ✓ | ✓ | ✓ |
+| Recruitment (ATS) (`recruitment`) | available |  | ✓ | ✓ | ✓ |
+| Onboarding (`onboarding`) | available |  | ✓ | ✓ | ✓ |
+| Payroll (`payroll`) | available |  | ✓ | ✓ | ✓ |
+| Performance (`performance`) | available |  | ✓ | ✓ | ✓ |
+| Learning (`learning`) | available |  | ✓ | ✓ | ✓ |
+| Projects (`projects`) | available |  | ✓ | ✓ | ✓ |
 | Advanced Reports (`advanced_reports`) | coming_soon |  | ✓ | ✓ | ✓ |
 | Integrations (`integrations`) | coming_soon |  | ✓ | ✓ | ✓ |
 | Advanced Analytics (`analytics`) | coming_soon |  |  | ✓ | ✓ |
