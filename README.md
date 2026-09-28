@@ -9,11 +9,16 @@
 | Runtime | Node.js ≥ 20 (Express 4, server-rendered EJS, no build step) |
 | Database | MySQL 8 / MariaDB ≥ 10.3 (all data, including sessions, lives in the database) |
 | Hosting | Any cPanel host with **Setup Node.js App** (e.g. Orange Host), or any VPS |
-| Status | **Phases 1–9** (SaaS Core, Workforce, Talent, Payroll, Performance, Learning, Integrations, AI, Enterprise) complete and tested (see `docs/ARCHITECTURE.md`) |
+| Status | **Phases 1–9 + Advanced Analytics** (SaaS Core, Workforce, Talent, Payroll, Performance, Learning, Integrations, AI, Enterprise, Analytics) complete and tested (see `docs/ARCHITECTURE.md`) |
 
 ---
 
-## What works today (Phases 1–9)
+## What works today
+
+**Advanced Analytics** (Professional, Enterprise or the Advanced Analytics add-on — Insights → Analytics):
+- Six sections, one filter row (last 6/12/24 months, department) scoping every KPI and chart: **Workforce** (headcount at month end, joiners/leavers, headcount and Saudization by department, length of service), **Turnover & retention** (monthly turnover, 12-month retention, early attrition, turnover by department, service at exit), **Absence** (absence rate against the company working week, leave days, by type, Bradford factor for sick leave), **Attendance** (on-time arrivals, average hours, overtime by department), **Hiring** (funnel from stage history, applications, time to hire, source effectiveness) and **Payroll cost** (full employer cost of approved runs, cost per employee, contributions share, cost by department).
+- Sections appear only for roles that may see that data company-wide. Every chart has a table view, hover tooltips (keyboard too) and CSV export.
+- Charts are server-rendered SVG (no chart library, strict CSP kept) in the brand green `#13AA54`, validated for contrast and colour-vision safety in light and dark mode.
 
 **Phase 9 — Enterprise:**
 - **Single sign-on (OpenID Connect):** Microsoft Entra ID, Google Workspace, Okta or any OIDC provider (Settings → Single sign-on). Authorization Code + PKCE, ID tokens verified locally (JWKS signature, issuer, audience, expiry, nonce), allowed email domains, optional account creation on first sign-in (JIT) with a default role, and "require SSO" (owners keep a break-glass password). A successful test sign-in is required before enforcing. SAML-only providers are not supported yet.

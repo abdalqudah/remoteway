@@ -18,6 +18,7 @@ router.use(aiWeb.locals);
 router.use('/ai', aiWeb.actions);
 router.use('/insights', aiWeb.insights);
 router.use('/reports', require('../modules/reports/web'));
+router.use('/analytics', require('../modules/analytics/web'));
 router.use('/support', require('../modules/support/web'));
 router.use('/', require('../modules/dashboard/web'));
 router.use('/onboarding', require('../modules/onboarding/web'));

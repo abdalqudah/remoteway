@@ -441,6 +441,47 @@
     }, 0);
   });
 
+  /* ---------- Chart tooltips: crosshair on lines, per-slot hover on columns (values also in the table view) ---------- */
+  // Keep chart text at 12px whatever the rendered width (the SVG scales with its container).
+  var chartScale = function () {
+    $$('svg.ch').forEach(function (svg) {
+      var w = svg.getBoundingClientRect().width;
+      if (w) svg.style.setProperty('--ch-scale', Math.min(3, Math.max(0.6, svg.viewBox.baseVal.width / w)).toFixed(3));
+    });
+  };
+  chartScale();
+  var chartTimer;
+  window.addEventListener('resize', function () { clearTimeout(chartTimer); chartTimer = setTimeout(chartScale, 120); });
+  $$('[data-chart]').forEach(function (c) {
+    var svg = c.querySelector('svg');
+    var tip = c.querySelector('.chart-tip');
+    var cross = svg && svg.querySelector('.ch-cross');
+    if (!svg || !tip) return;
+    var hide = function () {
+      tip.hidden = true;
+      if (cross) cross.setAttribute('visibility', 'hidden');
+      $$('.ch-hit.is-on', svg).forEach(function (r) { r.classList.remove('is-on'); });
+    };
+    var show = function (r) {
+      $$('.ch-hit.is-on', svg).forEach(function (x) { x.classList.remove('is-on'); });
+      r.classList.add('is-on');
+      tip.querySelector('[data-tip-value]').textContent = r.getAttribute('data-tip-value');
+      tip.querySelector('[data-tip-label]').textContent = r.getAttribute('data-tip-label');
+      tip.hidden = false;
+      var vx = Number(r.getAttribute('data-x'));
+      if (cross) { cross.setAttribute('x1', vx); cross.setAttribute('x2', vx); cross.setAttribute('visibility', 'visible'); }
+      var box = svg.getBoundingClientRect();
+      var px = vx * (box.width / svg.viewBox.baseVal.width);
+      var left = Math.max(0, Math.min(box.width - tip.offsetWidth, px + 12));
+      if (px + 12 + tip.offsetWidth > box.width) left = Math.max(0, px - 12 - tip.offsetWidth);
+      tip.style.left = left + 'px';
+    };
+    svg.addEventListener('pointermove', function (e) { var r = e.target.closest && e.target.closest('.ch-hit'); if (r) show(r); });
+    svg.addEventListener('pointerleave', hide);
+    svg.addEventListener('focusin', function (e) { if (e.target.classList.contains('ch-hit')) show(e.target); });
+    svg.addEventListener('focusout', hide);
+  });
+
   // Keep csrf available for fetch-based features.
   window.RemoteWay = { csrf: csrf };
 })();

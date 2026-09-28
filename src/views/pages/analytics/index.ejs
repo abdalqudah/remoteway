@@ -1,0 +1,48 @@
+<% var icons = { workforce: 'users', retention: 'history', absence: 'plane', attendance: 'calendar-check', hiring: 'briefcase', cost: 'wallet' }; %>
+<div class="page-head"><div><h1><%= t('analytics.title') %></h1><p><%= t('analytics.sub') %></p></div>
+  <% if (view) { %><div class="page-actions"><a class="btn btn-secondary" href="?<%= new URLSearchParams({ section: key, months: filters.months, department_id: filters.department_id || '', format: 'csv' }).toString() %>"><%- icon('download') %><%= t('reports.export_csv') %></a></div><% } %></div>
+
+<% if (!inPlan) { %>
+<section class="panel"><div class="empty"><span class="empty-icon"><%- icon('chart-column') %></span><p><strong><%= t('analytics.not_in_plan') %></strong></p><p class="muted small"><%= t('analytics.not_in_plan_text') %></p>
+  <% if (can('billing.manage')) { %><a class="btn btn-dark btn-sm mt-2" href="/app/billing"><%= t('billing.upgrade_plan') %></a><% } %></div></section>
+<% } else if (!view) { %>
+<section class="panel"><div class="empty"><p><%= t('analytics.no_sections') %></p></div></section>
+<% } else { %>
+<nav class="tabs mb-4" aria-label="<%= t('analytics.title') %>"><% sections.forEach(function (s) { %><a href="?section=<%= s %>&months=<%= filters.months %>&department_id=<%= filters.department_id || '' %>" class="<%= s === key ? 'active' : '' %>"><%= t('analytics.s_' + s) %></a><% }) %></nav>
+
+<form class="row-sm wrap mb-6" method="get" action="/app/analytics" data-autosubmit>
+  <input type="hidden" name="section" value="<%= key %>">
+  <select class="select" name="months" aria-label="<%= t('analytics.period') %>" style="width:auto"><% PERIODS.forEach(function (m) { %><option value="<%= m %>"<%= filters.months === m ? ' selected' : '' %>><%= t('analytics.last_n_months', { n: m }) %></option><% }) %></select>
+  <select class="select" name="department_id" aria-label="<%= t('fields.department') %>" style="width:auto"><option value=""><%= t('analytics.all_departments') %></option><% departments.forEach(function (d) { %><option value="<%= d.id %>"<%= filters.department_id === d.id ? ' selected' : '' %>><%= d.name %></option><% }) %></select>
+  <span class="small muted"><%= fmt.date(filters.from) %> – <%= fmt.date(filters.to) %></span>
+  <noscript><button class="btn btn-secondary btn-sm" type="submit"><%= t('reports.run') %></button></noscript>
+</form>
+
+<div class="kpis kpis-auto mb-6">
+  <% view.kpis.forEach(function (k) { %><div class="kpi"><div class="kpi-label"><%= k.label %></div><div class="kpi-value"><%= k.value %></div><% if (k.hint) { %><div class="kpi-meta"><%= k.hint %></div><% } %></div><% }) %>
+</div>
+
+<div class="an-grid">
+  <% view.charts.forEach(function (c) { %>
+  <section class="panel an-card<%= c.wide ? ' an-wide' : '' %>">
+    <div class="panel-head"><div><h2><%= c.title %></h2><% if (c.sub) { %><div class="panel-sub"><%= c.sub %></div><% } %></div></div>
+    <div class="panel-body">
+      <% if (c.html) { %><%- c.html %><% } else { %><div class="empty" style="padding:24px 0"><p class="muted small"><%= t('analytics.no_data') %></p></div><% } %>
+      <details class="chart-table"><summary><%= t('analytics.show_table') %></summary>
+        <div class="table-wrap"><table class="table table-compact"><thead><tr><% c.table.head.forEach(function (h) { %><th><%= h %></th><% }) %></tr></thead>
+          <tbody><% c.table.rows.forEach(function (r) { %><tr><% r.forEach(function (v, i) { %><td class="<%= i ? 'num' : '' %>"><%= v %></td><% }) %></tr><% }) %></tbody></table></div>
+      </details>
+    </div>
+  </section>
+  <% }) %>
+  <% view.tables.forEach(function (tb) { %>
+  <section class="panel an-wide">
+    <div class="panel-head"><div><h2><%= tb.title %></h2><% if (tb.sub) { %><div class="panel-sub"><%= tb.sub %></div><% } %></div></div>
+    <% if (!tb.rows.length) { %><div class="empty"><p class="muted small"><%= tb.empty %></p></div><% } else { %>
+    <div class="table-wrap"><table class="table"><thead><tr><% tb.head.forEach(function (h, i) { %><th class="<%= i ? 'text-end' : '' %>"><%= h %></th><% }) %></tr></thead>
+      <tbody><% tb.rows.forEach(function (r) { %><tr><% r.forEach(function (v, i) { %><td class="<%= i ? 'text-end num' : '' %>"><%= v %></td><% }) %></tr><% }) %></tbody></table></div><% } %>
+  </section>
+  <% }) %>
+</div>
+<p class="an-note"><%= t('analytics.note_' + key) %> <%= t('analytics.note_dept') %></p>
+<% } %>
