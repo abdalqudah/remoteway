@@ -1,0 +1,20 @@
+<div class="page-head">
+  <div><h1><%= t('nav.learning') %></h1><p><%= t('learning.manage_sub') %></p></div>
+  <div class="page-actions"><a class="btn btn-dark" href="/app/learning/manage/courses/new"><%- icon('plus') %><%= t('learning.new_course') %></a></div>
+</div>
+<%- include('_nav') %>
+<section class="panel">
+  <div class="panel-head"><h2><%= t('learning.courses') %></h2>
+    <nav class="tabs" style="margin:0;border:0"><% [['', 'common.all'], ['published', 'learning.status_published'], ['draft', 'learning.status_draft'], ['archived', 'learning.status_archived']].forEach(function (x) { %><a href="?status=<%= x[0] %>" class="<%= status === x[0] ? 'active' : '' %>"><%= t(x[1]) %></a><% }) %></nav></div>
+  <% if (!rows.length) { %><div class="empty"><span class="empty-icon"><%- icon('graduation-cap') %></span><h3><%= t('learning.no_courses') %></h3><p><%= t('learning.no_courses_text') %></p></div><% } else { %>
+  <div class="table-wrap"><table class="table">
+    <thead><tr><th><%= t('learning.course') %></th><th><%= t('fields.status') %></th><th class="num"><%= t('learning.lessons') %></th><th class="num"><%= t('learning.enrolled') %></th><th style="width:22%"><%= t('learning.completion') %></th><th></th></tr></thead>
+    <tbody><% rows.forEach(function (c) { var pct = c.enrolled ? Math.round(c.completed / c.enrolled * 100) : 0; %>
+      <tr><td><a class="person-name" href="/app/learning/manage/courses/<%= c.id %>"><%= c.title %></a><% if (c.is_mandatory) { %> <span class="badge badge-danger"><%= t('learning.mandatory') %></span><% } %><div class="tiny muted"><%= c.category || t('learning.general') %> · <%= t('learning.level_' + c.level) %></div></td>
+        <td><span class="st st-<%= c.status %>"><%= t('learning.status_' + c.status) %></span></td>
+        <td class="num"><%= c.lesson_count %></td><td class="num"><%= c.enrolled %></td>
+        <td><div class="row-sm"><div class="progress grow"><span style="width:<%= pct %>%"></span></div><span class="small"><%= pct %>%</span></div></td>
+        <td class="text-end"><a class="btn btn-ghost btn-sm" href="/app/learning/courses/<%= c.id %>"><%- icon('eye', 'icon-sm') %></a></td></tr>
+    <% }) %></tbody>
+  </table></div><% } %>
+</section>

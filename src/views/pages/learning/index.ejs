@@ -1,0 +1,48 @@
+<%
+  var today = new Date().toISOString().slice(0, 10);
+  var dd = function (v) { return v ? (v instanceof Date ? v.toISOString().slice(0, 10) : String(v).slice(0, 10)) : null; };
+  var active = mine.enrollments.filter(function (e) { return e.status !== 'completed'; });
+  var done = mine.enrollments.filter(function (e) { return e.status === 'completed'; });
+%>
+<div class="page-head">
+  <div><h1><%= t('nav.learning') %></h1><p><%= t('learning.subtitle') %></p></div>
+  <div class="page-actions"><a class="btn btn-dark" href="/app/learning/catalog"><%- icon('search') %><%= t('learning.browse_catalog') %></a></div>
+</div>
+<%- include('_nav') %>
+
+<% if (mine.paths.length) { %>
+<section class="panel mb-6">
+  <div class="panel-head"><h2><%= t('learning.my_paths') %></h2></div>
+  <ul class="action-list"><% mine.paths.forEach(function (p) { %>
+    <li><a href="/app/learning/paths/<%= p.path_id %>"><span class="action-icon"><%- icon('layers', 'icon-sm') %></span><span class="grow small"><strong><%= p.title %></strong><span class="muted" style="display:block"><%= t('learning.courses_done', { done: p.done, total: p.courses.length }) %><%= p.due_date ? ' · ' + t('learning.due_on', { date: fmt.date(p.due_date) }) : '' %></span></span><span class="progress" style="width:140px"><span style="width:<%= p.progress %>%"></span></span><strong class="small"><%= p.progress %>%</strong></a></li>
+  <% }) %></ul>
+</section>
+<% } %>
+
+<section class="panel mb-6">
+  <div class="panel-head"><h2><%= t('learning.in_progress') %></h2></div>
+  <% if (!active.length) { %><div class="empty"><span class="empty-icon"><%- icon('graduation-cap') %></span><h3><%= t('learning.nothing_assigned') %></h3><p><%= t('learning.nothing_assigned_text') %></p><a class="btn btn-secondary mt-4" href="/app/learning/catalog"><%= t('learning.browse_catalog') %></a></div><% } else { %>
+  <div class="table-wrap"><table class="table">
+    <thead><tr><th><%= t('learning.course') %></th><th><%= t('learning.source') %></th><th><%= t('learning.due') %></th><th style="width:26%"><%= t('learning.progress') %></th><th></th></tr></thead>
+    <tbody><% active.forEach(function (e) { var due = dd(e.due_date); %>
+      <tr><td><a class="person-name" href="/app/learning/courses/<%= e.course_id %>"><%= e.course_title %></a><% if (e.is_mandatory) { %> <span class="badge badge-danger"><%= t('learning.mandatory') %></span><% } %><div class="tiny muted"><%= t('learning.lessons_n', { n: e.lesson_count }) %></div></td>
+        <td class="small"><%= t('learning.source_' + e.source) %></td>
+        <td class="nowrap small <%= due && due < today ? 'overdue' : '' %>"><%= due ? fmt.date(due) : '—' %></td>
+        <td><div class="row-sm"><div class="progress grow"><span style="width:<%= e.progress %>%"></span></div><span class="small"><%= Math.round(e.progress) %>%</span></div></td>
+        <td class="text-end"><a class="btn btn-dark btn-sm" href="/app/learning/courses/<%= e.course_id %>"><%= e.status === 'not_started' ? t('learning.start') : t('learning.continue') %></a></td></tr>
+    <% }) %></tbody>
+  </table></div><% } %>
+</section>
+
+<div class="grid grid-2">
+  <section class="panel">
+    <div class="panel-head"><h2><%= t('learning.completed') %></h2></div>
+    <% if (!done.length) { %><div class="empty" style="padding:28px"><p><%= t('learning.none_completed') %></p></div><% } else { %>
+    <ul class="action-list"><% done.forEach(function (e) { %><li><a href="/app/learning/courses/<%= e.course_id %>"><span class="action-icon" style="background:var(--success-soft);color:var(--success)"><%- icon('circle-check', 'icon-sm') %></span><span class="grow small"><strong><%= e.course_title %></strong><span class="muted" style="display:block"><%= t('learning.completed_on', { date: fmt.date(e.completed_at) }) %><%= e.score !== null ? ' · ' + t('learning.score_n', { n: Math.round(Number(e.score)) }) : '' %></span></span></a></li><% }) %></ul><% } %>
+  </section>
+  <section class="panel">
+    <div class="panel-head"><h2><%= t('learning.my_certificates') %></h2></div>
+    <% if (!mine.certificates.length) { %><div class="empty" style="padding:28px"><p><%= t('learning.no_certificates') %></p></div><% } else { %>
+    <ul class="action-list"><% mine.certificates.forEach(function (c) { var exp = dd(c.expires_on); %><li><a href="/app/learning/certificates/<%= c.id %>"><span class="action-icon info"><%- icon('badge-check', 'icon-sm') %></span><span class="grow small"><strong><%= c.course_title %></strong><span class="muted" style="display:block"><%= fmt.date(c.issued_on) %><%= exp ? ' → ' + fmt.date(exp) : '' %></span></span><% if (exp && exp < today) { %><span class="st st-expired"><%= t('learning.expired') %></span><% } %></a></li><% }) %></ul><% } %>
+  </section>
+</div>

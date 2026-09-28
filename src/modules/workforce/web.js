@@ -91,6 +91,11 @@ router.get('/employees/:id', canAny('employees.view', 'team.view'), wrap(async (
     ]);
     Object.assign(extra, { perfGoals: goalRows, perfReviews: reviewRows, perfFeedback: feedbackRows });
   }
+  if (tab === 'training' && has('learning')) {
+    const learn = require('../learning/enrollments.service');
+    extra.training = await learn.forEmployee(req.ctx, employee.id);
+    extra.certificates = extra.training ? await learn.certificatesForEmployee(req.ctx, employee.id) : [];
+  }
   res.page('pages/employees/show', { title: employee.full_name, employee, tab, ...extra });
 }));
 

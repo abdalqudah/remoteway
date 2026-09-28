@@ -1,0 +1,11 @@
+<% var q = query; %>
+<div class="page-head"><div><h1><%= t('nav.learning') %></h1><p><%= t('learning.catalog_sub') %></p></div></div>
+<%- include('_nav') %>
+<form class="row-sm wrap mb-4" method="get" data-autosubmit>
+  <div class="input-group" style="min-width:260px"><%- icon('search', 'icon-sm') %><input class="input" type="search" name="q" value="<%= q.q || '' %>" placeholder="<%= t('learning.search_ph') %>" aria-label="<%= t('common.search') %>"></div>
+  <% if (cats.length) { %><select class="select" name="category" aria-label="<%= t('learning.category') %>" style="width:auto"><option value=""><%= t('learning.all_categories') %></option><% cats.forEach(function (c) { %><option value="<%= c %>"<%= q.category === c ? ' selected' : '' %>><%= c %></option><% }) %></select><% } %>
+</form>
+<% if (!rows.length) { %><section class="panel"><div class="empty"><span class="empty-icon"><%- icon('graduation-cap') %></span><h3><%= t('learning.catalog_empty') %></h3><p><%= t(can('learning.manage') ? 'learning.catalog_empty_admin' : 'learning.catalog_empty_text') %></p><% if (can('learning.manage')) { %><a class="btn btn-dark mt-4" href="/app/learning/manage/courses/new"><%- icon('plus') %><%= t('learning.new_course') %></a><% } %></div></section>
+<% } else { %>
+<div class="course-grid"><% rows.forEach(function (c) { %><%- include('../../partials/course-card', { c: c, e: byCourse[c.id] }) %><% }) %></div>
+<% } %>

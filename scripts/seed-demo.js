@@ -292,6 +292,68 @@ async function seedPhase5(ctx, empIds, userIds) {
   await reviews.giveFeedback(mgr, { employee_id: empIds[6], kind: 'suggestion', body: 'Please share a short weekly update on the latency work so we can unblock you earlier.' });
 }
 
+/** Courses with lessons and quizzes, a learning path, assignments and a certificate. */
+async function seedPhase6(ctx, empIds, userIds) {
+  const courses = require('../src/modules/learning/courses.service');
+  const enroll = require('../src/modules/learning/enrollments.service');
+  const { todayIn, addDays } = require('../src/core/workdays');
+  const today = todayIn('Asia/Riyadh');
+  const asUser = async (uid) => ({ organizationId: ctx.organizationId, userId: uid, permissions: await rbac.getUserPermissions(ctx.organizationId, uid) });
+  const quiz = (items) => ({ q_text: items.map((i) => i[0]), q_opt0: items.map((i) => i[1][0]), q_opt1: items.map((i) => i[1][1]), q_opt2: items.map((i) => i[1][2] || ''), q_opt3: items.map((i) => i[1][3] || ''), q_correct: items.map((i) => i[2]) });
+
+  const sec = await courses.saveCourse(ctx, null, { title: 'Information security basics', category: 'Compliance', level: 'beginner', is_mandatory: 'on', self_enroll: 'on', certificate_enabled: 'on', validity_months: 12, passing_score: 70,
+    description: 'Every employee completes this course once a year.\n\n- Recognise phishing\n- Protect passwords and devices\n- Report incidents quickly' });
+  await courses.saveLesson(ctx, sec, null, { kind: 'text', title: 'Why security matters', duration_minutes: 5, body: '# Our shared responsibility\nMost incidents start with a single click. **You** are the first line of defence.\n\n- Lock your screen when you step away\n- Never share one-time codes\n- Report anything suspicious to IT' });
+  await courses.saveLesson(ctx, sec, null, { kind: 'video', title: 'Spotting phishing emails', duration_minutes: 8, url: 'https://www.youtube.com/watch?v=aO858HyFbKI', body: 'Watch the video, then continue.' });
+  await courses.saveLesson(ctx, sec, null, { kind: 'text', title: 'Passwords and multi-factor authentication', duration_minutes: 6, body: '## Strong passwords\nUse a password manager and a unique password for every account.\n\n## Multi-factor authentication\nTurn it on for email, HR and banking apps.' });
+  await courses.saveLesson(ctx, sec, null, { kind: 'quiz', title: 'Check your knowledge', duration_minutes: 5, ...quiz([
+    ['An email asks you to confirm your password urgently. What do you do?', ['Reply with the password', 'Click the link to check', 'Report it to IT without clicking'], 2],
+    ['What is the safest way to manage many passwords?', ['Reuse one strong password', 'Use a password manager', 'Write them on a sticky note'], 1],
+    ['Someone calls asking for your one-time code. You…', ['Share it if they sound official', 'Never share it'], 1],
+  ]) });
+  await courses.setCourseStatus(ctx, sec, 'published');
+
+  const cs = await courses.saveCourse(ctx, null, { title: 'Customer service excellence', category: 'Customer experience', level: 'intermediate', self_enroll: 'on', certificate_enabled: 'on', passing_score: 60,
+    description: 'Practical habits that turn support tickets into loyal customers.' });
+  await courses.saveLesson(ctx, cs, null, { kind: 'text', title: 'The first response', duration_minutes: 7, body: 'Answer quickly, use the customer\'s name and confirm what you understood.\n\n1. Acknowledge\n2. Clarify\n3. Commit to a next step' });
+  await courses.saveLesson(ctx, cs, null, { kind: 'link', title: 'Our service standards (intranet)', duration_minutes: 10, url: 'https://remoteway.com/standards' });
+  await courses.saveLesson(ctx, cs, null, { kind: 'quiz', title: 'Quick check', duration_minutes: 3, ...quiz([
+    ['What comes first in a good response?', ['Acknowledge the customer', 'Explain our policy'], 0],
+    ['A customer is angry. You…', ['Argue the facts', 'Listen and summarise their concern'], 1],
+  ]) });
+  await courses.setCourseStatus(ctx, cs, 'published');
+
+  const lead = await courses.saveCourse(ctx, null, { title: 'Leading your first team', category: 'Leadership', level: 'intermediate', self_enroll: 'on', certificate_enabled: 'on',
+    description: 'One-to-ones, feedback and delegation for new managers.' });
+  await courses.saveLesson(ctx, lead, null, { kind: 'text', title: 'Running great one-to-ones', duration_minutes: 10, body: 'Keep a shared agenda, let your report speak first, and end with clear actions.' });
+  await courses.saveLesson(ctx, lead, null, { kind: 'text', title: 'Giving feedback that lands', duration_minutes: 8, body: 'Be specific: describe the situation, the behaviour and the impact.' });
+  await courses.setCourseStatus(ctx, lead, 'published');
+  const draft = await courses.saveCourse(ctx, null, { title: 'Saudi Labor Law essentials', category: 'Compliance', level: 'beginner' });
+  await courses.saveLesson(ctx, draft, null, { kind: 'text', title: 'Working hours and overtime', duration_minutes: 10, body: 'Draft content.' });
+
+  const path = await courses.savePath(ctx, null, { title: 'New manager essentials', description: 'Everything a first-time manager needs in the first 90 days.', status: 'published', course_ids: [lead, cs] });
+
+  // Everyone must complete security training within three weeks.
+  await enroll.assignCourse(ctx, sec, { everyone: 'on', due_date: addDays(today, 21) });
+  await knex('enrollments').where({ course_id: sec, employee_id: empIds[10] }).update({ due_date: addDays(today, -3) }); // one overdue
+  await enroll.assignPath(ctx, path, { employee_ids: [empIds[3]], due_date: addDays(today, 60) });
+
+  // Sara completes security training and gets a certificate; Omar is half-way through his path.
+  const sara = await asUser(userIds.employee);
+  const lessons = await knex('course_lessons').where({ course_id: sec }).orderBy('sort_order');
+  for (const l of lessons.filter((x) => x.kind !== 'quiz')) await enroll.completeLesson(sara, sec, l.id);
+  const qz = lessons.find((x) => x.kind === 'quiz');
+  const qs = await knex('lesson_questions').where({ lesson_id: qz.id });
+  await enroll.submitQuiz(sara, sec, qz.id, Object.fromEntries(qs.map((q) => [`q_${q.id}`, q.correct_index])));
+  await enroll.enrollSelf(sara, cs);
+  const csLessons = await knex('course_lessons').where({ course_id: cs }).orderBy('sort_order');
+  await enroll.completeLesson(sara, cs, csLessons[0].id);
+  const omar = await asUser(userIds.manager);
+  const leadLessons = await knex('course_lessons').where({ course_id: lead }).orderBy('sort_order');
+  await enroll.completeLesson(omar, lead, leadLessons[0].id);
+  await enroll.completeLesson(omar, sec, lessons[0].id);
+}
+
 function monthsAgo(n) {
   const d = new Date();
   d.setUTCMonth(d.getUTCMonth() - n);
@@ -366,6 +428,7 @@ function monthsAgo(n) {
     await seedPhase3(ctx, empIds, userIds);
     await seedPhase4(ctx, empIds);
     await seedPhase5(ctx, empIds, userIds);
+    await seedPhase6(ctx, empIds, userIds);
 
     console.log('\nRemoteWay Demo Company is ready.');
     console.log(`Password for all demo users: ${PASSWORD}\n`);

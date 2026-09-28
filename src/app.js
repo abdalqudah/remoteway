@@ -31,6 +31,7 @@ function createApp() {
         connectSrc: ["'self'"],
         formAction: ["'self'"],
         frameAncestors: ["'none'"],
+        frameSrc: ['https://www.youtube-nocookie.com', 'https://player.vimeo.com'], // lesson videos only
         upgradeInsecureRequests: config.isProd ? [] : null,
       },
     },

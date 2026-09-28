@@ -1,0 +1,7 @@
+<% var pth = typeof p !== 'undefined' && p ? p : {}; var sel = (pth.courses || []).map(function (x) { return String(x.id); }); %>
+<%- include('field', { name: 'title', label: t('learning.path_title'), required: true, value: pth.title, placeholder: t('learning.path_title_ph') }) %>
+<%- include('field', { name: 'description', label: t('fields.description'), type: 'textarea', value: pth.description }) %>
+<div class="field"><span class="label"><%= t('learning.path_courses') %><span class="req">*</span></span><span class="help"><%= t('learning.path_courses_help') %></span>
+  <div class="check-list"><% allCourses.forEach(function (c) { %><label class="check"><input type="checkbox" name="course_ids" value="<%= c.id %>"<%= sel.indexOf(String(c.id)) !== -1 ? ' checked' : '' %>><span><%= c.title %><% if (c.status !== 'published') { %> <span class="tiny muted">(<%= t('learning.status_' + c.status) %>)</span><% } %></span></label><% }) %></div>
+  <% if (errors.course_ids) { %><span class="field-error"><%= errors.course_ids %></span><% } %></div>
+<label class="check"><input type="checkbox" name="status" value="published"<%= pth.status === 'published' ? ' checked' : '' %>><%= t('learning.path_published') %></label>

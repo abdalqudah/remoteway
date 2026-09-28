@@ -1,0 +1,19 @@
+<section class="section" style="border-top:0">
+  <div class="container" style="max-width:640px">
+    <div class="section-head"><h2><%= t('learning.verify_title') %></h2><p><%= t('learning.verify_sub') %></p></div>
+    <% if (cert) { %>
+      <div class="panel"><div class="panel-body stack">
+        <div class="row-sm"><span class="st st-<%= cert.state === 'valid' ? 'approved' : cert.state === 'expired' ? 'expired' : 'rejected' %>"><%= t('learning.cert_state_' + cert.state) %></span><span class="mono small"><%= cert.code %></span></div>
+        <dl class="dl">
+          <dt><%= t('learning.cert_holder') %></dt><dd dir="auto"><%= cert.employee_name %></dd>
+          <dt><%= t('learning.course') %></dt><dd dir="auto"><%= cert.course_title %></dd>
+          <dt><%= t('learning.issued_by') %></dt><dd><%= cert.organization_name %></dd>
+          <dt><%= t('learning.issued') %></dt><dd><%= fmt.date(cert.issued_on) %></dd>
+          <dt><%= t('learning.valid_until') %></dt><dd><%= cert.expires_on ? fmt.date(cert.expires_on) : t('learning.no_expiry') %></dd>
+        </dl>
+      </div></div>
+    <% } else if (code) { %>
+      <div class="alert alert-error"><%- icon('circle-x') %><div><%= t('learning.cert_not_found') %></div></div>
+    <% } %>
+  </div>
+</section>

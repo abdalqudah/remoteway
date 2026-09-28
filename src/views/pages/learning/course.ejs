@@ -1,0 +1,61 @@
+<%
+  var c = course; var en = enrollment;
+  var done = new Set((en && en.lessons || []).filter(function (l) { return l.completed_at; }).map(function (l) { return l.lesson_id; }));
+  var nextLesson = c.lessons.find(function (l) { return !done.has(l.id); }) || c.lessons[0];
+  var mins = c.minutes; var dur = mins >= 60 ? t('learning.hours_n', { n: Math.round(mins / 6) / 10 }) : t('learning.minutes_n', { n: mins });
+  var kindIcon = { text: 'file-text', video: 'video', file: 'download', link: 'external-link', quiz: 'circle-check' };
+%>
+<div class="page-head">
+  <div>
+    <div class="eyebrow"><a href="/app/learning/catalog"><%= t('learning.catalog') %></a></div>
+    <h1><%= c.title %></h1>
+    <div class="row-sm wrap mt-2 small muted">
+      <% if (c.status !== 'published') { %><span class="st st-<%= c.status %>"><%= t('learning.status_' + c.status) %></span><% } %>
+      <% if (c.is_mandatory) { %><span class="badge badge-danger"><%= t('learning.mandatory') %></span><% } %>
+      <span><%= c.category || t('learning.general') %></span><span><%= t('learning.level_' + c.level) %></span>
+      <span><%- icon('list-checks', 'icon-sm') %> <%= t('learning.lessons_n', { n: c.lessons.length }) %></span><span><%- icon('clock', 'icon-sm') %> <%= dur %></span>
+      <% if (c.certificate_enabled) { %><span><%- icon('badge-check', 'icon-sm') %> <%= c.validity_months ? t('learning.cert_valid_months', { n: c.validity_months }) : t('learning.with_certificate') %></span><% } %>
+    </div>
+  </div>
+  <div class="page-actions">
+    <% if (can('learning.manage')) { %><a class="btn btn-secondary" href="/app/learning/manage/courses/<%= c.id %>"><%- icon('pencil') %><%= t('common.edit') %></a><% } %>
+    <% if (canAssign && c.status === 'published') { %><button class="btn btn-secondary" type="button" data-open-dialog="assign-dialog"><%- icon('user-plus') %><%= t('learning.assign') %></button><% } %>
+    <% if (en && en.status === 'completed') { %>
+      <form method="post" action="/app/learning/courses/<%= c.id %>/restart" data-confirm="<%= t('learning.confirm_restart') %>"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><button class="btn btn-secondary" type="submit"><%- icon('history') %><%= t('learning.retake') %></button></form>
+    <% } else if (en && nextLesson) { %><a class="btn btn-dark" href="/app/learning/courses/<%= c.id %>/lessons/<%= nextLesson.id %>"><%- icon('arrow-right', 'flip-rtl') %><%= en.status === 'not_started' ? t('learning.start') : t('learning.continue') %></a>
+    <% } else if (!en && c.status === 'published' && c.self_enroll && c.lessons.length) { %><form method="post" action="/app/learning/courses/<%= c.id %>/enroll"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><button class="btn btn-dark" type="submit"><%- icon('plus') %><%= t('learning.enroll') %></button></form><% } %>
+  </div>
+</div>
+
+<% if (en) { %>
+<section class="panel mb-6"><div class="panel-body">
+  <div class="row between mb-2"><strong><%= en.status === 'completed' ? t('learning.completed_on', { date: fmt.date(en.completed_at) }) : t('learning.your_progress') %></strong><span class="small"><%= Math.round(en.progress) %>%<%= en.score !== null ? ' · ' + t('learning.score_n', { n: Math.round(Number(en.score)) }) : '' %><%= en.due_date ? ' · ' + t('learning.due_on', { date: fmt.date(en.due_date) }) : '' %></span></div>
+  <div class="progress" style="height:10px"><span style="width:<%= en.progress %>%"></span></div>
+</div></section>
+<% } else if (c.status === 'published' && !c.self_enroll) { %><div class="alert alert-info mb-6"><%- icon('info') %><div><%= t('learning.assigned_only') %></div></div><% } %>
+
+<div class="grid grid-3">
+  <div class="span-2 stack-lg">
+    <% if (descriptionHtml) { %><section class="panel"><div class="panel-head"><h2><%= t('learning.about_course') %></h2></div><div class="panel-body rich" dir="auto"><%- descriptionHtml %></div></section><% } %>
+    <section class="panel">
+      <div class="panel-head"><h2><%= t('learning.lessons') %></h2></div>
+      <% if (!c.lessons.length) { %><div class="empty" style="padding:24px"><p><%= t('learning.no_lessons') %></p></div><% } else { %>
+      <ol class="lesson-list"><% c.lessons.forEach(function (l, i) { var isDone = done.has(l.id); %>
+        <li class="<%= isDone ? 'done' : '' %>">
+          <span class="lesson-n"><%- isDone ? icon('check', 'icon-sm') : (i + 1) %></span>
+          <% if (en || can('learning.manage')) { %><a class="grow" href="/app/learning/courses/<%= c.id %>/lessons/<%= l.id %>"><% } else { %><span class="grow"><% } %>
+            <strong class="small"><%= l.title %></strong><span class="tiny muted" style="display:block"><%- icon(kindIcon[l.kind], 'icon-sm') %> <%= t('learning.kind_' + l.kind) %> · <%= t('learning.minutes_n', { n: l.duration_minutes }) %></span>
+          <% if (en || can('learning.manage')) { %></a><% } else { %></span><% } %>
+        </li>
+      <% }) %></ol><% } %>
+    </section>
+  </div>
+  <div class="stack-lg">
+    <% if (can('learning.manage')) { %><section class="panel"><div class="panel-head"><h2><%= t('learning.stats') %></h2></div><div class="panel-body"><dl class="dl" style="grid-template-columns:1fr">
+      <dt><%= t('learning.passing_score') %></dt><dd><%= c.passing_score %>%</dd>
+      <dt><%= t('learning.self_enroll') %></dt><dd><%= c.self_enroll ? t('common.yes') : t('common.no') %></dd>
+      <dt><%= t('learning.reports') %></dt><dd><a class="link" href="/app/learning/reports?course_id=<%= c.id %>"><%= t('learning.see_progress') %></a></dd>
+    </dl></div></section><% } %>
+  </div>
+</div>
+<% if (canAssign && c.status === 'published') { %><%- include('../../partials/assign-dialog', { action: '/app/learning/courses/' + c.id + '/assign', heading: t('learning.assign_course', { title: c.title }) }) %><% } %>

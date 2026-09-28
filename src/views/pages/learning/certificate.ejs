@@ -1,0 +1,24 @@
+<% var c = cert; var print = layout === 'print'; var expired = c.expires_on && String(c.expires_on instanceof Date ? c.expires_on.toISOString().slice(0, 10) : c.expires_on).slice(0, 10) < new Date().toISOString().slice(0, 10); %>
+<% if (!print) { %>
+<div class="page-head">
+  <div><div class="eyebrow"><a href="/app/learning"><%= t('learning.my_learning') %></a></div><h1><%= t('learning.certificate') %></h1></div>
+  <div class="page-actions"><a class="btn btn-secondary" href="?print=1" target="_blank" rel="noopener"><%- icon('download') %><%= t('payroll.print') %></a></div>
+</div>
+<% if (expired) { %><div class="alert alert-warning mb-4"><%- icon('triangle-alert') %><div><%= t('learning.cert_expired_note') %></div></div><% } %>
+<% } %>
+<article class="certificate">
+  <div class="cert-inner">
+    <div class="cert-brand"><%- include('../../partials/logo') %></div>
+    <div class="cert-kicker"><%= t('learning.cert_kicker') %></div>
+    <div class="cert-name" dir="auto"><%= c.employee_name %></div>
+    <div class="cert-text"><%= t('learning.cert_text') %></div>
+    <div class="cert-course" dir="auto"><%= c.course_title %></div>
+    <div class="cert-meta">
+      <div><span><%= t('learning.issued') %></span><strong><%= fmt.date(c.issued_on, { day: 'numeric', month: 'long', year: 'numeric' }) %></strong></div>
+      <% if (c.score !== null) { %><div><span><%= t('learning.score') %></span><strong><%= Math.round(Number(c.score)) %>%</strong></div><% } %>
+      <div><span><%= t('learning.valid_until') %></span><strong><%= c.expires_on ? fmt.date(c.expires_on, { day: 'numeric', month: 'long', year: 'numeric' }) : t('learning.no_expiry') %></strong></div>
+    </div>
+    <div class="cert-org"><%= organization.name %></div>
+    <div class="cert-code"><%= t('learning.verify_at') %> <span dir="ltr"><%= baseUrl %>/verify/<%= c.code %></span></div>
+  </div>
+</article>

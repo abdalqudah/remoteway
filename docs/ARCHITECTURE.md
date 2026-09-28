@@ -128,7 +128,7 @@ All of them carry `organization_id` and a composite index that starts with it.
 | 8 | Recruitment/ATS, Candidates, Interviews, Assessments, public careers page, Onboarding checklists | 3 | **Built** |
 | 9 | Payroll, Payslips, Allowances/Deductions (Country Policy Engine: Saudi GOSI) | 4 | **Built** |
 | 10 | Performance (Goals/OKRs, check-ins, review cycles, competencies, feedback) | 5 | **Built** |
-| 11 | Learning (Courses, Paths, Certificates) | 6 | Planned |
+| 11 | Learning (Courses, lessons & quizzes, Paths, Assignments, Certificates) | 6 | **Built** |
 | 12 | Integration hub: PayWay, Email, SMS, Accounting, Webhooks | 7 | Planned |
 | 13 | AI layer | 8 | Planned |
 | 14 | SSO, custom workflows, enterprise reporting, client success portal | 9 | Planned |
@@ -143,10 +143,11 @@ All of them carry `organization_id` and a composite index that starts with it.
 `GET|POST /recruitment/candidates` · `GET /recruitment/candidates/:id` · `GET /recruitment/applications/:id` · `POST /recruitment/applications/:id/stage` · `GET /recruitment/interviews` ·
 `GET|POST /onboarding/plans` · `GET /onboarding/plans/:id` · `POST /onboarding/tasks/:id` ·
 `GET|POST /payroll/runs` · `GET /payroll/runs/:id` · `POST /payroll/runs/:id/{submit|reopen|approve|pay|cancel}` · `GET /payroll/payslips/mine` · `GET /payroll/payslips/:id` ·
-`GET|POST /performance/goals` · `GET /performance/goals/:id` · `POST /performance/goals/:id/checkins` · `GET /performance/reviews/:id` · `GET|POST /performance/feedback`.
+`GET|POST /performance/goals` · `GET /performance/goals/:id` · `POST /performance/goals/:id/checkins` · `GET /performance/reviews/:id` · `GET|POST /performance/feedback` ·
+`GET /learning/courses` · `GET /learning/courses/:id` · `POST /learning/courses/:id/enroll` · `POST /learning/courses/:id/assign` · `GET /learning/me` · `GET /learning/enrollments`.
 Auth is `Authorization: Bearer rw_…` (Settings → API; requires the `api` feature, metered against `api_calls_monthly`) or the browser session plus the `X-CSRF-Token` header.
 
-**Planned:** `/learning, /projects, /integrations, /payway, /webhooks, /reports, /ai`.
+**Planned:** `/projects, /integrations, /payway, /webhooks, /reports, /ai`.
 
 ## H. Permission matrix — **Built** (system roles; Super Admin is a platform flag outside tenants)
 
@@ -274,7 +275,7 @@ Payroll / Employees ─► domain events (payroll.approved, employee.updated)
 | **3 — Talent** | Jobs, candidates (private CVs), pipeline board, interviews & feedback, assessments, hire → employee → onboarding, public careers page, onboarding templates & plans | ✅ Done — 19 more integration tests (plan gating, active-jobs & seat limits, CV isolation, interviewer-only feedback, careers page consent/honeypot/CSRF, onboarding assignees & completion) |
 | **4 — Payroll** | Compensation & bank details, payroll runs (draft → review → approved → paid, four-eyes), payslips, Saudi GOSI via the Country Policy Engine, proration, unpaid leave, adjustments, register/bank/GOSI exports | ✅ Done — 23 more tests (13 pure calculation tests + 10 integration: GOSI, proration, unpaid leave, workflow & locking, four-eyes, payslip visibility, isolation, exports) |
 | **5 — Performance** | Goals/OKRs with key results and check-ins, alignment, review cycles (self + manager, weighted scores, release on close, acknowledgement), competencies, feedback | ✅ Done — 10 more tests (OKR maths, scoring, goal permissions & visibility, cycle workflow, hidden manager assessment, feedback privacy) |
-| 6 — Learning | Courses, paths, enrollments, certificates | |
+| **6 — Learning** | Courses (text, video, file, link, quiz), catalog, assignments, paths, progress, certificates with public verification and expiry, reports | ✅ Done — 12 more tests (safe content, embeds, publishing rules, access to lessons/files, assignment scope, quiz scoring, certificates & verification, retake, paths) |
 | 7 — Integrations | Integration hub, Email/SMS providers, outbound webhooks (signed, retried), PayWay adapter (once docs are available) | |
 | 8 — AI | AI service layer and features as in J | |
 | 9 — Enterprise | SSO (SAML/OIDC), custom workflows, enterprise reporting, client success portal | |

@@ -1,0 +1,54 @@
+<%
+  var c = course; var l = lesson;
+  var isDone = done.has(l.id);
+  var qr = typeof quizResult !== 'undefined' ? quizResult : null;
+  var kindIcon = { text: 'file-text', video: 'video', file: 'download', link: 'external-link', quiz: 'circle-check' };
+%>
+<div class="page-head">
+  <div>
+    <div class="eyebrow"><a href="/app/learning/courses/<%= c.id %>"><%= c.title %></a></div>
+    <h1><%= l.title %></h1>
+    <div class="row-sm wrap mt-2 small muted"><span><%- icon(kindIcon[l.kind], 'icon-sm') %> <%= t('learning.kind_' + l.kind) %></span><span><%= t('learning.minutes_n', { n: l.duration_minutes }) %></span><% if (isDone) { %><span class="st st-approved"><%= t('learning.lesson_done') %></span><% } %></div>
+  </div>
+</div>
+<div class="lesson-layout">
+  <aside class="panel lesson-outline">
+    <div class="panel-head"><div><h2><%= t('learning.lessons') %></h2><% if (enrollment) { %><div class="panel-sub"><%= Math.round(enrollment.progress) %>%</div><% } %></div></div>
+    <ol class="lesson-list compact"><% c.lessons.forEach(function (x, i) { %>
+      <li class="<%= done.has(x.id) ? 'done' : '' %><%= x.id === l.id ? ' current' : '' %>"><span class="lesson-n"><%- done.has(x.id) ? icon('check', 'icon-sm') : (i + 1) %></span><a class="grow small" href="/app/learning/courses/<%= c.id %>/lessons/<%= x.id %>"><%= x.title %></a></li>
+    <% }) %></ol>
+  </aside>
+  <div class="stack-lg">
+    <section class="panel">
+      <% if (l.kind === 'video') { %>
+        <% if (embed) { %><div class="video-frame"><iframe src="<%= embed %>" title="<%= l.title %>" allow="encrypted-media; picture-in-picture; fullscreen" allowfullscreen loading="lazy" referrerpolicy="strict-origin-when-cross-origin"></iframe></div><% } %>
+      <% } %>
+      <div class="panel-body stack">
+        <% if (bodyHtml) { %><div class="rich" dir="auto"><%- bodyHtml %></div><% } %>
+        <% if (l.kind === 'file' && l.file_name) { %><div class="row-sm wrap"><a class="btn btn-secondary" href="/app/learning/courses/<%= c.id %>/lessons/<%= l.id %>/file?inline=1" target="_blank" rel="noopener"><%- icon('eye') %><%= t('learning.open_file') %></a><a class="btn btn-ghost" href="/app/learning/courses/<%= c.id %>/lessons/<%= l.id %>/file"><%- icon('download') %><%= l.file_name %></a></div><% } %>
+        <% if (l.kind === 'link' && l.url) { %><div><a class="btn btn-secondary" href="<%= l.url %>" target="_blank" rel="noopener nofollow"><%- icon('external-link') %><%= t('learning.open_link') %></a><div class="tiny muted mt-1" dir="ltr"><%= l.url %></div></div><% } %>
+        <% if (l.kind === 'quiz') { %>
+          <% if (qr) { %><div class="alert <%= qr.passed ? 'alert-success' : 'alert-error' %>"><div><div class="alert-title"><%= qr.passed ? t('learning.quiz_passed', { score: Math.round(qr.score) }) : t('learning.quiz_failed', { score: Math.round(qr.score), passing: qr.passing }) %></div></div></div><% } %>
+          <% if (progress && progress.score !== null && !qr) { %><p class="small muted"><%= t('learning.best_score', { n: Math.round(Number(progress.score)), attempts: progress.attempts }) %></p><% } %>
+          <% if (formError) { %><div class="alert alert-error"><%= Object.values(errors)[0] || formError.message %></div><% } %>
+          <form method="post" action="/app/learning/courses/<%= c.id %>/lessons/<%= l.id %>/quiz" class="stack">
+            <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+            <% (l.questions || []).forEach(function (q, i) { var r = qr ? qr.results.find(function (x) { return x.id === q.id; }) : null; %>
+              <fieldset class="quiz-q<%= r ? (r.ok ? ' ok' : ' bad') : '' %>"><legend><span class="muted"><%= i + 1 %>.</span> <span dir="auto"><%= q.question %></span></legend>
+                <% q.options.forEach(function (o, j) { %><label class="check quiz-opt<%= r && j === r.correct && r.ok ? ' right' : '' %><%= r && r.given === j && !r.ok ? ' wrong' : '' %>"><input type="radio" name="q_<%= q.id %>" value="<%= j %>"<%= r && r.given === j ? ' checked' : '' %><%= enrollment ? '' : ' disabled' %> required><span dir="auto"><%= o %></span></label><% }) %>
+              </fieldset>
+            <% }) %>
+            <% if (enrollment) { %><div><button class="btn btn-dark" type="submit"><%= qr ? t('learning.try_again') : t('learning.submit_answers') %></button> <span class="small muted"><%= t('learning.passing_is', { n: c.passing_score }) %></span></div><% } %>
+          </form>
+        <% } %>
+      </div>
+      <div class="panel-foot lesson-nav">
+        <% if (prev) { %><a class="btn btn-ghost" href="/app/learning/courses/<%= c.id %>/lessons/<%= prev.id %>"><%- icon('arrow-left', 'flip-rtl') %><%= t('learning.previous') %></a><% } else { %><span></span><% } %>
+        <% if (enrollment && l.kind !== 'quiz' && !isDone) { %>
+          <form method="post" action="/app/learning/courses/<%= c.id %>/lessons/<%= l.id %>/complete"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><button class="btn btn-primary" type="submit"><%- icon('check') %><%= next ? t('learning.complete_next') : t('learning.complete_finish') %></button></form>
+        <% } else if (next) { %><a class="btn btn-dark" href="/app/learning/courses/<%= c.id %>/lessons/<%= next.id %>"><%= t('learning.next') %><%- icon('arrow-right', 'flip-rtl') %></a>
+        <% } else { %><a class="btn btn-secondary" href="/app/learning/courses/<%= c.id %>"><%= t('learning.back_to_course') %></a><% } %>
+      </div>
+    </section>
+  </div>
+</div>

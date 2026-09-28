@@ -41,6 +41,7 @@ const PERMISSIONS = [
   ['tasks.view', 'tasks', 'View all tasks and projects'],
   ['tasks.manage', 'tasks', 'Create, assign and manage tasks and projects'],
   ['onboarding.manage', 'onboarding', 'Run onboarding plans and templates'],
+  ['learning.manage', 'learning', 'Create courses, assign training and see learning reports'],
 ];
 
 const ALL = PERMISSIONS.map((p) => p[0]);
@@ -56,7 +57,7 @@ const ROLE_TEMPLATES = [
     permissions: ['users.view', 'employees.view', 'employees.create', 'employees.edit', 'employees.delete', 'employees.view_salary',
       'departments.manage', 'locations.manage', 'attendance.view', 'attendance.manage', 'leave.view', 'leave.request', 'leave.approve',
       'performance.view', 'performance.manage', 'recruitment.view', 'recruitment.manage', 'documents.view', 'documents.manage', 'reports.view',
-      'tasks.view', 'tasks.manage', 'onboarding.manage'],
+      'tasks.view', 'tasks.manage', 'onboarding.manage', 'learning.manage'],
   },
   {
     key: 'recruiter', name: 'Recruiter', description: 'Runs hiring pipelines',
@@ -96,7 +97,7 @@ const FEATURES = [
   ['onboarding', 'Onboarding', 'talent', 'available'],
   ['payroll', 'Payroll', 'payroll', 'available'],
   ['performance', 'Performance', 'performance', 'available'],
-  ['learning', 'Learning', 'learning', 'coming_soon'],
+  ['learning', 'Learning', 'learning', 'available'],
   ['projects', 'Projects', 'remote_work', 'available'],
   ['advanced_reports', 'Advanced Reports', 'analytics', 'coming_soon'],
   ['integrations', 'Integrations', 'integrations', 'coming_soon'],

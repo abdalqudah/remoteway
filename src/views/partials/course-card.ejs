@@ -1,0 +1,15 @@
+<%
+  // Params: c (course), e (enrollment or undefined)
+  var en = typeof e !== 'undefined' ? e : null;
+  var mins = Number(c.minutes || 0);
+  var dur = mins >= 60 ? t('learning.hours_n', { n: Math.round(mins / 6) / 10 }) : t('learning.minutes_n', { n: mins });
+%>
+<a class="course-card" href="/app/learning/courses/<%= c.course_id || c.id %>">
+  <span class="course-cover course-cover-<%= (Number(c.course_id || c.id) % 5) + 1 %>"><%- icon('graduation-cap') %><% if (c.is_mandatory) { %><span class="badge badge-danger course-flag"><%= t('learning.mandatory') %></span><% } %></span>
+  <span class="course-body">
+    <span class="tiny muted"><%= c.category || t('learning.general') %> · <%= t('learning.level_' + (c.level || 'beginner')) %></span>
+    <strong class="course-title"><%= c.title || c.course_title %></strong>
+    <span class="tiny muted"><%= t('learning.lessons_n', { n: c.lesson_count }) %> · <%= dur %></span>
+    <% if (en) { %><span class="row-sm mt-2"><span class="progress grow"><span style="width:<%= en.progress %>%"></span></span><span class="tiny"><%= en.status === 'completed' ? t('learning.status_completed') : Math.round(en.progress) + '%' %></span></span><% } %>
+  </span>
+</a>

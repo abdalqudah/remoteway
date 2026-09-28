@@ -1,0 +1,27 @@
+<div class="page-head">
+  <div><h1><%= t('nav.learning') %></h1><p><%= t('learning.paths_sub') %></p></div>
+  <% if (can('learning.manage')) { %><div class="page-actions"><button class="btn btn-dark" type="button" data-open-dialog="path-dialog"><%- icon('plus') %><%= t('learning.new_path') %></button></div><% } %>
+</div>
+<%- include('_nav') %>
+<% if (!paths.length) { %><section class="panel"><div class="empty"><span class="empty-icon"><%- icon('layers') %></span><h3><%= t('learning.no_paths') %></h3><p><%= t('learning.no_paths_text') %></p></div></section><% } else { %>
+<div class="course-grid"><% paths.forEach(function (p) { %>
+  <a class="panel path-card" href="/app/learning/paths/<%= p.id %>">
+    <div class="panel-body stack-sm">
+      <div class="row between"><span class="goal-scope goal-scope-department"><%- icon('layers', 'icon-sm') %></span><% if (p.status !== 'published') { %><span class="st st-<%= p.status %>"><%= t('learning.status_' + p.status) %></span><% } %></div>
+      <strong><%= p.title %></strong>
+      <span class="small muted"><%= t('learning.courses_n', { n: p.courses.length }) %></span>
+      <ol class="tiny muted" style="margin:0;padding-inline-start:18px"><% p.courses.slice(0, 4).forEach(function (c) { %><li><%= c.title %></li><% }) %></ol>
+    </div>
+  </a>
+<% }) %></div>
+<% } %>
+<% if (can('learning.manage')) { %>
+<dialog class="dialog" id="path-dialog"<%= openDialog === 'path' ? ' data-open-on-load' : '' %>>
+  <form method="post" action="/app/learning/paths" novalidate>
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+    <div class="dialog-head"><h2><%= t('learning.new_path') %></h2><button class="btn btn-ghost btn-icon btn-sm" type="button" data-close-dialog aria-label="<%= t('common.close') %>"><%- icon('x') %></button></div>
+    <div class="dialog-body stack"><%- include('../../partials/path-form', { p: null }) %></div>
+    <div class="dialog-foot"><button class="btn btn-ghost" type="button" data-close-dialog><%= t('common.cancel') %></button><button class="btn btn-dark" type="submit"><%= t('common.save') %></button></div>
+  </form>
+</dialog>
+<% } %>

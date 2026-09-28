@@ -1,0 +1,24 @@
+<% if (training === null) { %>
+<section class="panel"><div class="empty"><span class="empty-icon"><%- icon('lock') %></span><p><%= t('learning.training_hidden') %></p></div></section>
+<% } else { %>
+<div class="grid grid-3">
+  <section class="panel span-2">
+    <div class="panel-head"><h2><%= t('learning.courses') %></h2><a class="btn btn-secondary btn-sm" href="/app/learning/catalog"><%- icon('user-plus', 'icon-sm') %><%= t('learning.assign') %></a></div>
+    <% if (!training.length) { %><div class="empty" style="padding:28px"><p><%= t('learning.no_enrollments') %></p></div><% } else { %>
+    <div class="table-wrap"><table class="table">
+      <thead><tr><th><%= t('learning.course') %></th><th><%= t('fields.status') %></th><th style="width:26%"><%= t('learning.progress') %></th><th><%= t('learning.due') %></th></tr></thead>
+      <tbody><% training.forEach(function (r) { %>
+        <tr><td><a class="link" href="/app/learning/courses/<%= r.course_id %>"><%= r.course_title %></a><% if (r.is_mandatory) { %> <span class="badge badge-danger"><%= t('learning.mandatory') %></span><% } %></td>
+          <td><span class="st st-<%= r.overdue ? 'rejected' : r.status === 'completed' ? 'approved' : r.status === 'in_progress' ? 'in_progress' : 'todo' %>"><%= r.overdue ? t('learning.overdue') : t('learning.status_' + r.status) %></span></td>
+          <td><div class="row-sm"><div class="progress grow"><span style="width:<%= r.progress %>%"></span></div><span class="small"><%= Math.round(r.progress) %>%</span></div></td>
+          <td class="small nowrap"><%= r.due_date ? fmt.date(r.due_date) : '—' %></td></tr>
+      <% }) %></tbody>
+    </table></div><% } %>
+  </section>
+  <section class="panel">
+    <div class="panel-head"><h2><%= t('learning.my_certificates') %></h2></div>
+    <% if (!certificates.length) { %><div class="empty" style="padding:28px"><p><%= t('learning.no_certificates') %></p></div><% } else { %>
+    <ul class="action-list"><% certificates.forEach(function (c) { %><li><a href="/app/learning/certificates/<%= c.id %>"><span class="action-icon info"><%- icon('badge-check', 'icon-sm') %></span><span class="grow small"><strong><%= c.course_title %></strong><span class="muted" style="display:block"><%= fmt.date(c.issued_on) %><%= c.expires_on ? ' → ' + fmt.date(c.expires_on) : '' %></span></span></a></li><% }) %></ul><% } %>
+  </section>
+</div>
+<% } %>

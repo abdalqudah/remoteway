@@ -1,0 +1,46 @@
+<%
+  var l = lesson || {};
+  var qs = lesson && lesson.questions ? lesson.questions : [{ question: '', options: ['', '', '', ''], correct_index: 0 }];
+  var qRow = function (q, i) {
+    var opts = (q.options || []).concat(['', '', '', '']).slice(0, 4);
+    var h = '<div class="quiz-edit panel" data-row><div class="panel-body stack-sm">';
+    h += '<div class="row-sm"><input class="input" name="q_text" maxlength="500" value="' + escapeHtml(q.question || '') + '" placeholder="' + escapeHtml(t('learning.question')) + '" aria-label="' + escapeHtml(t('learning.question')) + '" style="flex:1"><button class="btn btn-ghost btn-icon btn-sm" type="button" data-remove-row aria-label="' + escapeHtml(t('common.delete')) + '">' + icon('x', 'icon-sm') + '</button></div>';
+    h += '<div class="tiny muted">' + escapeHtml(t('learning.correct_hint')) + '</div>';
+    h += '<select class="select" name="q_correct" aria-label="' + escapeHtml(t('learning.correct_answer')) + '" style="width:auto">' + [0, 1, 2, 3].map(function (j) { return '<option value="' + j + '"' + (Number(q.correct_index) === j ? ' selected' : '') + '>' + escapeHtml(t('learning.correct_is', { n: j + 1 })) + '</option>'; }).join('') + '</select>';
+    h += '<div class="form-grid">' + opts.map(function (o, j) { return '<input class="input" name="q_opt' + j + '" maxlength="300" value="' + escapeHtml(o) + '" placeholder="' + escapeHtml(t('learning.answer_n', { n: j + 1 })) + '" aria-label="' + escapeHtml(t('learning.answer_n', { n: j + 1 })) + '">'; }).join('') + '</div>';
+    return h + '</div></div>';
+  };
+%>
+<div class="page-head">
+  <div><div class="eyebrow"><a href="/app/learning/manage/courses/<%= course.id %>"><%= course.title %></a></div><h1><%= lesson ? lesson.title : t('learning.new_lesson') %></h1><div class="row-sm mt-2 small muted"><span><%= t('learning.kind_' + kind) %></span></div></div>
+  <% if (lesson) { %><div class="page-actions"><form method="post" action="/app/learning/manage/courses/<%= course.id %>/lessons/<%= lesson.id %>/delete" data-confirm="<%= t('learning.confirm_delete_lesson') %>"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><button class="btn btn-danger-ghost" type="submit"><%- icon('trash-2') %><%= t('common.delete') %></button></form></div><% } %>
+</div>
+<% if (formError) { %><div class="alert alert-error mb-4"><%= Object.values(errors)[0] || formError.message %></div><% } %>
+<form method="post" action="/app/learning/manage/courses/<%= course.id %>/lessons<%= lesson ? '/' + lesson.id : '' %>" enctype="multipart/form-data" novalidate>
+  <input type="hidden" name="_csrf" value="<%= csrfToken %>"><input type="hidden" name="kind" value="<%= kind %>">
+  <div class="stack-lg" style="max-width:860px">
+    <section class="panel"><div class="panel-body stack">
+      <div class="form-grid">
+        <%- include('../../partials/field', { name: 'title', label: t('learning.lesson_title'), required: true, value: l.title, cls: 'span-full' }) %>
+        <%- include('../../partials/field', { name: 'duration_minutes', label: t('learning.duration_min'), type: 'number', value: l.duration_minutes || 5, attrs: 'min="1" max="600"' }) %>
+      </div>
+      <% if (kind === 'video') { %><%- include('../../partials/field', { name: 'url', label: t('learning.video_url'), value: l.url, placeholder: 'https://www.youtube.com/watch?v=…', help: t('learning.video_help') }) %><% } %>
+      <% if (kind === 'link') { %><%- include('../../partials/field', { name: 'url', label: t('learning.link_url'), value: l.url, placeholder: 'https://' }) %><% } %>
+      <% if (kind === 'file') { %><div class="field"><label class="label" for="lf"><%= t('learning.file') %><% if (!lesson) { %><span class="req">*</span><% } %></label><input class="file-input" id="lf" type="file" name="file" accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg,.webp,.txt">
+        <% if (errors.file) { %><span class="field-error"><%= errors.file %></span><% } else { %><span class="help"><%= l.file_name ? t('learning.file_replace', { name: l.file_name }) : t('learning.file_help') %></span><% } %></div><% } %>
+      <%- include('../../partials/field', { name: 'body', label: kind === 'text' ? t('learning.content') : t('learning.notes_optional'), type: 'textarea', value: l.body, help: t('learning.format_help') }) %>
+    </div></section>
+    <% if (kind === 'quiz') { %>
+    <section class="panel" data-repeater>
+      <div class="panel-head"><div><h2><%= t('learning.questions') %></h2><div class="panel-sub"><%= t('learning.questions_sub', { n: course.passing_score }) %></div></div></div>
+      <div class="panel-body stack">
+        <div class="stack" data-rows><% qs.forEach(function (q, i) { %><%- qRow(q, i) %><% }) %></div>
+        <template data-row-template><%- qRow({ question: '', options: [], correct_index: 0 }, 0) %></template>
+        <div><button class="btn btn-ghost btn-sm" type="button" data-add-row><%- icon('plus', 'icon-sm') %><%= t('learning.add_question') %></button></div>
+        <% if (errors.questions) { %><span class="field-error"><%= errors.questions %></span><% } %>
+      </div>
+    </section>
+    <% } %>
+    <div class="form-actions"><a class="btn btn-ghost" href="/app/learning/manage/courses/<%= course.id %>#lessons"><%= t('common.cancel') %></a><button class="btn btn-dark" type="submit"><%= t('common.save') %></button></div>
+  </div>
+</form>

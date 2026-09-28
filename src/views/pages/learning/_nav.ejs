@@ -1,0 +1,7 @@
+<nav class="tabs mb-6" aria-label="<%= t('nav.learning') %>">
+  <a href="/app/learning" class="<%= learnSection === 'my' || learnSection === '' ? 'active' : '' %>"><%= t('learning.my_learning') %></a>
+  <a href="/app/learning/catalog" class="<%= learnSection === 'catalog' ? 'active' : '' %>"><%= t('learning.catalog') %></a>
+  <a href="/app/learning/paths" class="<%= learnSection === 'paths' ? 'active' : '' %>"><%= t('learning.paths') %></a>
+  <% if (canAssign) { %><a href="/app/learning/reports" class="<%= learnSection === 'reports' ? 'active' : '' %>"><%= t('learning.reports') %></a><% } %>
+  <% if (can('learning.manage')) { %><a href="/app/learning/manage" class="<%= learnSection === 'manage' ? 'active' : '' %>"><%= t('learning.manage_courses') %></a><% } %>
+</nav>

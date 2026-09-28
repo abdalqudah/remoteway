@@ -26,6 +26,8 @@ const onboarding = require('../modules/onboarding/onboarding.service');
 const payroll = require('../modules/payroll/payroll.service');
 const perfGoals = require('../modules/performance/goals.service');
 const perfReviews = require('../modules/performance/reviews.service');
+const learnCourses = require('../modules/learning/courses.service');
+const learnEnroll = require('../modules/learning/enrollments.service');
 
 const router = express.Router();
 const ok = (res, data, meta, status = 200) => res.status(status).json({ success: true, data, ...(meta ? { meta } : {}) });
@@ -254,6 +256,14 @@ router.post('/performance/goals/:id/checkins', feature('performance'), wrap(asyn
 router.get('/performance/reviews/:id', feature('performance'), wrap(async (req, res) => ok(res, await perfReviews.getReview(req.ctx, Number(req.params.id)))));
 router.get('/performance/feedback', feature('performance'), wrap(async (req, res) => ok(res, await perfReviews.listFeedback(req.ctx))));
 router.post('/performance/feedback', feature('performance'), wrap(async (req, res) => ok(res, { id: await perfReviews.giveFeedback(req.ctx, req.body) }, undefined, 201)));
+
+// Learning
+router.get('/learning/courses', feature('learning'), wrap(async (req, res) => ok(res, await learnCourses.listCourses(req.ctx, { ...req.query, forCatalog: !req.ctx.permissions.has('learning.manage') }))));
+router.get('/learning/courses/:id', feature('learning'), wrap(async (req, res) => ok(res, await learnCourses.getCourse(req.ctx, Number(req.params.id)))));
+router.post('/learning/courses/:id/enroll', feature('learning'), wrap(async (req, res) => ok(res, { id: await learnEnroll.enrollSelf(req.ctx, Number(req.params.id)) }, undefined, 201)));
+router.post('/learning/courses/:id/assign', feature('learning'), wrap(async (req, res) => ok(res, { created: await learnEnroll.assignCourse(req.ctx, Number(req.params.id), req.body) })));
+router.get('/learning/me', feature('learning'), wrap(async (req, res) => ok(res, await learnEnroll.myLearning(req.ctx))));
+router.get('/learning/enrollments', feature('learning'), wrap(async (req, res) => ok(res, await learnEnroll.report(req.ctx, req.query))));
 
 // Notifications
 router.get('/notifications', wrap(async (req, res) => ok(res, await notifications.list(req.ctx, { unreadOnly: req.query.unread === '1' }), { unread: await notifications.unreadCount(req.ctx) })));

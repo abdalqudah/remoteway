@@ -1,0 +1,18 @@
+<%
+  // Params: action (URL), heading, people, departments
+%>
+<dialog class="dialog" id="assign-dialog"<%= openDialog === 'assign' ? ' data-open-on-load' : '' %>>
+  <form method="post" action="<%= action %>" novalidate>
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+    <div class="dialog-head"><div><h2><%= heading %></h2><p class="muted small mt-1"><%= t('learning.assign_sub') %></p></div><button class="btn btn-ghost btn-icon btn-sm" type="button" data-close-dialog aria-label="<%= t('common.close') %>"><%- icon('x') %></button></div>
+    <div class="dialog-body stack">
+      <% if (openDialog === 'assign' && formError) { %><div class="alert alert-error"><%= Object.values(errors)[0] || formError.message %></div><% } %>
+      <% if (can('learning.manage')) { %><label class="check"><input type="checkbox" name="everyone"><strong><%= t('learning.everyone') %></strong></label><% } %>
+      <% if (can('learning.manage') && departments.length) { %><div class="field"><span class="label"><%= t('learning.by_department') %></span><div class="check-grid"><% departments.forEach(function (d) { %><label class="check"><input type="checkbox" name="department_ids" value="<%= d.id %>"><%= d.name %></label><% }) %></div></div><% } %>
+      <div class="field"><span class="label"><%= t('learning.people') %></span>
+        <div class="check-list"><% people.forEach(function (p) { %><label class="check"><input type="checkbox" name="employee_ids" value="<%= p.id %>"><span><%= p.first_name %> <%= p.last_name %><span class="tiny muted"><%= p.job_title ? ' · ' + p.job_title : '' %></span></span></label><% }) %></div></div>
+      <%- include('field', { name: 'due_date', label: t('learning.due'), type: 'date', help: t('learning.due_help') }) %>
+    </div>
+    <div class="dialog-foot"><button class="btn btn-ghost" type="button" data-close-dialog><%= t('common.cancel') %></button><button class="btn btn-dark" type="submit"><%- icon('send') %><%= t('learning.assign') %></button></div>
+  </form>
+</dialog>

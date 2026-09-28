@@ -26,6 +26,7 @@ router.use('/recruitment', require('../modules/recruitment/web'));
 router.use('/employee-onboarding', require('../modules/onboarding/plans.web'));
 router.use('/payroll', require('../modules/payroll/web'));
 router.use('/performance', require('../modules/performance/web'));
+router.use('/learning', require('../modules/learning/web'));
 router.use('/settings', require('../modules/settings/web'));
 router.use('/billing', require('../modules/billing/web'));
 

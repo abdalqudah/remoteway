@@ -1,0 +1,29 @@
+<% var a = assignment; %>
+<div class="page-head">
+  <div><div class="eyebrow"><a href="/app/learning/paths"><%= t('learning.paths') %></a></div><h1><%= path.title %></h1>
+    <div class="row-sm wrap mt-2 small muted"><% if (path.status !== 'published') { %><span class="st st-<%= path.status %>"><%= t('learning.status_' + path.status) %></span><% } %><span><%= t('learning.courses_n', { n: path.courses.length }) %></span><% if (a && a.due_date) { %><span><%= t('learning.due_on', { date: fmt.date(a.due_date) }) %></span><% } %></div></div>
+  <div class="page-actions">
+    <% if (can('learning.manage')) { %><button class="btn btn-secondary" type="button" data-open-dialog="path-dialog"><%- icon('pencil') %><%= t('common.edit') %></button><% } %>
+    <% if (canAssign && path.status === 'published') { %><button class="btn btn-dark" type="button" data-open-dialog="assign-dialog"><%- icon('user-plus') %><%= t('learning.assign') %></button><% } %>
+  </div>
+</div>
+<% if (a) { %><section class="panel mb-6"><div class="panel-body"><div class="row between mb-2"><strong><%= t('learning.your_progress') %></strong><span class="small"><%= t('learning.courses_done', { done: a.done, total: a.courses.length }) %></span></div><div class="progress" style="height:10px"><span style="width:<%= a.progress %>%"></span></div></div></section><% } %>
+<% if (path.description) { %><section class="panel mb-6"><div class="panel-body"><p class="prose" dir="auto"><%= path.description %></p></div></section><% } %>
+<section class="panel">
+  <div class="panel-head"><h2><%= t('learning.path_courses') %></h2></div>
+  <ol class="lesson-list"><% path.courses.forEach(function (c, i) { var en = myCourses[i]; %>
+    <li class="<%= en && en.status === 'completed' ? 'done' : '' %>"><span class="lesson-n"><%- en && en.status === 'completed' ? icon('check', 'icon-sm') : (i + 1) %></span>
+      <a class="grow" href="/app/learning/courses/<%= c.id %>"><strong class="small"><%= c.title %></strong><% if (en) { %><span class="tiny muted" style="display:block"><%= t('learning.status_' + en.status) %> · <%= Math.round(en.progress) %>%</span><% } %></a></li>
+  <% }) %></ol>
+</section>
+<% if (canAssign && path.status === 'published') { %><%- include('../../partials/assign-dialog', { action: '/app/learning/paths/' + path.id + '/assign', heading: t('learning.assign_path', { title: path.title }) }) %><% } %>
+<% if (can('learning.manage')) { %>
+<dialog class="dialog" id="path-dialog"<%= openDialog === 'path' ? ' data-open-on-load' : '' %>>
+  <form method="post" action="/app/learning/paths/<%= path.id %>" novalidate>
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+    <div class="dialog-head"><h2><%= t('learning.edit_path') %></h2><button class="btn btn-ghost btn-icon btn-sm" type="button" data-close-dialog aria-label="<%= t('common.close') %>"><%- icon('x') %></button></div>
+    <div class="dialog-body stack"><%- include('../../partials/path-form', { p: path }) %></div>
+    <div class="dialog-foot"><button class="btn btn-ghost" type="button" data-close-dialog><%= t('common.cancel') %></button><button class="btn btn-dark" type="submit"><%= t('common.save_changes') %></button></div>
+  </form>
+</dialog>
+<% } %>

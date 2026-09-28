@@ -1,0 +1,50 @@
+<%
+  var c = course || {};
+  var kindIcon = { text: 'file-text', video: 'video', file: 'download', link: 'external-link', quiz: 'circle-check' };
+%>
+<div class="page-head">
+  <div><div class="eyebrow"><a href="/app/learning/manage"><%= t('learning.manage_courses') %></a></div><h1><%= course ? course.title : t('learning.new_course') %></h1>
+    <% if (course) { %><div class="row-sm mt-2"><span class="st st-<%= course.status %>"><%= t('learning.status_' + course.status) %></span></div><% } %></div>
+  <% if (course) { %><div class="page-actions">
+    <a class="btn btn-ghost" href="/app/learning/courses/<%= course.id %>"><%- icon('eye') %><%= t('learning.preview') %></a>
+    <form method="post" action="/app/learning/manage/courses/<%= course.id %>/status"><input type="hidden" name="_csrf" value="<%= csrfToken %>">
+      <% if (course.status !== 'published') { %><button class="btn btn-primary" type="submit" name="status" value="published"><%- icon('send') %><%= t('learning.publish') %></button>
+      <% } else { %><button class="btn btn-secondary" type="submit" name="status" value="archived"><%= t('learning.archive') %></button><% } %>
+    </form>
+  </div><% } %>
+</div>
+<% if (formError) { %><div class="alert alert-error mb-4"><%= Object.values(errors)[0] || formError.message %></div><% } %>
+<div class="grid grid-3">
+  <form class="span-2 stack-lg" method="post" action="<%= course ? '/app/learning/manage/courses/' + course.id : '/app/learning/manage/courses' %>" novalidate>
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+    <section class="panel"><div class="panel-head"><h2><%= t('learning.course_details') %></h2></div><div class="panel-body stack">
+      <%- include('../../partials/field', { name: 'title', label: t('learning.course_title'), required: true, value: c.title, placeholder: t('learning.course_title_ph') }) %>
+      <%- include('../../partials/field', { name: 'description', label: t('fields.description'), type: 'textarea', value: c.description, help: t('learning.format_help') }) %>
+      <div class="form-grid">
+        <%- include('../../partials/field', { name: 'category', label: t('learning.category'), value: c.category, placeholder: t('learning.category_ph'), attrs: 'list="cat-list"' }) %>
+        <datalist id="cat-list"><% cats.forEach(function (x) { %><option value="<%= x %>"><% }) %></datalist>
+        <%- include('../../partials/field', { name: 'level', label: t('learning.level'), type: 'select', value: c.level || 'beginner', options: ['beginner', 'intermediate', 'advanced'].map(function (x) { return { value: x, label: t('learning.level_' + x) }; }) }) %>
+        <%- include('../../partials/field', { name: 'passing_score', label: t('learning.passing_score') + ' (%)', type: 'number', value: c.passing_score != null ? c.passing_score : 70, attrs: 'min="0" max="100"' }) %>
+        <%- include('../../partials/field', { name: 'validity_months', label: t('learning.validity_months'), type: 'number', value: c.validity_months, attrs: 'min="1" max="120"', help: t('learning.validity_help') }) %>
+      </div>
+      <label class="check"><input type="checkbox" name="is_mandatory"<%= c.is_mandatory ? ' checked' : '' %>><%= t('learning.is_mandatory') %></label>
+      <label class="check"><input type="checkbox" name="self_enroll"<%= course ? (c.self_enroll ? ' checked' : '') : ' checked' %>><%= t('learning.self_enroll_label') %></label>
+      <label class="check"><input type="checkbox" name="certificate_enabled"<%= course ? (c.certificate_enabled ? ' checked' : '') : ' checked' %>><%= t('learning.certificate_enabled') %></label>
+    </div><div class="panel-foot"><button class="btn btn-dark btn-sm" type="submit"><%= course ? t('common.save_changes') : t('learning.create_course') %></button></div></section>
+  </form>
+  <section class="panel" id="lessons">
+    <div class="panel-head"><div><h2><%= t('learning.lessons') %></h2><div class="panel-sub"><%= course ? t('learning.lessons_n', { n: course.lessons.length }) + ' · ' + t('learning.minutes_n', { n: course.minutes }) : t('learning.save_first') %></div></div>
+      <% if (course) { %><details class="dropdown"><summary class="btn btn-secondary btn-sm"><%- icon('plus', 'icon-sm') %><%= t('learning.add_lesson') %></summary>
+        <div class="menu"><% ['text', 'video', 'file', 'link', 'quiz'].forEach(function (k) { %><a href="/app/learning/manage/courses/<%= course.id %>/lessons/new?kind=<%= k %>"><%- icon(kindIcon[k], 'icon-sm') %><%= t('learning.kind_' + k) %></a><% }) %></div></details><% } %></div>
+    <% if (course && course.lessons.length) { %>
+    <ol class="lesson-list compact"><% course.lessons.forEach(function (l, i) { %>
+      <li><span class="lesson-n"><%= i + 1 %></span>
+        <a class="grow small" href="/app/learning/manage/courses/<%= course.id %>/lessons/<%= l.id %>"><strong><%= l.title %></strong><span class="tiny muted" style="display:block"><%- icon(kindIcon[l.kind], 'icon-sm') %> <%= t('learning.kind_' + l.kind) %><%= l.kind === 'quiz' ? ' · ' + t('learning.questions_n', { n: (l.questions || []).length }) : '' %></span></a>
+        <form method="post" action="/app/learning/manage/courses/<%= course.id %>/lessons/<%= l.id %>/move" class="row-sm" style="gap:0"><input type="hidden" name="_csrf" value="<%= csrfToken %>">
+          <button class="btn btn-ghost btn-icon btn-sm" type="submit" name="direction" value="up" aria-label="<%= t('learning.move_up') %>"<%= i === 0 ? ' disabled' : '' %>>↑</button>
+          <button class="btn btn-ghost btn-icon btn-sm" type="submit" name="direction" value="down" aria-label="<%= t('learning.move_down') %>"<%= i === course.lessons.length - 1 ? ' disabled' : '' %>>↓</button></form>
+      </li>
+    <% }) %></ol>
+    <% } else if (course) { %><div class="empty" style="padding:24px"><p><%= t('learning.no_lessons_admin') %></p></div><% } %>
+  </section>
+</div>
