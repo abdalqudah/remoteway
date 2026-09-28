@@ -1,0 +1,16 @@
+<% var j = job; var href = '/jobs/' + j.org_slug + '/' + j.slug; %>
+<a class="job-card" href="<%= href %>">
+  <div class="row-sm">
+    <% if (j.logoUrl) { %><span class="job-logo"><img src="<%= j.logoUrl %>" alt=""></span><% } else { %><span class="org-mark"><%= initials(j.org_name) %></span><% } %>
+    <span class="grow" style="min-width:0"><strong class="job-title truncate"><%= j.title %></strong><span class="muted small truncate" style="display:block"><%= j.org_name %></span></span>
+    <% if (typeof match !== 'undefined' && match != null) { %><span class="match-pill"><%= match %>%</span><% } %>
+  </div>
+  <div class="job-tags">
+    <span class="tag"><%- icon('map-pin', 'icon-sm') %><%= t('recruitment.mode_' + j.work_mode) %><%= j.location_city && j.work_mode !== 'remote' ? ' · ' + j.location_city : '' %></span>
+    <span class="tag"><%= t('recruitment.type_' + j.employment_type) %></span>
+    <% if (j.experience_years) { %><span class="tag"><%= t('talent.years_plus', { n: j.experience_years }) %></span><% } %>
+    <% if (j.show_salary && (j.salary_min || j.salary_max)) { %><span class="tag"><%= [j.salary_min, j.salary_max].filter(Boolean).map(function (v) { return fmt.money(v, j.salary_currency || j.org_currency); }).join(' – ') %></span><% } %>
+  </div>
+  <% if (j.skills && j.skills.length) { %><div class="skill-chips"><% j.skills.slice(0, 5).forEach(function (s) { %><span class="chip"><%= s %></span><% }) %></div><% } %>
+  <div class="muted tiny"><%= fmt.date(j.marketplace_at || j.published_at) %></div>
+</a>

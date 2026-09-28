@@ -1,0 +1,40 @@
+<%# Shared profile body (public page, company view, own preview). Expects p, contact. %>
+<% var ym = function (v) { return v ? fmt.date(v + '-01', { month: 'short', year: 'numeric' }) : ''; }; %>
+<div class="profile-head">
+  <%- include('avatar', { p: p, size: 96 }) %>
+  <div class="grow" style="min-width:0">
+    <h1 class="h-display" style="font-size:clamp(24px,3vw,32px)"><%= p.name %></h1>
+    <div class="text-2" style="font-size:16px"><%= p.headline || '' %></div>
+    <div class="job-tags mt-2">
+      <% if (p.specialization) { %><span class="tag"><%= p.specialization %></span><% } %>
+      <% if (p.years != null) { %><span class="tag"><%= t('talent.years_n', { n: p.years }) %></span><% } %>
+      <% if (p.city || p.country_code) { %><span class="tag"><%- icon('map-pin', 'icon-sm') %><%= [p.city, p.country_code].filter(Boolean).join(', ') %></span><% } %>
+      <% if (p.open_to_work) { %><span class="tag tag-open"><%= t('talent.open_to_work') %></span><% } %>
+    </div>
+    <div class="row-sm wrap mt-3">
+      <% if (p.linkedin_url) { %><a class="btn btn-ghost btn-sm" href="<%= p.linkedin_url %>" target="_blank" rel="noopener nofollow"><%- icon('external-link', 'icon-sm') %>LinkedIn</a><% } %>
+      <% if (p.portfolio_url) { %><a class="btn btn-ghost btn-sm" href="<%= p.portfolio_url %>" target="_blank" rel="noopener nofollow"><%- icon('globe', 'icon-sm') %><%= t('talent.portfolio') %></a><% } %>
+      <% if (contact) { %><a class="btn btn-ghost btn-sm" href="mailto:<%= contact.email %>"><%- icon('mail', 'icon-sm') %><span dir="ltr"><%= contact.email %></span></a><% if (contact.phone) { %><span class="btn btn-ghost btn-sm" dir="ltr"><%- icon('phone', 'icon-sm') %><%= contact.phone %></span><% } %><% } %>
+    </div>
+  </div>
+</div>
+<% if (p.bio) { %><section class="mt-6"><h2 class="section-title"><%= t('talent.about') %></h2><div class="prose"><%= p.bio %></div></section><% } %>
+<% if (p.skills.length) { %><section class="mt-6"><h2 class="section-title"><%= t('talent.skills') %></h2><div class="skill-chips"><% p.skills.forEach(function (s) { %><span class="chip<%= typeof highlight !== 'undefined' && highlight.indexOf(s.toLowerCase()) !== -1 ? ' chip-match' : '' %>"><%= s %></span><% }) %></div></section><% } %>
+<% if (p.experience.length) { %><section class="mt-6"><h2 class="section-title"><%= t('talent.experience') %></h2><ol class="timeline"><% p.experience.forEach(function (e) { %>
+  <li><strong><%= e.title %></strong><span class="muted"> · <%= e.company %></span><div class="muted small"><%= ym(e.start) %> – <%= e.current ? t('talent.present') : ym(e.end) %></div><% if (e.description) { %><div class="prose small mt-1"><%= e.description %></div><% } %></li>
+<% }) %></ol></section><% } %>
+<% if (p.education.length) { %><section class="mt-6"><h2 class="section-title"><%= t('talent.education') %></h2><ol class="timeline"><% p.education.forEach(function (e) { %>
+  <li><strong><%= [e.degree, e.field].filter(Boolean).join(' · ') %></strong><div class="muted small"><%= e.school %><%= e.start || e.end ? ' · ' + [e.start, e.end].filter(Boolean).join(' – ') : '' %></div></li>
+<% }) %></ol></section><% } %>
+<div class="grid grid-2 mt-6">
+  <% if (p.certifications.length) { %><section><h2 class="section-title"><%= t('talent.certifications') %></h2><ul class="plain-list"><% p.certifications.forEach(function (c) { %><li><% if (c.url) { %><a href="<%= c.url %>" target="_blank" rel="noopener nofollow"><%= c.name %></a><% } else { %><%= c.name %><% } %><span class="muted small"><%= c.issuer ? ' · ' + c.issuer : '' %><%= c.year ? ' · ' + c.year : '' %></span></li><% }) %></ul></section><% } %>
+  <% if (p.languages.length) { %><section><h2 class="section-title"><%= t('talent.languages') %></h2><ul class="plain-list"><% p.languages.forEach(function (l) { %><li><%= l.name %> <span class="muted small">· <%= t('talent.level_' + l.level) %></span></li><% }) %></ul></section><% } %>
+</div>
+<% if (p.projects.length) { %><section class="mt-6"><h2 class="section-title"><%= t('talent.projects') %></h2><div class="card-grid"><% p.projects.forEach(function (pr) { %><div class="panel panel-body"><strong><% if (pr.url) { %><a href="<%= pr.url %>" target="_blank" rel="noopener nofollow"><%= pr.name %></a><% } else { %><%= pr.name %><% } %></strong><% if (pr.description) { %><p class="small text-2 mt-1"><%= pr.description %></p><% } %></div><% }) %></div></section><% } %>
+<% var pr = p.preferences || {}; if ((pr.titles || []).length || (pr.work_modes || []).length || (pr.job_types || []).length) { %>
+<section class="mt-6"><h2 class="section-title"><%= t('talent.looking_for') %></h2><div class="job-tags">
+  <% (pr.titles || []).forEach(function (x) { %><span class="tag"><%= x %></span><% }) %>
+  <% (pr.work_modes || []).forEach(function (x) { %><span class="tag"><%= t('recruitment.mode_' + x) %></span><% }) %>
+  <% (pr.job_types || []).forEach(function (x) { %><span class="tag"><%= t('recruitment.type_' + x) %></span><% }) %>
+  <% if (pr.available_from) { %><span class="tag"><%= t('talent.available_from', { date: fmt.date(pr.available_from) }) %></span><% } %>
+</div></section><% } %>

@@ -1,0 +1,12 @@
+<%- include('_tabs') %>
+<section class="panel">
+  <% if (!invites.length) { %><div class="empty"><span class="empty-icon"><%- icon('mail') %></span><p><%= t('talent.no_invitations') %></p></div>
+  <% } else { %><div class="table-wrap"><table class="table">
+    <thead><tr><th><%= t('fields.name') %></th><th><%= t('talent.job') %></th><th><%= t('fields.status') %></th><th><%= t('billing.date') %></th></tr></thead>
+    <tbody><% invites.forEach(function (i) { %><tr class="row-link" data-href="/app/talent/p/<%= i.profile_id %>">
+      <td><a href="/app/talent/p/<%= i.profile_id %>"><strong><%= i.name %></strong></a><div class="muted small"><%= i.headline || '' %></div></td>
+      <td><%= i.job_title || '—' %></td>
+      <td><span class="st st-<%= i.status === 'applied' ? 'approved' : i.status === 'declined' ? 'rejected' : 'pending' %>"><%= t('talent.invite_' + i.status) %></span></td>
+      <td class="muted small nowrap"><%= fmt.date(i.created_at) %></td>
+    </tr><% }) %></tbody></table></div><% } %>
+</section>

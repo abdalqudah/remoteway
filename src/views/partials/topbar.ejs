@@ -10,6 +10,7 @@
       <div class="menu">
         <div class="menu-label truncate"><%= currentUser.email %></div>
         <a href="/app/settings/account"><%- icon('user', 'icon-sm') %><%= t('settings.account') %></a>
+        <a href="/me"><%- icon('badge-check', 'icon-sm') %><%= t('me.career_profile') %></a>
         <% if (currentUser.is_super_admin) { %><a href="/admin"><%- icon('gauge', 'icon-sm') %><%= t('nav.super_admin') %></a><% } %>
         <div class="sep"></div>
         <form method="post" action="/logout"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><button type="submit"><%- icon('log-out', 'icon-sm') %><%= t('auth.logout') %></button></form>

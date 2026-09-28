@@ -1,0 +1,10 @@
+<div class="page-head"><div><h1><%= t('talent.find_title') %></h1><p><%= t('talent.find_sub') %></p></div>
+  <div class="page-actions"><a class="btn btn-secondary" href="/talent" target="_blank" rel="noopener"><%- icon('external-link') %><%= t('talent.public_directory') %></a><% if (can('recruitment.manage')) { %><a class="btn btn-dark" href="/app/recruitment/jobs/new"><%- icon('plus') %><%= t('talent.post_job') %></a><% } %></div></div>
+<nav class="tabs mb-6" aria-label="<%= t('talent.find_title') %>">
+  <a href="/app/talent" class="<%= tab === 'find' ? 'active' : '' %>"><%= t('talent.tab_find') %></a>
+  <a href="/app/talent/ai" class="<%= tab === 'ai' ? 'active' : '' %>"><%- icon('sparkles', 'icon-sm') %> <%= t('talent.tab_ai') %></a>
+  <a href="/app/talent/saved?list=shortlist" class="<%= tab === 'shortlist' ? 'active' : '' %>"><%= t('talent.tab_shortlist') %></a>
+  <a href="/app/talent/saved" class="<%= tab === 'saved' ? 'active' : '' %>"><%= t('talent.tab_saved') %></a>
+  <a href="/app/talent/invitations" class="<%= tab === 'invitations' ? 'active' : '' %>"><%= t('talent.tab_invitations') %></a>
+  <a href="/app/recruitment" class=""><%= t('talent.tab_applicants') %></a>
+</nav>

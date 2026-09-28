@@ -361,6 +361,39 @@ function monthsAgo(n) {
   return d.toISOString().slice(0, 10);
 }
 
+
+// Talent marketplace: individual professionals (password = demo password) and the demo company's open
+// jobs published on the RemoteWay jobs board.
+const TALENT = [
+  ['Lama', 'Al-Otaibi', 'Digital Marketing Specialist · SEO & Paid Ads', 'Digital Marketing', 'Riyadh', 4, ['SEO', 'Google Ads', 'GA4', 'Content Marketing', 'HubSpot'], ['remote', 'hybrid'], 'public'],
+  ['Yousef', 'Al-Shammari', 'Full-stack Developer (Node.js · React)', 'Software Engineering', 'Jeddah', 6, ['Node.js', 'React', 'TypeScript', 'MySQL', 'AWS'], ['remote'], 'public'],
+  ['Reem', 'Al-Ghamdi', 'HR Business Partner', 'Human Resources', 'Riyadh', 8, ['Talent Acquisition', 'Saudi Labor Law', 'Performance Management', 'Onboarding'], ['hybrid', 'onsite'], 'public'],
+  ['Hassan', 'Al-Zahrani', 'Payroll & GOSI Specialist', 'Finance', 'Dammam', 5, ['Payroll', 'GOSI', 'WPS', 'Excel'], ['onsite', 'hybrid'], 'public'],
+  ['Maha', 'Al-Dosari', 'UI/UX Designer', 'Design', 'Riyadh', 3, ['Figma', 'User Research', 'Design Systems', 'Prototyping'], ['remote', 'hybrid'], 'public'],
+  ['Khalid', 'Al-Mutairi', 'Customer Success Lead', 'Customer Support', 'Khobar', 7, ['Customer Success', 'Zendesk', 'Onboarding', 'CRM'], ['remote'], 'companies'],
+  ['Sara', 'Al-Harthi', 'Data Analyst · SQL & Power BI', 'Data & Analytics', 'Riyadh', 2, ['SQL', 'Power BI', 'Python', 'Excel', 'GA4'], ['remote', 'hybrid'], 'public'],
+  ['Fahad', 'Al-Anazi', 'Performance Marketer', 'Digital Marketing', 'Jeddah', 2, ['Google Ads', 'Meta Ads', 'GA4', 'TikTok Ads'], ['remote'], 'companies'],
+];
+
+async function seedTalent(organizationId) {
+  const profiles = require('../src/modules/talent/profile.service'); // eslint-disable-line global-require
+  for (const [first, last, headline, spec, city, years, skills, modes, visibility] of TALENT) {
+    const email = `${first}.${last}`.toLowerCase().replace(/[^a-z.]/g, '') + `@talent.${DOMAIN}`;
+    if (await knex('users').where({ email }).first('id')) continue; // eslint-disable-line no-continue
+    const user = await profiles.signup({ name: `${first} ${last}`, email, password: PASSWORD, terms: 'on' });
+    await profiles.saveBasics(user, { headline, specialization: spec, city, country_code: 'SA', years_experience: String(years),
+      bio: `${headline}. ${years} years of hands-on experience with ${skills.slice(0, 3).join(', ')}. Looking for a team where I can own outcomes and keep learning.`,
+      linkedin_url: `linkedin.com/in/${first.toLowerCase()}-${last.toLowerCase().replace(/[^a-z]/g, '')}` });
+    await profiles.saveSkills(user, { skills: skills.join(', ') });
+    const start = `${new Date().getUTCFullYear() - years}-03`;
+    await profiles.saveSection(user, 'experience', { exp_title: [headline.split(' · ')[0].split(' (')[0]], exp_company: ['Previous Company'], exp_start: [start], exp_end: [''], exp_description: [`Worked with ${skills.join(', ')}.`] });
+    await profiles.saveSection(user, 'education', { edu_degree: ["Bachelor's"], edu_field: [spec], edu_school: ['King Saud University'], edu_start: [String(new Date().getUTCFullYear() - years - 4)], edu_end: [String(new Date().getUTCFullYear() - years)] });
+    await profiles.saveSection(user, 'languages', { lang_name: ['Arabic', 'English'], lang_level: ['native', 'fluent'] });
+    await profiles.savePreferences(user, { pref_titles: headline.split(' · ')[0], pref_work_modes: modes, pref_job_types: ['full_time'], visibility, open_to_work: 'on' });
+  }
+  await knex('jobs').where({ organization_id: organizationId, status: 'open' }).update({ marketplace: true, marketplace_at: new Date() });
+}
+
 (async () => {
   try {
     if (config.isProd && !process.argv.includes('--force')) throw new Error('Refusing to seed demo data in production (use --force to override).');
@@ -370,7 +403,12 @@ function monthsAgo(n) {
     const ownerEmail = `owner@${DOMAIN}`;
     const existing = await knex('users').where({ email: ownerEmail }).first();
     if (existing) {
-      console.log('Demo company already exists. Run `npm run migrate:fresh` first to rebuild it.');
+      if (process.argv.includes('--talent')) {
+        await seedTalent(existing.last_organization_id || (await knex('organizations').orderBy('id').first('id')).id);
+        console.log('Talent marketplace demo data added.');
+        return;
+      }
+      console.log('Demo company already exists. Run `npm run migrate:fresh` first to rebuild it (or add --talent for marketplace data).');
       return;
     }
 
@@ -432,6 +470,7 @@ function monthsAgo(n) {
     // Phase 8: AI switched on for the demo company. It works once the platform has an AI provider
     // (Super Admin → AI) and the company is on a plan with AI features (Professional / Enterprise).
     await knex('ai_settings').insert({ organization_id: organizationId, enabled: true, features: JSON.stringify(['recruitment', 'documents', 'performance', 'learning', 'analytics']) });
+    await seedTalent(organizationId);
 
     console.log('\nRemoteWay Demo Company is ready.');
     console.log(`Password for all demo users: ${PASSWORD}\n`);

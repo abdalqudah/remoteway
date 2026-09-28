@@ -1,0 +1,45 @@
+<%- include('_tabs') %>
+<% var recruitArea = aiStatus.areas.recruitment; %>
+<div class="grid grid-3" style="align-items:start">
+  <form class="panel" method="post" action="/app/talent/ai">
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+    <div class="panel-head"><div><h2><%- icon('sparkles', 'icon-sm') %> <%= t('talent.ai_title') %></h2><div class="panel-sub"><%= t('talent.ai_sub') %></div></div></div>
+    <div class="panel-body stack">
+      <% if (formError) { %><div class="alert alert-error"><%- icon('circle-alert') %><div class="grow small"><%= Object.values(errors || {})[0] || formError.message %></div></div><% } %>
+      <div class="field"><label class="label" for="f-query"><%= t('talent.ai_request') %></label>
+        <textarea class="textarea" id="f-query" name="query" rows="5" placeholder="<%= t('talent.ai_placeholder') %>"><%= query %></textarea></div>
+      <% if (jobs.length) { %><div class="field"><label class="label" for="f-job"><%= t('talent.or_for_job') %></label>
+        <select class="select" id="f-job" name="job_id"><option value=""><%= t('talent.no_job') %></option><% jobs.forEach(function (j) { %><option value="<%= j.id %>"<%= String(jobId) === String(j.id) ? ' selected' : '' %>><%= j.title %></option><% }) %></select></div><% } %>
+      <button class="btn btn-primary" type="submit" data-busy-label="<%= t('ai.working') %>"><%- icon('sparkles') %><%= t('talent.find_matches') %></button>
+      <% if (!recruitArea.usable) { %><p class="help"><%= !aiStatus.configured ? t('talent.ai_not_configured') : !recruitArea.inPlan ? t('talent.ai_not_in_plan') : t('talent.ai_switched_off') %></p><% } %>
+      <p class="help"><%= t('talent.ai_privacy') %></p>
+    </div>
+  </form>
+  <section class="span-2 stack">
+    <% if (!out) { %>
+      <div class="panel panel-body empty"><span class="empty-icon"><%- icon('search') %></span><p><%= t('talent.ai_empty') %></p></div>
+    <% } else { %>
+      <% if (typeof forJob !== 'undefined' && forJob) { %><div class="alert alert-info"><%- icon('briefcase') %><div class="grow small"><%= t('talent.recommended_for', { job: forJob.title }) %></div>
+        <form method="post" action="/app/talent/ai"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><input type="hidden" name="job_id" value="<%= forJob.id %>"><button class="btn btn-dark btn-sm" type="submit" data-busy-label="<%= t('ai.working') %>"<%= recruitArea.usable ? '' : ' disabled' %>><%- icon('sparkles', 'icon-sm') %><%= t('talent.rank_with_ai') %></button></form></div><% } %>
+      <div class="alert <%= out.mode === 'ai' ? 'alert-success' : 'alert-warning' %>"><%- icon(out.mode === 'ai' ? 'sparkles' : 'info') %><div class="grow small"><%= out.mode === 'ai' ? t('talent.mode_ai') : t('talent.mode_rules') %></div></div>
+      <% if (!out.results.length) { %><div class="panel panel-body empty"><p><%= t('talent.no_matches') %></p></div><% } %>
+      <% out.results.forEach(function (r) { var p = r.profile; %>
+        <article class="panel match-card"><div class="panel-body">
+          <div class="row-sm" style="align-items:flex-start">
+            <%- include('../../../partials/talent/avatar', { p: p, size: 48 }) %>
+            <div class="grow" style="min-width:0"><a href="/app/talent/p/<%= p.id %><%= jobId ? '?job_id=' + jobId : '' %>"><strong><%= p.name %></strong></a><div class="muted small"><%= p.headline || p.specialization || '' %><%= r.years != null ? ' · ' + t('talent.years_n', { n: r.years }) : '' %><%= p.city ? ' · ' + p.city : '' %></div></div>
+            <div class="match-big"><span><%= r.match %>%</span><small><%= t('talent.match') %></small></div>
+          </div>
+          <% if (r.reason) { %><p class="mt-3"><%= r.reason %></p><% } else if (r.reasons && r.reasons.length) { %><ul class="plain-list small mt-3"><% r.reasons.forEach(function (x) { %><li><%- icon('check', 'icon-sm') %> <%= t('talent.reason_' + x.key, x) %></li><% }) %></ul><% } %>
+          <% if (r.experience) { %><p class="small text-2 mt-2"><strong><%= t('talent.experience') %>:</strong> <%= r.experience %></p><% } %>
+          <div class="grid grid-2 mt-3">
+            <div><div class="label"><%= t('talent.matched_skills') %></div><div class="skill-chips"><% if (!r.matched_skills.length) { %><span class="muted small">—</span><% } %><% r.matched_skills.forEach(function (s) { %><span class="chip chip-match"><%= s %></span><% }) %></div></div>
+            <div><div class="label"><%= t('talent.gaps') %></div><div class="skill-chips"><% if (!(r.gaps || []).length) { %><span class="muted small">—</span><% } %><% (r.gaps || []).slice(0, 6).forEach(function (s) { %><span class="chip chip-gap"><%= s %></span><% }) %></div></div>
+          </div>
+          <div class="mt-3"><%- include('_actions', { p: p, back: '/app/talent/ai' + (jobId ? '?job_id=' + jobId : ''), jobId: jobId }) %></div>
+        </div></article>
+      <% }) %>
+      <p class="muted tiny"><%= t('talent.ai_disclaimer') %></p>
+    <% } %>
+  </section>
+</div>

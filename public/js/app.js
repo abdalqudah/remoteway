@@ -503,6 +503,19 @@
     if (e.ctrlKey || e.metaKey) window.open(row.getAttribute('data-href'), '_blank'); else window.location.href = row.getAttribute('data-href');
   });
 
+  // Carousels (homepage): prev/next buttons scroll by one card; RTL scrolls the other way.
+  document.addEventListener('click', function (e) {
+    var b = e.target.closest('[data-carousel-prev],[data-carousel-next]');
+    if (!b) return;
+    var box = document.getElementById(b.getAttribute('data-carousel-prev') || b.getAttribute('data-carousel-next'));
+    if (!box) return;
+    var item = box.querySelector('.carousel-item');
+    var step = item ? item.getBoundingClientRect().width + 16 : box.clientWidth * 0.8;
+    var dir = b.hasAttribute('data-carousel-next') ? 1 : -1;
+    if (document.documentElement.dir === 'rtl') dir = -dir;
+    box.scrollBy({ left: dir * step, behavior: 'smooth' });
+  });
+
   // Keep csrf available for fetch-based features.
   window.RemoteWay = { csrf: csrf };
 })();

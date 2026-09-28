@@ -26,6 +26,15 @@ function defaultReply(prompt) {
   if (prompt.includes('Summarise this HR document')) return { summary: 'An employment contract for one year.', document_type: 'Employment contract', parties: ['Employer', 'Employee'], key_dates: [{ label: 'Start', date: '2026-01-01' }, { label: 'End', date: '2026-12-31' }], issue_date: '2026-01-01', expiry_date: '2026-12-31', notes: ['60 days notice'] };
   if (prompt.includes('Draft the written summary')) return { summary: 'You delivered your goals this period.', strengths: '- Reliable delivery', improvements: '- Share progress earlier' };
   if (prompt.includes('multiple-choice questions')) return { questions: [{ question: 'What is the pass mark?', options: ['50%', '70%', '90%', '100%'], correct_index: 1 }, { question: 'Who approves leave?', options: ['HR', 'Manager', 'Finance', 'IT'], correct_index: 1 }] };
+  if (prompt.includes('A company describes who it is looking for')) {
+    const refs = [...prompt.matchAll(/### (C\d+)\nHeadline: ([^|]+)/g)].map((m) => [m[1], m[2].trim()]);
+    return { results: refs.slice(0, 6).map(([ref, head], i) => ({ ref, match: 90 - i * 8, reason: `Relevant background as ${head}.`, matched_skills: [], experience: 'Relevant hands-on experience', gaps: i ? ['One requested skill not shown'] : [] })) };
+  }
+  if (prompt.includes('A job seeker wants to know')) {
+    const refs = [...prompt.matchAll(/### (J\d+)\n([^\n(]+)/g)].map((m) => [m[1], m[2].trim()]);
+    return { results: refs.slice(0, 6).map(([ref, title], i) => ({ ref, match: 85 - i * 10, reason: `Your experience lines up with ${title}.`, gaps: [] })) };
+  }
+  if (prompt.includes('Review this professional profile')) return { summary: 'A clear, focused profile.', strengths: ['Relevant skills'], gaps: ['Few measurable results'], suggestions: ['Add numbers to your experience'], suggested_roles: ['Specialist'], missing_skills: ['Looker Studio'], headline_suggestion: 'Specialist with measurable results' };
   if (prompt.includes('company metrics')) return { answer: 'Headcount is stable.', highlights: ['Headcount comes from the metrics'], caveats: [] };
   return { ok: true };
 }

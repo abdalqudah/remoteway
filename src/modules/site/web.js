@@ -3,6 +3,8 @@ const { wrap } = require('../../routes/helpers');
 const subscriptions = require('../billing/subscription.service');
 const ent = require('../billing/entitlements.service');
 const config = require('../../config');
+const marketplace = require('../talent/marketplace.service');
+const profiles = require('../talent/profile.service');
 
 const router = express.Router();
 
@@ -13,7 +15,8 @@ async function pricingData(req) {
 }
 
 router.get('/', wrap(async (req, res) => {
-  res.page('pages/site/home', { layout: 'public', title: req.t('site.meta_title'), ...(await pricingData(req)) });
+  const [jobs, talents] = await Promise.all([marketplace.latestJobs(12), profiles.featured(12)]);
+  res.page('pages/site/home', { layout: 'public', title: req.t('site.meta_title'), latestJobs: jobs, talents, ...(await pricingData(req)) });
 }));
 
 router.get('/pricing', wrap(async (req, res) => {

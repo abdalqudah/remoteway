@@ -1,0 +1,47 @@
+<% var j = job; var base = '/jobs/' + j.org_slug + '/' + j.slug; %>
+<section class="section" style="border-top:0">
+  <div class="container job-detail">
+    <div class="eyebrow mb-4"><a href="/jobs"><%= t('talent.jobs_title') %></a><%- icon('chevron-right', 'icon-sm flip-rtl') %><%= j.org_name %></div>
+    <div class="grid grid-3" style="align-items:start">
+      <article class="span-2 stack-lg">
+        <div class="row-sm">
+          <% if (j.logoUrl) { %><span class="job-logo job-logo-lg"><img src="<%= j.logoUrl %>" alt=""></span><% } else { %><span class="org-mark" style="width:52px;height:52px;font-size:18px"><%= initials(j.org_name) %></span><% } %>
+          <div><h1 class="h-display" style="font-size:clamp(24px,3vw,34px)"><%= j.title %></h1><div class="muted"><%= j.org_name %></div></div>
+        </div>
+        <div class="job-tags">
+          <span class="tag"><%- icon('map-pin', 'icon-sm') %><%= t('recruitment.mode_' + j.work_mode) %><%= j.location_name && j.work_mode !== 'remote' ? ' · ' + j.location_name : '' %></span>
+          <span class="tag"><%= t('recruitment.type_' + j.employment_type) %></span>
+          <% if (j.experience_years) { %><span class="tag"><%= t('talent.years_plus', { n: j.experience_years }) %></span><% } %>
+          <% if (j.show_salary && (j.salary_min || j.salary_max)) { %><span class="tag"><%= [j.salary_min, j.salary_max].filter(Boolean).map(function (v) { return fmt.money(v, j.salary_currency || j.org_currency); }).join(' – ') %></span><% } %>
+        </div>
+        <% if (j.skills.length) { %><div class="skill-chips"><% j.skills.forEach(function (s) { %><span class="chip"><%= s %></span><% }) %></div><% } %>
+        <% if (j.description) { %><section><h2 class="section-title"><%= t('recruitment.description') %></h2><div class="prose"><%= j.description %></div></section><% } %>
+        <% if (j.requirements) { %><section><h2 class="section-title"><%= t('recruitment.requirements') %></h2><div class="prose"><%= j.requirements %></div></section><% } %>
+      </article>
+      <aside class="panel sticky-aside">
+        <div class="panel-body stack">
+          <% if (applied) { %>
+            <div class="alert alert-success"><%- icon('circle-check') %><div class="grow small"><%= t('talent.already_applied') %></div></div>
+            <a class="btn btn-secondary btn-block" href="/me/applications"><%= t('me.applications') %></a>
+          <% } else if (me) { %>
+            <h2 class="section-title"><%= t('talent.apply_title') %></h2>
+            <% if (formError) { %><div class="alert alert-error"><%- icon('circle-alert') %><div class="grow small"><%= formError.message %><% if (formError.code === 'PROFILE_INCOMPLETE') { %> <a href="/me/profile"><%= t('me.complete_profile') %></a><% } %></div></div><% } %>
+            <div class="row-sm"><%- include('../../partials/talent/avatar', { p: Object.assign({}, me, { name: currentUser.name }), size: 40 }) %><div class="small"><strong><%= currentUser.name %></strong><div class="muted"><%= t('talent.profile_complete_n', { n: me.completion }) %><%= me.cv_storage_key ? ' · ' + t('talent.cv_attached') : '' %></div></div></div>
+            <form method="post" action="<%= base %>/apply" class="stack">
+              <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+              <%- include('../../partials/field', { name: 'cover_note', label: t('talent.cover_note'), type: 'textarea', help: t('talent.cover_note_help') }) %>
+              <button class="btn btn-primary btn-block" type="submit"><%- icon('send') %><%= t('talent.apply_with_profile') %></button>
+            </form>
+            <p class="muted tiny"><%= t('talent.apply_shares') %></p>
+          <% } else { %>
+            <h2 class="section-title"><%= t('talent.apply_title') %></h2>
+            <p class="small text-2"><%= t('talent.apply_login_text') %></p>
+            <a class="btn btn-primary btn-block" href="/join?next=<%= encodeURIComponent(base) %>"><%= t('talent.join_cta') %></a>
+            <a class="btn btn-secondary btn-block" href="/login"><%= t('auth.login') %></a>
+            <% if (careers) { %><a class="btn btn-ghost btn-block btn-sm" href="/careers/<%= j.org_slug %>/jobs/<%= j.slug %>"><%= t('talent.apply_without_account') %></a><% } %>
+          <% } %>
+        </div>
+      </aside>
+    </div>
+  </div>
+</section>

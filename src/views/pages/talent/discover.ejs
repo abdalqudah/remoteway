@@ -1,0 +1,20 @@
+<section class="section" style="border-top:0">
+  <div class="container">
+    <div class="section-head"><h1 class="h-display"><%= t('talent.discover_title') %></h1><p><%= t('talent.discover_lead') %></p></div>
+    <% if (viewer.companyAccess) { %><div class="alert alert-info mb-4"><%- icon('info') %><div class="grow small"><%= t('talent.company_view_note') %> <a href="/app/talent"><%= t('talent.open_company_tools') %></a></div></div><% } %>
+    <form class="filter-bar mb-6" method="get" action="/talent">
+      <input class="input" type="search" name="q" value="<%= filters.q || '' %>" placeholder="<%= t('talent.search_people_ph') %>" aria-label="<%= t('common.search') %>">
+      <select class="select" name="specialization" aria-label="<%= t('talent.specialization') %>"><option value=""><%= t('talent.any_specialization') %></option><% specs.forEach(function (s) { %><option value="<%= s.specialization %>"<%= filters.specialization === s.specialization ? ' selected' : '' %>><%= s.specialization %> (<%= s.n %>)</option><% }) %></select>
+      <input class="input" name="skills" value="<%= filters.skills || '' %>" placeholder="<%= t('talent.skills_ph') %>" aria-label="<%= t('talent.skills') %>">
+      <select class="select" name="min_years" aria-label="<%= t('talent.experience') %>"><option value=""><%= t('talent.any_experience') %></option><% [1,2,3,5,8,10].forEach(function (n) { %><option value="<%= n %>"<%= String(filters.min_years) === String(n) ? ' selected' : '' %>><%= t('talent.years_plus', { n: n }) %></option><% }) %></select>
+      <input class="input" name="city" value="<%= filters.city || '' %>" placeholder="<%= t('fields.city') %>" aria-label="<%= t('fields.city') %>">
+      <select class="select" name="work_mode" aria-label="<%= t('talent.work_mode') %>"><option value=""><%= t('talent.any_mode') %></option><% ['remote','hybrid','onsite'].forEach(function (m) { %><option value="<%= m %>"<%= filters.work_mode === m ? ' selected' : '' %>><%= t('recruitment.mode_' + m) %></option><% }) %></select>
+      <button class="btn btn-dark" type="submit"><%- icon('search', 'icon-sm') %><%= t('common.search') %></button>
+    </form>
+    <p class="muted small mb-4"><%= t('talent.people_found', { n: result.total }) %></p>
+    <% if (!result.items.length) { %><div class="empty"><span class="empty-icon"><%- icon('users') %></span><p><%= t('talent.no_people') %></p></div>
+    <% } else { %><div class="card-grid"><% result.items.forEach(function (p) { %><%- include('../../partials/talent/person-card', { p: p, link: viewer.companyAccess ? '/app/talent/p/' + p.id : null }) %><% }) %></div>
+      <%- include('../../partials/talent/pager', { total: result.total, page: result.page, perPage: result.perPage }) %><% } %>
+    <div class="cta-band mt-6"><h2><%= t('talent.cta_individual') %></h2><div class="row wrap"><a class="btn btn-primary btn-lg" href="/join"><%= t('talent.join_cta') %></a></div></div>
+  </div>
+</section>

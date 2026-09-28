@@ -126,10 +126,11 @@ const FEATURES = [
   ['ai_analytics', 'AI Analytics', 'ai', 'available'],
   ['client_success', 'Client Success Portal', 'client_success', 'available'],
   ['white_label', 'White Label', 'branding', 'available'],
+  ['talent_marketplace', 'Talent Marketplace', 'talent', 'available'],
 ];
 
 const STARTER = ['employees', 'departments', 'attendance', 'leave', 'documents', 'tasks', 'basic_reports'];
-const BUSINESS = [...STARTER, 'recruitment', 'onboarding', 'payroll', 'performance', 'advanced_reports', 'projects', 'learning', 'integrations', 'compliance'];
+const BUSINESS = [...STARTER, 'recruitment', 'onboarding', 'payroll', 'performance', 'advanced_reports', 'projects', 'learning', 'integrations', 'compliance', 'talent_marketplace'];
 const PROFESSIONAL = [...BUSINESS, 'analytics', 'ai_recruitment', 'ai_documents', 'ai_performance', 'ai_learning', 'ai_analytics', 'api', 'advanced_permissions', 'automation'];
 const ENTERPRISE = [...PROFESSIONAL, 'sso', 'custom_roles', 'custom_workflows', 'enterprise_reporting', 'client_success', 'white_label'];
 

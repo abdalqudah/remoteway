@@ -14,7 +14,7 @@ const notifications = require('../notifications/notification.service');
 
 const STAGES = ['applied', 'screening', 'shortlisted', 'interview', 'assessment', 'offer', 'hired', 'rejected'];
 const PIPELINE = STAGES.filter((s) => s !== 'rejected');
-const SOURCES = ['manual', 'careers', 'referral', 'linkedin', 'agency', 'other'];
+const SOURCES = ['manual', 'careers', 'referral', 'linkedin', 'agency', 'other', 'remoteway'];
 const CV_EXT = ['pdf', 'doc', 'docx'];
 
 const parseJson = (v, d) => { if (v == null) return d; if (typeof v !== 'string') return v; try { return JSON.parse(v); } catch { return d; } };

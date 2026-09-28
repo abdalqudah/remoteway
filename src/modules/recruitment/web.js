@@ -30,8 +30,15 @@ const renderJobForm = async (req, res, extra = {}) => {
   res.page('pages/recruitment/job-form', { title: job ? job.title : req.t('recruitment.new_job'), job, ...(await opts(req.ctx)), ...extra });
 };
 router.get('/jobs/new', can('recruitment.manage'), wrap((req, res) => renderJobForm(req, res)));
+// "Publish on RemoteWay Jobs" checkbox of the job form (only shown when the plan has the marketplace)
+async function syncMarketplace(req, id) {
+  if (req.body.marketplace_field !== '1') return;
+  await require('../talent/marketplace.service').setMarketplace(req.ctx, id, req.body.marketplace === 'on'); // eslint-disable-line global-require
+}
+
 router.post('/jobs', can('recruitment.manage'), form(async (req, res) => {
   const id = await rec.saveJob(req.ctx, null, req.body);
+  await syncMarketplace(req, id);
   if (req.body.publish === '1') {
     // The job is saved either way; a plan limit only keeps it in draft.
     try { await rec.setJobStatus(req.ctx, id, 'open'); } catch (err) {
@@ -50,7 +57,13 @@ const renderJobPage = async (req, res, extra = {}) => {
   ]);
   const manage = req.ctx.permissions.has('recruitment.manage');
   const [candidates, managers] = manage ? await Promise.all([rec.listCandidates(req.ctx, {}), employees.options(req.ctx.organizationId)]) : [[], []];
-  res.page('pages/recruitment/job', { title: job.title, job, apps, stages: rec.STAGES, settings, candidates, managers, sources: rec.SOURCES, ...extra });
+  // Talent marketplace: the job on the RemoteWay board, and the best-matching people on the platform
+  let talent = null;
+  if (await require('../billing/entitlements.service').hasFeature(req.ctx.organizationId, 'talent_marketplace')) { // eslint-disable-line global-require
+    const out = await require('../talent/talent-ai').search(req.ctx, { jobId: job.id, useAi: false }); // eslint-disable-line global-require
+    talent = { recommended: out.results.slice(0, 5) };
+  }
+  res.page('pages/recruitment/job', { title: job.title, job, apps, stages: rec.STAGES, settings, candidates, managers, sources: rec.SOURCES, talent, ...extra });
 };
 router.get('/jobs/:id', can('recruitment.view'), wrap((req, res) => renderJobPage(req, res)));
 router.post('/jobs/:id/applications', can('recruitment.manage'), form(async (req, res) => {
@@ -63,6 +76,7 @@ router.post('/jobs/:id/applications', can('recruitment.manage'), form(async (req
 router.get('/jobs/:id/edit', can('recruitment.manage'), wrap((req, res) => renderJobForm(req, res)));
 router.post('/jobs/:id', can('recruitment.manage'), form(async (req, res) => {
   await rec.saveJob(req.ctx, Number(req.params.id), req.body);
+  await syncMarketplace(req, Number(req.params.id));
   flash(req, 'success', req.t('recruitment.job_saved'));
   res.redirect(`/app/recruitment/jobs/${req.params.id}`);
 }, renderJobForm));

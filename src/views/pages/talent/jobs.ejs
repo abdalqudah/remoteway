@@ -1,0 +1,16 @@
+<section class="section" style="border-top:0">
+  <div class="container">
+    <div class="section-head"><h1 class="h-display"><%= t('talent.jobs_title') %></h1><p><%= t('talent.jobs_lead') %></p></div>
+    <form class="filter-bar mb-6" method="get" action="/jobs">
+      <input class="input" type="search" name="q" value="<%= filters.q || '' %>" placeholder="<%= t('talent.search_jobs_ph') %>" aria-label="<%= t('common.search') %>">
+      <select class="select" name="work_mode" aria-label="<%= t('talent.work_mode') %>"><option value=""><%= t('talent.any_mode') %></option><% ['remote','hybrid','onsite'].forEach(function (m) { %><option value="<%= m %>"<%= filters.work_mode === m ? ' selected' : '' %>><%= t('recruitment.mode_' + m) %></option><% }) %></select>
+      <select class="select" name="employment_type" aria-label="<%= t('talent.job_type') %>"><option value=""><%= t('talent.any_type') %></option><% ['full_time','part_time','contract','freelance','intern'].forEach(function (m) { %><option value="<%= m %>"<%= filters.employment_type === m ? ' selected' : '' %>><%= t('recruitment.type_' + m) %></option><% }) %></select>
+      <input class="input" name="city" value="<%= filters.city || '' %>" placeholder="<%= t('fields.city') %>" aria-label="<%= t('fields.city') %>">
+      <button class="btn btn-dark" type="submit"><%- icon('search', 'icon-sm') %><%= t('common.search') %></button>
+    </form>
+    <p class="muted small mb-4"><%= t('talent.jobs_found', { n: result.total }) %></p>
+    <% if (!result.items.length) { %><div class="empty"><span class="empty-icon"><%- icon('briefcase') %></span><p><%= t('talent.no_jobs') %></p></div>
+    <% } else { %><div class="card-grid"><% result.items.forEach(function (j) { %><%- include('../../partials/talent/job-card', { job: j }) %><% }) %></div>
+      <%- include('../../partials/talent/pager', { total: result.total, page: result.page, perPage: result.perPage }) %><% } %>
+  </div>
+</section>

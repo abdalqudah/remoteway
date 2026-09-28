@@ -1,0 +1,178 @@
+<%
+  var o = old || {};
+  var v = function (k) { return o[k] !== undefined ? o[k] : (p[k] != null ? p[k] : ''); };
+  var pr = p.preferences || {};
+  var err = errors || {};
+  var sec = function (id, title, sub) { return '<div class="panel-head"><div><h2>' + escapeHtml(title) + '</h2>' + (sub ? '<div class="panel-sub">' + escapeHtml(sub) + '</div>' : '') + '</div></div>'; };
+%>
+<div class="page-head"><div><h1><%= t('me.my_profile') %></h1><p><%= t('me.profile_sub') %></p></div>
+  <div class="page-actions"><span class="badge badge-dot <%= comp.percent >= 80 ? 'badge-success' : 'badge-warning' %>"><%= t('talent.profile_complete_n', { n: comp.percent }) %></span><a class="btn btn-secondary" href="/talent/<%= p.slug %>"><%- icon('eye') %><%= t('me.view_public') %></a></div></div>
+<% if (formError) { %><div class="alert alert-error mb-4"><%- icon('circle-alert') %><div class="grow small"><%= Object.values(err)[0] || formError.message %></div></div><% } %>
+
+<div class="profile-editor stack-lg">
+  <!-- Photo + basics -->
+  <section class="panel" id="basics">
+    <%- sec('basics', t('me.sec_basics'), t('me.sec_basics_sub')) %>
+    <div class="panel-body stack">
+      <div class="row wrap" style="align-items:center;gap:16px">
+        <%- include('../../partials/talent/avatar', { p: Object.assign({}, p, { name: currentUser.name }), size: 72 }) %>
+        <form class="row-sm wrap" method="post" action="/me/profile/photo" enctype="multipart/form-data">
+          <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+          <input class="input" type="file" name="file" accept="image/png,image/jpeg,image/webp" required aria-label="<%= t('me.photo') %>" style="max-width:280px">
+          <button class="btn btn-secondary btn-sm" type="submit"><%- icon('upload', 'icon-sm') %><%= t('me.upload_photo') %></button>
+        </form>
+        <% if (p.photo_sha) { %><form method="post" action="/me/profile/photo/remove"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><button class="btn btn-ghost btn-sm" type="submit"><%= t('branding.remove') %></button></form><% } %>
+      </div>
+      <form method="post" action="/me/profile/basics" class="stack" novalidate>
+        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+        <div class="form-grid">
+          <%- include('../../partials/field', { name: 'headline', label: t('me.headline'), value: v('headline'), placeholder: t('me.headline_ph'), errors: err }) %>
+          <%- include('../../partials/field', { name: 'specialization', label: t('talent.specialization'), value: v('specialization'), placeholder: t('me.specialization_ph'), errors: err }) %>
+        </div>
+        <%- include('../../partials/field', { name: 'bio', label: t('me.bio'), type: 'textarea', value: v('bio'), help: t('me.bio_help'), errors: err }) %>
+        <div class="form-grid">
+          <%- include('../../partials/field', { name: 'country_code', label: t('fields.country'), type: 'select', placeholder: '—', value: v('country_code'), options: countries.map(function (c) { return { value: c.country_code, label: locale === 'ar' ? (c.name_ar || c.name) : c.name }; }), errors: err }) %>
+          <%- include('../../partials/field', { name: 'city', label: t('fields.city'), value: v('city'), errors: err }) %>
+          <%- include('../../partials/field', { name: 'years_experience', label: t('me.years'), type: 'number', value: p.years_experience != null ? p.years_experience : (o.years_experience || ''), attrs: 'min="0" max="60"', help: p.computed_years != null ? t('me.years_computed', { n: p.computed_years }) : t('me.years_help'), errors: err }) %>
+          <%- include('../../partials/field', { name: 'phone', label: t('fields.phone'), value: v('phone'), attrs: 'dir="ltr"', errors: err }) %>
+          <%- include('../../partials/field', { name: 'linkedin_url', label: 'LinkedIn', value: v('linkedin_url'), placeholder: 'linkedin.com/in/…', attrs: 'dir="ltr"', errors: err }) %>
+          <%- include('../../partials/field', { name: 'portfolio_url', label: t('talent.portfolio'), value: v('portfolio_url'), placeholder: 'https://', attrs: 'dir="ltr"', errors: err }) %>
+        </div>
+        <div><button class="btn btn-dark btn-sm" type="submit"><%= t('common.save') %></button></div>
+      </form>
+    </div>
+  </section>
+
+  <!-- Skills -->
+  <form class="panel" id="skills" method="post" action="/me/profile/skills">
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+    <%- sec('skills', t('talent.skills'), t('me.skills_sub')) %>
+    <div class="panel-body stack">
+      <%- include('../../partials/field', { name: 'skills', label: t('talent.skills'), type: 'textarea', value: o.skills !== undefined ? o.skills : p.skills.join(', '), help: t('me.skills_help') }) %>
+      <div><button class="btn btn-dark btn-sm" type="submit"><%= t('common.save') %></button></div>
+    </div>
+  </form>
+
+  <!-- Experience -->
+  <% var expRow = function (e) { e = e || {}; return '<div class="repeat-row" data-row><div class="form-grid">'
+    + '<div class="field"><label class="label">' + escapeHtml(t('me.job_title')) + '</label><input class="input" name="exp_title" value="' + escapeHtml(e.title || '') + '"></div>'
+    + '<div class="field"><label class="label">' + escapeHtml(t('talent.company')) + '</label><input class="input" name="exp_company" value="' + escapeHtml(e.company || '') + '"></div>'
+    + '<div class="field"><label class="label">' + escapeHtml(t('me.from')) + '</label><input class="input" type="month" name="exp_start" value="' + escapeHtml(e.start || '') + '"></div>'
+    + '<div class="field"><label class="label">' + escapeHtml(t('me.to')) + '</label><input class="input" type="month" name="exp_end" value="' + escapeHtml(e.current ? '' : (e.end || '')) + '"><span class="help">' + escapeHtml(t('me.to_help')) + '</span></div></div>'
+    + '<div class="field"><label class="label">' + escapeHtml(t('fields.description')) + '</label><textarea class="textarea" name="exp_description" rows="3">' + escapeHtml(e.description || '') + '</textarea></div>'
+    + '<button class="btn btn-ghost btn-sm" type="button" data-remove-row>' + escapeHtml(t('branding.remove')) + '</button></div>'; }; %>
+  <form class="panel" id="experience" method="post" action="/me/profile/section/experience" data-repeater>
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+    <%- sec('experience', t('talent.experience'), t('me.experience_sub')) %>
+    <div class="panel-body stack">
+      <div class="stack" data-rows><% (p.experience.length ? p.experience : [null]).forEach(function (e) { %><%- expRow(e) %><% }) %></div>
+      <template data-row-template><%- expRow(null) %></template>
+      <div class="row-sm"><button class="btn btn-ghost btn-sm" type="button" data-add-row><%- icon('plus', 'icon-sm') %><%= t('me.add_experience') %></button><button class="btn btn-dark btn-sm" type="submit"><%= t('common.save') %></button></div>
+    </div>
+  </form>
+
+  <!-- Education -->
+  <% var eduRow = function (e) { e = e || {}; return '<div class="repeat-row" data-row><div class="form-grid">'
+    + '<div class="field"><label class="label">' + escapeHtml(t('me.degree')) + '</label><input class="input" name="edu_degree" value="' + escapeHtml(e.degree || '') + '" placeholder="' + escapeHtml(t('me.degree_ph')) + '"></div>'
+    + '<div class="field"><label class="label">' + escapeHtml(t('me.field_of_study')) + '</label><input class="input" name="edu_field" value="' + escapeHtml(e.field || '') + '"></div>'
+    + '<div class="field"><label class="label">' + escapeHtml(t('me.school')) + '</label><input class="input" name="edu_school" value="' + escapeHtml(e.school || '') + '"></div>'
+    + '<div class="field"><label class="label">' + escapeHtml(t('me.years_range')) + '</label><div class="row-sm"><input class="input" type="number" min="1950" max="2100" name="edu_start" value="' + escapeHtml(e.start || '') + '" placeholder="2016" aria-label="' + escapeHtml(t('me.from')) + '"><input class="input" type="number" min="1950" max="2100" name="edu_end" value="' + escapeHtml(e.end || '') + '" placeholder="2020" aria-label="' + escapeHtml(t('me.to')) + '"></div></div></div>'
+    + '<button class="btn btn-ghost btn-sm" type="button" data-remove-row>' + escapeHtml(t('branding.remove')) + '</button></div>'; }; %>
+  <form class="panel" id="education" method="post" action="/me/profile/section/education" data-repeater>
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+    <%- sec('education', t('talent.education'), t('me.education_sub')) %>
+    <div class="panel-body stack">
+      <div class="stack" data-rows><% (p.education.length ? p.education : [null]).forEach(function (e) { %><%- eduRow(e) %><% }) %></div>
+      <template data-row-template><%- eduRow(null) %></template>
+      <div class="row-sm"><button class="btn btn-ghost btn-sm" type="button" data-add-row><%- icon('plus', 'icon-sm') %><%= t('me.add_education') %></button><button class="btn btn-dark btn-sm" type="submit"><%= t('common.save') %></button></div>
+    </div>
+  </form>
+
+  <div class="grid grid-2">
+    <!-- Certifications -->
+    <% var certRow = function (c) { c = c || {}; return '<div class="repeat-row" data-row><div class="form-grid">'
+      + '<div class="field"><label class="label">' + escapeHtml(t('me.cert_name')) + '</label><input class="input" name="cert_name" value="' + escapeHtml(c.name || '') + '"></div>'
+      + '<div class="field"><label class="label">' + escapeHtml(t('me.issuer')) + '</label><input class="input" name="cert_issuer" value="' + escapeHtml(c.issuer || '') + '"></div>'
+      + '<div class="field"><label class="label">' + escapeHtml(t('me.year')) + '</label><input class="input" type="number" min="1950" max="2100" name="cert_year" value="' + escapeHtml(c.year || '') + '"></div>'
+      + '<div class="field"><label class="label">' + escapeHtml(t('me.link')) + '</label><input class="input" name="cert_url" dir="ltr" value="' + escapeHtml(c.url || '') + '"></div></div>'
+      + '<button class="btn btn-ghost btn-sm" type="button" data-remove-row>' + escapeHtml(t('branding.remove')) + '</button></div>'; }; %>
+    <form class="panel" id="certifications" method="post" action="/me/profile/section/certifications" data-repeater>
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+      <%- sec('certifications', t('talent.certifications'), '') %>
+      <div class="panel-body stack">
+        <div class="stack" data-rows><% (p.certifications.length ? p.certifications : [null]).forEach(function (c) { %><%- certRow(c) %><% }) %></div>
+        <template data-row-template><%- certRow(null) %></template>
+        <div class="row-sm"><button class="btn btn-ghost btn-sm" type="button" data-add-row><%- icon('plus', 'icon-sm') %><%= t('me.add_row') %></button><button class="btn btn-dark btn-sm" type="submit"><%= t('common.save') %></button></div>
+      </div>
+    </form>
+    <!-- Languages -->
+    <% var langRow = function (l) { l = l || {}; return '<div class="repeat-row" data-row><div class="form-grid">'
+      + '<div class="field"><label class="label">' + escapeHtml(t('me.language')) + '</label><input class="input" name="lang_name" value="' + escapeHtml(l.name || '') + '" placeholder="' + escapeHtml(t('me.language_ph')) + '"></div>'
+      + '<div class="field"><label class="label">' + escapeHtml(t('me.level')) + '</label><select class="select" name="lang_level">' + L.map(function (x) { return '<option value="' + x + '"' + ((l.level || 'professional') === x ? ' selected' : '') + '>' + escapeHtml(t('talent.level_' + x)) + '</option>'; }).join('') + '</select></div></div>'
+      + '<button class="btn btn-ghost btn-sm" type="button" data-remove-row>' + escapeHtml(t('branding.remove')) + '</button></div>'; }; %>
+    <form class="panel" id="languages" method="post" action="/me/profile/section/languages" data-repeater>
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+      <%- sec('languages', t('talent.languages'), '') %>
+      <div class="panel-body stack">
+        <div class="stack" data-rows><% (p.languages.length ? p.languages : [null]).forEach(function (l) { %><%- langRow(l) %><% }) %></div>
+        <template data-row-template><%- langRow(null) %></template>
+        <div class="row-sm"><button class="btn btn-ghost btn-sm" type="button" data-add-row><%- icon('plus', 'icon-sm') %><%= t('me.add_row') %></button><button class="btn btn-dark btn-sm" type="submit"><%= t('common.save') %></button></div>
+      </div>
+    </form>
+  </div>
+
+  <!-- Projects -->
+  <% var projRow = function (x) { x = x || {}; return '<div class="repeat-row" data-row><div class="form-grid">'
+    + '<div class="field"><label class="label">' + escapeHtml(t('me.project_name')) + '</label><input class="input" name="proj_name" value="' + escapeHtml(x.name || '') + '"></div>'
+    + '<div class="field"><label class="label">' + escapeHtml(t('me.link')) + '</label><input class="input" name="proj_url" dir="ltr" value="' + escapeHtml(x.url || '') + '"></div></div>'
+    + '<div class="field"><label class="label">' + escapeHtml(t('fields.description')) + '</label><textarea class="textarea" name="proj_description" rows="2">' + escapeHtml(x.description || '') + '</textarea></div>'
+    + '<button class="btn btn-ghost btn-sm" type="button" data-remove-row>' + escapeHtml(t('branding.remove')) + '</button></div>'; }; %>
+  <form class="panel" id="projects" method="post" action="/me/profile/section/projects" data-repeater>
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+    <%- sec('projects', t('talent.projects'), t('me.projects_sub')) %>
+    <div class="panel-body stack">
+      <div class="stack" data-rows><% (p.projects.length ? p.projects : [null]).forEach(function (x) { %><%- projRow(x) %><% }) %></div>
+      <template data-row-template><%- projRow(null) %></template>
+      <div class="row-sm"><button class="btn btn-ghost btn-sm" type="button" data-add-row><%- icon('plus', 'icon-sm') %><%= t('me.add_row') %></button><button class="btn btn-dark btn-sm" type="submit"><%= t('common.save') %></button></div>
+    </div>
+  </form>
+
+  <!-- CV -->
+  <section class="panel" id="cv">
+    <%- sec('cv', t('me.cv'), t('me.cv_sub')) %>
+    <div class="panel-body stack">
+      <% if (p.cv_storage_key) { %><div class="row-sm wrap"><span class="badge"><%- icon('file-text', 'icon-sm') %> <%= p.cv_name %></span><a class="btn btn-ghost btn-sm" href="/me/cv"><%- icon('download', 'icon-sm') %><%= t('common.download') %></a>
+        <form method="post" action="/me/profile/cv/remove"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><button class="btn btn-ghost btn-sm" type="submit"><%= t('branding.remove') %></button></form></div><% } %>
+      <form class="row-sm wrap" method="post" action="/me/profile/cv" enctype="multipart/form-data">
+        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+        <input class="input" type="file" name="file" accept=".pdf,.doc,.docx" required aria-label="<%= t('me.cv') %>" style="max-width:320px">
+        <button class="btn btn-secondary btn-sm" type="submit"><%- icon('upload', 'icon-sm') %><%= p.cv_storage_key ? t('me.replace_cv') : t('me.upload_cv') %></button>
+      </form>
+      <p class="help"><%= t('me.cv_help') %></p>
+    </div>
+  </section>
+
+  <!-- Preferences & privacy -->
+  <form class="panel" id="preferences" method="post" action="/me/profile/preferences">
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+    <%- sec('preferences', t('me.sec_prefs'), t('me.sec_prefs_sub')) %>
+    <div class="panel-body stack">
+      <div class="form-grid">
+        <%- include('../../partials/field', { name: 'pref_titles', label: t('me.pref_titles'), value: (pr.titles || []).join(', '), help: t('me.comma_help') }) %>
+        <%- include('../../partials/field', { name: 'pref_locations', label: t('me.pref_locations'), value: (pr.locations || []).join(', '), help: t('me.comma_help') }) %>
+        <%- include('../../partials/field', { name: 'pref_salary_min', label: t('me.pref_salary'), type: 'number', value: pr.salary_min || '', attrs: 'min="0"', help: t('me.pref_salary_help') }) %>
+        <%- include('../../partials/field', { name: 'pref_available_from', label: t('me.available_from'), type: 'date', value: pr.available_from || '' }) %>
+      </div>
+      <input type="hidden" name="pref_salary_currency" value="<%= pr.salary_currency || 'SAR' %>">
+      <fieldset class="field"><legend class="label"><%= t('talent.work_mode') %></legend><div class="row-sm wrap"><% W.forEach(function (m) { %><label class="check provider-choice"><input type="checkbox" name="pref_work_modes" value="<%= m %>"<%= (pr.work_modes || []).indexOf(m) !== -1 ? ' checked' : '' %>><%= t('recruitment.mode_' + m) %></label><% }) %></div></fieldset>
+      <fieldset class="field"><legend class="label"><%= t('talent.job_type') %></legend><div class="row-sm wrap"><% J.forEach(function (m) { %><label class="check provider-choice"><input type="checkbox" name="pref_job_types" value="<%= m %>"<%= (pr.job_types || []).indexOf(m) !== -1 ? ' checked' : '' %>><%= t('recruitment.type_' + m) %></label><% }) %></div></fieldset>
+      <div class="fieldset-title"><%= t('me.privacy') %></div>
+      <fieldset class="field"><legend class="label"><%= t('me.visibility') %></legend><div class="stack-sm">
+        <% ['public', 'companies', 'private'].forEach(function (x) { %><label class="check"><input type="radio" name="visibility" value="<%= x %>"<%= p.visibility === x ? ' checked' : '' %>><span><strong><%= t('talent.vis_' + x) %></strong><span class="help" style="display:block"><%= t('talent.vis_' + x + '_help') %></span></span></label><% }) %>
+      </div></fieldset>
+      <label class="check"><input type="checkbox" name="open_to_work"<%= p.open_to_work ? ' checked' : '' %>><%= t('me.open_to_work_label') %></label>
+      <label class="check"><input type="checkbox" name="show_contact"<%= p.show_contact ? ' checked' : '' %>><%= t('me.show_contact_label') %></label>
+      <div><button class="btn btn-dark btn-sm" type="submit"><%= t('common.save') %></button></div>
+    </div>
+  </form>
+</div>

@@ -59,7 +59,9 @@ async function resolveTenant(req, res, next) {
     }
     if (!organizationId) {
       if (isApi(req)) throw E.noOrganization();
-      return res.redirect(req.user.is_super_admin ? '/admin' : '/organizations/new');
+      if (req.user.is_super_admin) return res.redirect('/admin');
+      const talent = await require('../db/knex')('talent_profiles').where({ user_id: req.user.id }).first('id'); // eslint-disable-line global-require
+      return res.redirect(talent ? '/me' : '/organizations/new');
     }
     const [organization, permissions, entitlements] = await Promise.all([
       orgs.get(organizationId),

@@ -154,36 +154,62 @@ async function log(row) {
  * @returns validated output object
  */
 async function run(ctx, task) {
-  const { area, action, locale = 'en', schema } = task;
+  const { area } = task;
   await assertUsable(ctx.organizationId, area);
   await ent.assertCanWrite(ctx.organizationId);
   const cfg = await config();
   await reserve(ctx.organizationId);
+  return execute(cfg, task, {
+    base: { organization_id: ctx.organizationId, user_id: ctx.userId, feature: area },
+    onFail: () => refund(ctx.organizationId),
+  });
+}
 
+/** Sends one task to the provider, validates the JSON answer and logs the request. */
+async function execute(cfg, task, { base: b, onFail }) {
+  const { action, locale = 'en', schema } = task;
   const files = (task.files || []).filter((f) => providers.accepts(cfg.provider, f.mime));
   const prompt = `${task.instructions}\n${languageLine(locale)}\n\n<data>\n${task.data}\n</data>`;
   const started = Date.now();
-  const base = {
-    organization_id: ctx.organizationId, user_id: ctx.userId, feature: area, action, provider: cfg.provider, model: cfg.model,
-    entity_type: task.entityType || null, entity_id: task.entityId || null,
-  };
+  const base = { ...b, action, provider: cfg.provider, model: cfg.model, entity_type: task.entityType || null, entity_id: task.entityId || null };
   let result;
   try {
     result = await providers.complete(cfg, { system: SYSTEM, prompt, files, maxTokens: task.maxTokens || cfg.maxTokens });
   } catch (e) {
-    await refund(ctx.organizationId);
+    await onFail();
     await log({ ...base, status: 'error', latency_ms: Date.now() - started, error: e.message });
     throw err.provider(e instanceof providers.ProviderError ? e.message : `Could not reach the AI provider: ${clip(e.message, 160)}`);
   }
   const usage = { tokens_in: result.tokensIn, tokens_out: result.tokensOut, latency_ms: Date.now() - started, cost_usd: cost(cfg, result.tokensIn, result.tokensOut) };
   const parsed = schema.safeParse(parseJson(result.text));
   if (!parsed.success) {
-    await refund(ctx.organizationId);
+    await onFail();
     await log({ ...base, ...usage, status: 'invalid', error: clip(result.text, 400) });
     throw err.invalid();
   }
   await log({ ...base, ...usage, status: 'ok' });
   return parsed.data;
+}
+
+// ---------- Personal AI (individual profiles on the talent marketplace) ----------
+// Individuals have no company plan, so the platform funds a small daily allowance per person
+// (Super Admin → AI sets it; 0 switches personal AI off). Requests are logged like company ones.
+const PERSONAL_FEATURE = 'talent';
+async function personalStatus(userId) {
+  const cfg = await config();
+  const saved = await rawConfig();
+  const limit = saved && saved.personal_daily_limit != null ? Number(saved.personal_daily_limit) : 10;
+  const [{ n }] = await knex('ai_requests').where({ user_id: userId, feature: PERSONAL_FEATURE, status: 'ok' }).whereNull('organization_id')
+    .where('created_at', '>=', new Date(Date.now() - 86_400_000)).count({ n: '*' });
+  return { configured: Boolean(cfg), limit, used: Number(n), usable: Boolean(cfg) && limit > 0 && Number(n) < limit };
+}
+
+async function runPersonal(userId, task) {
+  const s = await personalStatus(userId);
+  if (!s.configured || s.limit <= 0) throw err.notConfigured();
+  if (s.used >= s.limit) throw new AppError('AI_DAILY_LIMIT', `You have used today's ${s.limit} AI requests. Try again tomorrow.`, 429);
+  const cfg = await config();
+  return execute(cfg, task, { base: { organization_id: null, user_id: userId, feature: PERSONAL_FEATURE }, onFail: async () => {} });
 }
 
 // ---------- Saved insights ----------
@@ -252,5 +278,5 @@ async function testConnection(cfg) {
 
 module.exports = {
   AREAS, AREA_KEYS, rawConfig, config, invalidateConfig, orgSettings, saveOrgSettings, status, assertUsable,
-  redact, clip, parseJson, run, saveInsight, latestInsight, orgUsage, platformUsage, testConnection,
+  redact, clip, parseJson, run, runPersonal, personalStatus, saveInsight, latestInsight, orgUsage, platformUsage, testConnection,
 };

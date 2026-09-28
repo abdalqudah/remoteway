@@ -1,0 +1,16 @@
+<div class="page-head"><div><h1><%= t('me.applications') %></h1><p><%= t('me.applications_sub') %></p></div><div class="page-actions"><a class="btn btn-dark" href="/jobs"><%- icon('search') %><%= t('talent.browse_jobs') %></a></div></div>
+<section class="panel">
+  <% if (!apps.length) { %><div class="empty"><span class="empty-icon"><%- icon('send') %></span><p><%= t('me.no_applications') %></p></div>
+  <% } else { %><div class="table-wrap"><table class="table">
+    <thead><tr><th><%= t('talent.job') %></th><th><%= t('talent.company') %></th><th><%= t('fields.status') %></th><th><%= t('me.applied_on') %></th></tr></thead>
+    <tbody><% apps.forEach(function (x) { %><tr>
+      <td><% if (x.marketplace && x.job_status === 'open') { %><a href="/jobs/<%= x.org_slug %>/<%= x.slug %>"><strong><%= x.title %></strong></a><% } else { %><strong><%= x.title %></strong><% } %></td>
+      <td><%= x.org_name %></td>
+      <td><span class="st st-<%= x.public_stage === 'closed' ? 'rejected' : x.public_stage === 'hired' || x.public_stage === 'offer' ? 'approved' : 'pending' %>"><%= t('me.stage_' + x.public_stage) %></span></td>
+      <td class="muted small nowrap"><%= fmt.date(x.created_at) %></td>
+    </tr><% }) %></tbody></table></div><% } %>
+</section>
+<section class="panel mt-6" id="invitations">
+  <div class="panel-head"><h2><%= t('me.invitations') %></h2></div>
+  <div class="panel-body stack-sm"><% if (!invites.length) { %><p class="muted small"><%= t('me.no_invitations') %></p><% } else { invites.forEach(function (i) { %><%- include('_invite', { i: i }) %><% }) } %></div>
+</section>

@@ -1,0 +1,58 @@
+<% var a = profile.ai_analysis; %>
+<div class="page-head"><div><h1><%= t('me.hello', { name: currentUser.name.split(' ')[0] }) %></h1><p><%= t('me.dashboard_sub') %></p></div>
+  <div class="page-actions"><a class="btn btn-secondary" href="/talent/<%= profile.slug %>"><%- icon('eye') %><%= t('me.view_public') %></a><a class="btn btn-dark" href="/me/profile"><%- icon('pencil') %><%= t('me.edit_profile') %></a></div></div>
+
+<div class="grid grid-3">
+  <section class="panel">
+    <div class="panel-head"><h2><%= t('me.completion') %></h2><span class="num" style="font-weight:800;font-size:22px"><%= comp.percent %>%</span></div>
+    <div class="panel-body stack-sm">
+      <div class="meter meter-lg" role="progressbar" aria-valuenow="<%= comp.percent %>" aria-valuemin="0" aria-valuemax="100"><span style="width:<%= comp.percent %>%"></span></div>
+      <% if (comp.missing.length) { %><p class="small text-2"><%= t('me.completion_next') %></p>
+        <ul class="plain-list small"><% comp.missing.slice(0, 5).forEach(function (m) { %><li><a href="/me/profile#<%= ({ photo: 'basics', headline: 'basics', specialization: 'basics', bio: 'basics', location: 'basics', links: 'basics', cv: 'cv' })[m] || m %>"><%- icon('plus', 'icon-sm') %> <%= t('me.missing_' + m) %></a></li><% }) %></ul>
+      <% } else { %><p class="small text-2"><%= t('me.completion_done') %></p><% } %>
+      <div class="small muted"><%= t('me.visibility_line', { v: t('talent.vis_' + profile.visibility) }) %> · <%= profile.open_to_work ? t('talent.open_to_work') : t('me.not_open') %></div>
+    </div>
+  </section>
+
+  <section class="panel span-2" id="analysis">
+    <div class="panel-head"><div><h2><%- icon('sparkles', 'icon-sm') %> <%= t('me.ai_analysis') %></h2><div class="panel-sub"><%= t('me.ai_analysis_sub') %></div></div>
+      <form method="post" action="/me/analysis"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><button class="btn btn-secondary btn-sm" type="submit" data-busy-label="<%= t('ai.working') %>"<%= aiStatus.usable ? '' : ' disabled' %>><%- icon('sparkles', 'icon-sm') %><%= a ? t('me.reanalyze') : t('me.analyze') %></button></form></div>
+    <div class="panel-body">
+      <% if (!aiStatus.configured || aiStatus.limit === 0) { %><p class="muted small"><%= t('me.ai_off') %></p>
+      <% } else if (!a) { %><p class="muted small"><%= t('me.ai_none') %> <%= t('me.ai_left', { n: Math.max(0, aiStatus.limit - aiStatus.used) }) %></p>
+      <% } else { %>
+        <p><%= a.summary %></p>
+        <div class="grid grid-2 mt-4">
+          <div><div class="label"><%= t('me.strengths') %></div><ul class="plain-list small"><% a.strengths.forEach(function (s) { %><li><%- icon('check', 'icon-sm') %> <%= s %></li><% }) %></ul></div>
+          <div><div class="label"><%= t('me.gaps') %></div><ul class="plain-list small"><% a.gaps.forEach(function (s) { %><li><%- icon('triangle-alert', 'icon-sm') %> <%= s %></li><% }) %></ul></div>
+        </div>
+        <% if (a.suggestions.length) { %><div class="label mt-4"><%= t('me.suggestions') %></div><ul class="plain-list small"><% a.suggestions.forEach(function (s) { %><li>→ <%= s %></li><% }) %></ul><% } %>
+        <div class="job-tags mt-4"><% a.suggested_roles.forEach(function (r) { %><span class="tag"><%= r %></span><% }) %></div>
+        <% if (a.missing_skills.length) { %><div class="label mt-4"><%= t('me.skills_to_add') %></div><div class="skill-chips"><% a.missing_skills.forEach(function (s) { %><span class="chip chip-gap"><%= s %></span><% }) %></div><% } %>
+        <% if (a.headline_suggestion) { %><div class="alert alert-info mt-4"><%- icon('info') %><div class="grow small"><strong><%= t('me.headline_idea') %></strong> <%= a.headline_suggestion %></div></div><% } %>
+        <p class="muted tiny mt-3"><%= t('ai.draft_note') %> · <%= fmt.date(profile.analyzed_at, { dateStyle: 'medium', timeStyle: 'short' }) %></p>
+      <% } %>
+    </div>
+  </section>
+</div>
+
+<% if (invites.filter(function (i) { return i.status === 'sent'; }).length) { %>
+<section class="panel mt-6">
+  <div class="panel-head"><h2><%- icon('mail', 'icon-sm') %> <%= t('me.invitations') %></h2><a class="btn btn-ghost btn-sm" href="/me/applications#invitations"><%= t('common.view_all') %></a></div>
+  <div class="panel-body stack-sm"><% invites.filter(function (i) { return i.status === 'sent'; }).slice(0, 3).forEach(function (i) { %><%- include('_invite', { i: i }) %><% }) %></div>
+</section>
+<% } %>
+
+<div class="grid grid-2 mt-6">
+  <section class="panel">
+    <div class="panel-head"><h2><%= t('me.recommended_jobs') %></h2><a class="btn btn-ghost btn-sm" href="/me/jobs"><%= t('common.view_all') %></a></div>
+    <div class="panel-body">
+      <% if (!jobs.length) { %><p class="muted small"><%= t('me.no_recommended') %></p><% } else { %><div class="stack-sm"><% jobs.forEach(function (r) { %><%- include('../../partials/talent/job-card', { job: r.job, match: r.match }) %><% }) %></div><% } %>
+    </div>
+  </section>
+  <section class="panel">
+    <div class="panel-head"><h2><%= t('me.applications') %></h2><a class="btn btn-ghost btn-sm" href="/me/applications"><%= t('common.view_all') %></a></div>
+    <% if (!apps.length) { %><div class="empty"><p><%= t('me.no_applications') %></p><a class="btn btn-secondary btn-sm" href="/jobs"><%= t('talent.browse_jobs') %></a></div>
+    <% } else { %><div class="table-wrap"><table class="table"><tbody><% apps.forEach(function (x) { %><tr><td><strong><%= x.title %></strong><div class="muted small"><%= x.org_name %></div></td><td><span class="st st-<%= x.public_stage === 'closed' ? 'rejected' : x.public_stage === 'hired' || x.public_stage === 'offer' ? 'approved' : 'pending' %>"><%= t('me.stage_' + x.public_stage) %></span></td><td class="muted small nowrap"><%= fmt.date(x.created_at) %></td></tr><% }) %></tbody></table></div><% } %>
+  </section>
+</div>

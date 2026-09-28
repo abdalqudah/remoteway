@@ -21,6 +21,31 @@
   </div>
 </section>
 
+<% if (latestJobs.length) { %>
+<section class="section" id="latest-jobs">
+  <div class="container">
+    <div class="row between wrap mb-6"><div class="section-head" style="margin:0"><h2><%= t('talent.latest_jobs') %></h2><p><%= t('talent.latest_jobs_lead') %></p></div>
+      <div class="row-sm"><button class="btn btn-secondary btn-icon" type="button" data-carousel-prev="jobs-carousel" aria-label="<%= t('common.previous') %>"><%- icon('chevron-left', 'flip-rtl') %></button><button class="btn btn-secondary btn-icon" type="button" data-carousel-next="jobs-carousel" aria-label="<%= t('common.next') %>"><%- icon('chevron-right', 'flip-rtl') %></button><a class="btn btn-dark" href="/jobs"><%= t('talent.all_jobs') %></a></div></div>
+    <div class="carousel" id="jobs-carousel" tabindex="0" aria-label="<%= t('talent.latest_jobs') %>"><% latestJobs.forEach(function (j) { %><div class="carousel-item"><%- include('../../partials/talent/job-card', { job: j }) %></div><% }) %></div>
+  </div>
+</section>
+<% } %>
+<% if (talents.length) { %>
+<section class="section" id="discover-talent">
+  <div class="container">
+    <div class="row between wrap mb-6"><div class="section-head" style="margin:0"><h2><%= t('talent.discover_title') %></h2><p><%= t('talent.discover_home_lead') %></p></div>
+      <div class="row-sm"><button class="btn btn-secondary btn-icon" type="button" data-carousel-prev="talent-carousel" aria-label="<%= t('common.previous') %>"><%- icon('chevron-left', 'flip-rtl') %></button><button class="btn btn-secondary btn-icon" type="button" data-carousel-next="talent-carousel" aria-label="<%= t('common.next') %>"><%- icon('chevron-right', 'flip-rtl') %></button><a class="btn btn-dark" href="/talent"><%= t('talent.browse_talent') %></a></div></div>
+    <div class="carousel" id="talent-carousel" tabindex="0" aria-label="<%= t('talent.discover_title') %>"><% talents.forEach(function (p) { %><div class="carousel-item"><%- include('../../partials/talent/person-card', { p: p }) %></div><% }) %></div>
+  </div>
+</section>
+<% } %>
+<section class="section talent-cta-band">
+  <div class="container grid grid-2" style="gap:24px">
+    <div class="panel panel-body stack-sm"><span class="icon-wrap"><%- icon('user-round-plus') %></span><h3><%= t('talent.cta_individual') %></h3><p class="muted small"><%= t('talent.cta_individual_text') %></p><div><a class="btn btn-primary" href="/join"><%= t('talent.join_cta') %></a></div></div>
+    <div class="panel panel-body stack-sm"><span class="icon-wrap"><%- icon('briefcase') %></span><h3><%= t('talent.cta_company') %></h3><p class="muted small"><%= t('talent.cta_company_text') %></p><div><a class="btn btn-dark" href="/signup"><%= t('site.start_free') %></a></div></div>
+  </div>
+</section>
+
 <section class="section" id="modules">
   <div class="container">
     <div class="section-head"><h2><%= t('site.modules_title') %></h2><p><%= t('site.modules_lead') %></p></div>
@@ -30,7 +55,8 @@
         ['briefcase', 'recruitment', 'recruitment'], ['user-round-plus', 'onboarding', 'onboarding'], ['wallet', 'payroll', 'payroll'],
         ['target', 'performance', 'performance'], ['graduation-cap', 'learning', 'learning'], ['chart-column', 'analytics', 'analytics'],
         ['shield-check', 'compliance', 'compliance'], ['zap', 'automation', 'automation'], ['sparkles', 'ai', 'ai_recruitment'],
-        ['key-round', 'sso', 'sso'], ['user-cog', 'rbac', null], ['badge-check', 'white_label', 'white_label']
+        ['key-round', 'sso', 'sso'], ['user-cog', 'rbac', null], ['badge-check', 'white_label', 'white_label'],
+        ['user-round-plus', 'talent_marketplace', 'talent_marketplace'], ['search', 'talent_ai', 'ai_recruitment'], ['globe', 'jobs_board', 'talent_marketplace']
       ].forEach(function (m) { var live = !m[2] || availability[m[2]] === 'available'; %>
       <div class="module">
         <div class="row between"><span class="icon-wrap"><%- icon(m[0]) %></span><span class="badge <%= live ? 'badge-success' : '' %>"><%= live ? t('site.available_now') : t('common.soon') %></span></div>

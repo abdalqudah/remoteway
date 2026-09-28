@@ -251,10 +251,12 @@ function aiInput(body, saved) {
   if (Number.isNaN(priceOut)) errors.price_out = 'Enter a price between 0 and 1000.';
   const maxTokens = Number(body.max_tokens || 1500);
   if (!Number.isInteger(maxTokens) || maxTokens < 256 || maxTokens > 8000) errors.max_tokens = 'Use a number between 256 and 8000.';
+  const personal = body.personal_daily_limit === undefined || body.personal_daily_limit === '' ? 10 : Number(body.personal_daily_limit);
+  if (!Number.isInteger(personal) || personal < 0 || personal > 200) errors.personal_daily_limit = 'Use a number between 0 and 200.';
   if (Object.keys(errors).length) throw E.validation(errors);
   return {
     provider, model: provider === 'azure' ? (model || deployment) : model, deployment: provider === 'azure' ? deployment : null, endpoint: provider === 'azure' ? endpoint : null,
-    api_version: provider === 'azure' ? (String(body.api_version || '').trim() || '2024-10-21') : null, apiKey, price_in: priceIn, price_out: priceOut, max_tokens: maxTokens,
+    api_version: provider === 'azure' ? (String(body.api_version || '').trim() || '2024-10-21') : null, apiKey, price_in: priceIn, price_out: priceOut, max_tokens: maxTokens, personal_daily_limit: personal,
     enabled: body.enabled === 'on',
   };
 }

@@ -1,0 +1,15 @@
+<div class="page-head"><div><h1><%= t('me.recommended_jobs') %></h1><p><%= t('me.recommended_sub') %></p></div>
+  <div class="page-actions"><form method="post" action="/me/jobs"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><button class="btn btn-dark" type="submit" data-busy-label="<%= t('ai.working') %>"<%= aiStatus.usable ? '' : ' disabled' %>><%- icon('sparkles') %><%= t('me.rank_with_ai') %></button></form></div></div>
+<% if (formError) { %><div class="alert alert-error mb-4"><%- icon('circle-alert') %><div class="grow small"><%= formError.message %></div></div><% } %>
+<div class="alert <%= rec.mode === 'ai' ? 'alert-success' : 'alert-info' %> mb-4"><%- icon(rec.mode === 'ai' ? 'sparkles' : 'info') %><div class="grow small"><%= rec.mode === 'ai' ? t('me.ranked_by_ai') : t('me.ranked_by_rules') %><% if (aiStatus.configured && aiStatus.limit > 0) { %> · <%= t('me.ai_left', { n: Math.max(0, aiStatus.limit - aiStatus.used) }) %><% } %></div></div>
+<% if (!rec.results.length) { %><div class="empty"><span class="empty-icon"><%- icon('briefcase') %></span><p><%= t('me.no_recommended') %></p><a class="btn btn-secondary btn-sm" href="/me/profile"><%= t('me.complete_profile') %></a></div>
+<% } else { %><div class="stack"><% rec.results.forEach(function (r) { %>
+  <div class="panel"><div class="panel-body rec-row">
+    <div class="grow"><%- include('../../partials/talent/job-card', { job: r.job, match: r.match }) %></div>
+    <div class="rec-why small">
+      <% if (r.reason) { %><p><%= r.reason %></p><% } %>
+      <% if (r.matched_skills && r.matched_skills.length) { %><div class="label"><%= t('talent.matched_skills') %></div><div class="skill-chips"><% r.matched_skills.forEach(function (s) { %><span class="chip chip-match"><%= s %></span><% }) %></div><% } %>
+      <% if (r.gaps && r.gaps.length) { %><div class="label mt-2"><%= t('talent.gaps') %></div><div class="skill-chips"><% r.gaps.slice(0, 6).forEach(function (s) { %><span class="chip chip-gap"><%= s %></span><% }) %></div><% } %>
+    </div>
+  </div></div>
+<% }) %></div><% } %>

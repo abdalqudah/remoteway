@@ -1,0 +1,7 @@
+<%- include('_tabs') %>
+<% if (!people.length) { %><div class="empty"><span class="empty-icon"><%- icon('star') %></span><p><%= list === 'shortlist' ? t('talent.no_shortlist') : t('talent.no_saved') %></p><a class="btn btn-secondary btn-sm" href="/app/talent"><%= t('talent.tab_find') %></a></div>
+<% } else { %><div class="card-grid"><% people.forEach(function (p) { %>
+  <div class="stack-sm"><%- include('../../../partials/talent/person-card', { p: p, link: '/app/talent/p/' + p.id }) %>
+    <% if (p.job_title || p.note) { %><div class="small muted"><%= p.job_title ? t('talent.for_job', { job: p.job_title }) : '' %><%= p.note ? ' · ' + p.note : '' %></div><% } %>
+    <%- include('_actions', { p: p }) %></div>
+<% }) %></div><% } %>

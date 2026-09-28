@@ -44,6 +44,12 @@
           <label class="check"><input type="checkbox" name="show_salary"<%= (old && old.show_salary) || j.show_salary ? ' checked' : '' %>><%= t('recruitment.show_salary') %></label>
         </div>
       </section>
+      <% if (hasFeature('talent_marketplace')) { %>
+      <section class="panel"><div class="panel-body">
+        <input type="hidden" name="marketplace_field" value="1">
+        <label class="check"><input type="checkbox" name="marketplace"<%= (old && old.marketplace_field ? old.marketplace === 'on' : (job ? j.marketplace : true)) ? ' checked' : '' %>><span><strong><%= t('talent.publish_on_board') %></strong><span class="help" style="display:block"><%= t('talent.publish_on_board_help') %></span></span></label>
+      </div></section>
+      <% } %>
       <div class="form-actions">
         <a class="btn btn-ghost" href="<%= job ? '/app/recruitment/jobs/' + job.id : '/app/recruitment' %>"><%= t('common.cancel') %></a>
         <% if (!job) { %><button class="btn btn-secondary" type="submit"><%= t('recruitment.save_draft') %></button><button class="btn btn-dark" type="submit" name="publish" value="1"><%- icon('send') %><%= t('recruitment.save_publish') %></button>

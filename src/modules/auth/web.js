@@ -43,6 +43,8 @@ router.post('/login', loginLimiter, form(async (req, res) => {
   if (to) return res.redirect(to);
   const list = await orgs.listForUser(user.id);
   if (!list.length && user.is_super_admin) return res.redirect('/admin');
+  // Individuals (talent profiles without a company) go to their own dashboard
+  if (!list.length && await require('../../db/knex')('talent_profiles').where({ user_id: user.id }).first('id')) return res.redirect('/me'); // eslint-disable-line global-require
   return res.redirect('/app');
 }, (req, res, extra) => {
   if (extra.formError?.code === 'INVALID_CREDENTIALS') res.status(401);

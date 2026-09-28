@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="<%= locale %>" dir="<%= dir %>" data-v="<%= assetV %>"<% if (theme !== 'system') { %> data-theme="<%= theme %>"<% } %>>
+<head><%- include('../partials/head') %></head>
+<body>
+<div class="shell">
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-brand"><a href="/" aria-label="RemoteWay"><%- include('../partials/logo') %></a></div>
+    <div class="org-switch" style="margin:12px"><div class="row" style="padding:8px 10px;border:1px solid var(--border);border-radius:var(--radius);background:var(--surface-2)">
+      <%- include('../partials/talent/avatar', { p: Object.assign({}, profile, { name: currentUser.name }), size: 30 }) %>
+      <span style="min-width:0"><span class="org-name truncate" style="display:block"><%= currentUser.name %></span><span class="org-plan"><%= t('me.career_profile') %></span></span></div></div>
+    <nav class="nav">
+      <a href="/me" class="<%= meSection === 'dashboard' ? 'active' : '' %>"><%- icon('layout-dashboard') %><%= t('me.dashboard') %></a>
+      <a href="/me/profile" class="<%= meSection === 'profile' ? 'active' : '' %>"><%- icon('user') %><%= t('me.my_profile') %></a>
+      <a href="/me/jobs" class="<%= meSection === 'jobs' ? 'active' : '' %>"><%- icon('sparkles') %><%= t('me.recommended_jobs') %></a>
+      <a href="/me/applications" class="<%= meSection === 'applications' ? 'active' : '' %>"><%- icon('send') %><%= t('me.applications') %></a>
+      <div class="nav-group"><div class="nav-title"><%= t('talent.marketplace') %></div>
+        <a href="/jobs"><%- icon('briefcase') %><%= t('talent.jobs_title') %></a>
+        <a href="/talent/<%= profile.slug %>"><%- icon('eye') %><%= t('me.view_public') %></a>
+      </div>
+      <% if (hasWorkspace || currentUser.is_super_admin) { %><div class="nav-group"><div class="nav-title"><%= t('admin.workspace') %></div>
+        <% if (hasWorkspace) { %><a href="/app"><%- icon('building-2') %><%= t('me.company_workspace') %></a><% } %>
+        <% if (currentUser.is_super_admin) { %><a href="/admin"><%- icon('gauge') %><%= t('nav.super_admin') %></a><% } %>
+      </div><% } %>
+    </nav>
+  </aside>
+  <div class="sidebar-backdrop" data-nav-close></div>
+  <div class="main">
+    <header class="topbar">
+      <button class="btn btn-ghost btn-icon mobile-only" type="button" data-nav-toggle aria-label="<%= t('nav.menu') %>"><%- icon('menu') %></button>
+      <div class="grow"></div>
+      <div class="topbar-actions">
+        <a class="btn btn-ghost btn-sm" href="<%= langUrl(locale === 'ar' ? 'en' : 'ar') %>" title="<%= t('common.language') %>"><%- icon('languages') %><span><%= locale === 'ar' ? 'EN' : 'ع' %></span></a>
+        <button class="btn btn-ghost btn-icon" type="button" data-theme-toggle aria-label="<%= t('common.toggle_theme') %>"><%- icon('moon', 'theme-moon') %><%- icon('sun', 'theme-sun hidden') %></button>
+        <details class="dropdown">
+          <summary class="user-chip"><span class="avatar"><%= initials(currentUser.name) %></span><span class="user-name small" style="font-weight:600"><%= currentUser.name %></span><%- icon('chevron-down', 'icon-sm muted') %></summary>
+          <div class="menu">
+            <div class="menu-label truncate"><%= currentUser.email %></div>
+            <% if (!hasWorkspace) { %><a href="/organizations/new"><%- icon('building-2', 'icon-sm') %><%= t('me.create_company') %></a><% } %>
+            <div class="sep"></div>
+            <form method="post" action="/logout"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><button type="submit"><%- icon('log-out', 'icon-sm') %><%= t('auth.logout') %></button></form>
+          </div>
+        </details>
+      </div>
+    </header>
+    <main class="content" id="main">
+      <%- include('../partials/flash') %>
+      <%- body %>
+    </main>
+  </div>
+</div>
+<script src="/js/app.js?v=<%= assetV %>" defer></script>
+</body>
+</html>

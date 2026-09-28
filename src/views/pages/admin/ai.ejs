@@ -30,6 +30,7 @@
       <div class="form-grid">
         <%- include('../../partials/field', { name: 'price_in', label: t('admin.ai_price_in'), type: 'number', value: val('price_in'), attrs: 'min="0" step="any"', help: t('admin.ai_price_help') }) %>
         <%- include('../../partials/field', { name: 'price_out', label: t('admin.ai_price_out'), type: 'number', value: val('price_out'), attrs: 'min="0" step="any"' }) %>
+        <%- include('../../partials/field', { name: 'personal_daily_limit', label: t('admin.ai_personal_limit'), type: 'number', value: val('personal_daily_limit') != null ? val('personal_daily_limit') : 10, attrs: 'min="0" max="200"', help: t('admin.ai_personal_limit_help') }) %>
         <%- include('../../partials/field', { name: 'max_tokens', label: t('admin.ai_max_tokens'), type: 'number', value: val('max_tokens') || 1500, attrs: 'min="256" max="8000"', help: t('admin.ai_max_tokens_help') }) %>
       </div>
       <label class="check"><input type="checkbox" name="enabled"<%= (o.provider ? o.enabled === 'on' : s.enabled !== false) ? ' checked' : '' %>><%= t('admin.ai_enabled') %></label>

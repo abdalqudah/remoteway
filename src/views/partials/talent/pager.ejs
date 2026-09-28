@@ -1,0 +1,6 @@
+<% var pages = Math.ceil(total / perPage); if (pages > 1) { var qs = function (n) { var u = new URLSearchParams(query); u.set('page', n); return '?' + u.toString(); }; %>
+<nav class="pager mt-6" aria-label="<%= t('common.pagination') %>">
+  <% if (page > 1) { %><a class="btn btn-secondary btn-sm" href="<%= qs(page - 1) %>"><%- icon('chevron-left', 'icon-sm flip-rtl') %><%= t('common.previous') %></a><% } %>
+  <span class="muted small"><%= t('talent.page_of', { page: page, pages: pages }) %></span>
+  <% if (page < pages) { %><a class="btn btn-secondary btn-sm" href="<%= qs(page + 1) %>"><%= t('common.next') %><%- icon('chevron-right', 'icon-sm flip-rtl') %></a><% } %>
+</nav><% } %>

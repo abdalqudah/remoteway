@@ -1,0 +1,15 @@
+<% var href = typeof link !== 'undefined' && link ? link : '/talent/' + p.slug; %>
+<a class="person-card" href="<%= href %>">
+  <div class="row-sm">
+    <%- include('avatar', { p: p, size: 48 }) %>
+    <span class="grow" style="min-width:0"><strong class="truncate" style="display:block"><%= p.name %></strong><span class="muted small line-2"><%= p.headline || p.specialization || '' %></span></span>
+    <% if (typeof match !== 'undefined' && match != null) { %><span class="match-pill"><%= match %>%</span><% } %>
+  </div>
+  <div class="job-tags">
+    <% if (p.specialization) { %><span class="tag"><%= p.specialization %></span><% } %>
+    <% if (p.years != null) { %><span class="tag"><%= t('talent.years_n', { n: p.years }) %></span><% } %>
+    <% if (p.city || p.country_code) { %><span class="tag"><%- icon('map-pin', 'icon-sm') %><%= [p.city, p.country_code].filter(Boolean).join(', ') %></span><% } %>
+    <% if (p.open_to_work) { %><span class="tag tag-open"><%= t('talent.open_to_work') %></span><% } %>
+  </div>
+  <% if (p.skills && p.skills.length) { %><div class="skill-chips"><% p.skills.slice(0, 6).forEach(function (s) { %><span class="chip"><%= s %></span><% }) %></div><% } %>
+</a>

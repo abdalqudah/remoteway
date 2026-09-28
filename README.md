@@ -9,11 +9,19 @@
 | Runtime | Node.js ≥ 20 (Express 4, server-rendered EJS, no build step) |
 | Database | MySQL 8 / MariaDB ≥ 10.3 (all data, including sessions, lives in the database) |
 | Hosting | Any cPanel host with **Setup Node.js App** (e.g. Orange Host), or any VPS |
-| Status | **Phases 1–9 + Advanced Analytics + Compliance + Automation + Online payments** (SaaS Core, Workforce, Talent, Payroll, Performance, Learning, Integrations, AI, Enterprise, Analytics, Compliance, Automation, Payments) complete and tested (see `docs/ARCHITECTURE.md`) |
+| Status | **Phases 1–9 + Advanced Analytics + Compliance + Automation + Online payments + Talent marketplace** (SaaS Core, Workforce, Talent, Payroll, Performance, Learning, Integrations, AI, Enterprise, Analytics, Compliance, Automation, Payments) complete and tested (see `docs/ARCHITECTURE.md`) |
 
 ---
 
 ## What works today
+
+**Talent & Jobs Marketplace** (built on the existing users, companies, recruitment and AI):
+
+- **Individuals** sign up free at `/join` and build a professional profile: photo, headline, bio, specialization, education, experience, skills, certifications, languages, projects, CV, LinkedIn/portfolio and job preferences, with a completion meter. Privacy: public, companies only, or private.
+- **Discover talent** (`/talent`) and **Jobs** (`/jobs`) with search and filters; homepage carousels "Latest jobs" and "Discover talent".
+- **Companies** (Business+) publish any job to the RemoteWay board from the job form; applications from profiles land in the existing recruitment pipeline (source *RemoteWay*, CV copied into the company's storage).
+- **Talent tools** (`/app/talent`): find talent, AI talent search in plain words (Arabic or English), recommended candidates per job, saved list, shortlist, invitations.
+- **Matching:** a transparent rule-based score (skills, role, experience, preferences, location) always runs and picks at most 20 anonymised profiles; the existing AI layer then ranks and explains them (match %, reason, matched skills, experience, gaps) under the company's AI settings and quota. Individuals get AI job recommendations and profile analysis from a small platform-funded daily allowance (Super Admin → AI).
 
 **Platform team, company management and branding:**
 

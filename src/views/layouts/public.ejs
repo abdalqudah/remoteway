@@ -8,6 +8,8 @@
     <nav class="site-links" aria-label="<%= t('nav.main') %>">
       <a href="/#platform"><%= t('site.nav_platform') %></a>
       <a href="/#modules"><%= t('site.nav_modules') %></a>
+      <a href="/jobs"><%= t('talent.nav_jobs') %></a>
+      <a href="/talent"><%= t('talent.nav_talent') %></a>
       <a href="/#security"><%= t('site.nav_security') %></a>
       <a href="/pricing"><%= t('site.pricing') %></a>
       <a href="/#faq"><%= t('site.nav_faq') %></a>
@@ -19,6 +21,7 @@
         <a class="btn btn-dark btn-sm" href="/app"><%= t('site.open_app') %></a>
       <% } else { %>
         <a class="btn btn-ghost btn-sm hide-sm" href="/login"><%= t('auth.login') %></a>
+        <a class="btn btn-secondary btn-sm hide-sm" href="/join"><%= t('talent.join_cta') %></a>
         <a class="btn btn-primary btn-sm" href="/signup"><%= t('site.start_free') %></a>
       <% } %>
     </div>

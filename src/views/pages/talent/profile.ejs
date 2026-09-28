@@ -1,0 +1,7 @@
+<section class="section" style="border-top:0">
+  <div class="container" style="max-width:920px">
+    <% if (own) { %><div class="alert alert-info mb-6"><%- icon('eye') %><div class="grow small"><%= t('talent.own_preview', { visibility: t('talent.vis_' + p.visibility) }) %> <a href="/me/profile"><%= t('me.edit_profile') %></a></div></div><% } %>
+    <% if (viewer.companyAccess && !own) { %><div class="alert alert-info mb-6"><%- icon('info') %><div class="grow small"><%= t('talent.company_view_note') %></div><a class="btn btn-dark btn-sm" href="/app/talent/p/<%= p.id %>"><%= t('talent.open_in_workspace') %></a></div><% } %>
+    <div class="panel"><div class="panel-body"><%- include('../../partials/talent/profile-body', { p: p, contact: contact }) %></div></div>
+  </div>
+</section>

@@ -1,0 +1,9 @@
+<div class="invite-row">
+  <div class="grow"><strong><%= i.org_name %></strong><% if (i.job_title) { %> · <%= i.job_title %><% } %>
+    <% if (i.message) { %><div class="small text-2 mt-1"><%= i.message %></div><% } %>
+    <div class="muted tiny"><%= fmt.date(i.created_at) %> · <%= t(i.status === 'declined' ? 'me.invite_declined_status' : 'me.invite_' + i.status) %></div></div>
+  <% if (i.status === 'sent') { %><div class="row-sm">
+    <% if (i.job_slug && i.marketplace && i.job_status === 'open') { %><a class="btn btn-primary btn-sm" href="/jobs/<%= i.org_slug %>/<%= i.job_slug %>"><%= t('talent.view_and_apply') %></a><% } %>
+    <form method="post" action="/me/invitations/<%= i.id %>/decline"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><button class="btn btn-ghost btn-sm" type="submit"><%= t('me.decline') %></button></form>
+  </div><% } %>
+</div>

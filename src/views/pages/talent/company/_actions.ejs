@@ -1,0 +1,9 @@
+<% var st = saved[p.id]; var manage = can('recruitment.manage'); var backTo = typeof back !== 'undefined' ? back : fullPath; %>
+<div class="row-sm wrap talent-actions">
+  <a class="btn btn-secondary btn-sm" href="/app/talent/p/<%= p.id %><%= typeof jobId !== 'undefined' && jobId ? '?job_id=' + jobId : '' %>"><%= t('talent.view_profile') %></a>
+  <% if (manage) { %>
+    <% if (st !== 'shortlist') { %><form method="post" action="/app/talent/p/<%= p.id %>/save"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><input type="hidden" name="list" value="shortlist"><input type="hidden" name="back" value="<%= backTo %>"><% if (typeof jobId !== 'undefined' && jobId) { %><input type="hidden" name="job_id" value="<%= jobId %>"><% } %><button class="btn btn-ghost btn-sm" type="submit"><%- icon('star', 'icon-sm') %><%= t('talent.shortlist') %></button></form><% } %>
+    <% if (!st) { %><form method="post" action="/app/talent/p/<%= p.id %>/save"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><input type="hidden" name="list" value="saved"><input type="hidden" name="back" value="<%= backTo %>"><button class="btn btn-ghost btn-sm" type="submit"><%- icon('check', 'icon-sm') %><%= t('talent.save') %></button></form>
+    <% } else { %><span class="badge badge-dot badge-success"><%= st === 'shortlist' ? t('talent.in_shortlist') : t('talent.in_saved') %></span><form method="post" action="/app/talent/p/<%= p.id %>/unsave"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><input type="hidden" name="back" value="<%= backTo %>"><button class="btn btn-ghost btn-sm" type="submit"><%= t('talent.remove') %></button></form><% } %>
+  <% } %>
+</div>

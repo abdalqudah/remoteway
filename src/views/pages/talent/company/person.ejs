@@ -1,0 +1,28 @@
+<div class="page-head"><div><div class="eyebrow"><a href="/app/talent"><%= t('talent.find_title') %></a></div></div>
+  <div class="page-actions"><%- include('_actions', { p: p, back: '/app/talent/p/' + p.id }) %></div></div>
+<div class="grid grid-3" style="align-items:start">
+  <section class="panel span-2"><div class="panel-body"><%- include('../../../partials/talent/profile-body', { p: p, contact: contact, highlight: fit ? fit.matched_skills : [] }) %></div></section>
+  <aside class="stack">
+    <% if (fit) { %><section class="panel"><div class="panel-head"><h2><%= t('talent.fit_for', { job: fit.job.title }) %></h2><span class="match-pill"><%= fit.score %>%</span></div>
+      <div class="panel-body small stack-sm">
+        <% fit.reasons.forEach(function (x) { %><div><%- icon('check', 'icon-sm') %> <%= t('talent.reason_' + x.key, x) %></div><% }) %>
+        <% if (fit.missing_skills.length) { %><div class="label mt-2"><%= t('talent.gaps') %></div><div class="skill-chips"><% fit.missing_skills.forEach(function (s) { %><span class="chip chip-gap"><%= s %></span><% }) %></div><% } %>
+        <p class="muted tiny"><%= t('talent.rule_score_note') %></p>
+      </div></section><% } %>
+    <% if (apps.length) { %><section class="panel"><div class="panel-head"><h2><%= t('talent.applied_to_you') %></h2></div><div class="panel-body stack-sm small">
+      <% apps.forEach(function (a) { %><div><a href="/app/recruitment/applications/<%= a.id %>"><%= a.title %></a> <span class="muted">· <%= t('recruitment.stage_' + a.stage) %></span></div><% }) %></div></section><% } %>
+    <% if (can('recruitment.manage')) { %>
+    <form class="panel" method="post" action="/app/talent/p/<%= p.id %>/invite">
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>"><input type="hidden" name="back" value="/app/talent/p/<%= p.id %>">
+      <div class="panel-head"><div><h2><%- icon('send', 'icon-sm') %> <%= t('talent.invite_title') %></h2><div class="panel-sub"><%= t('talent.invite_sub') %></div></div></div>
+      <div class="panel-body stack">
+        <% if (!p.open_to_work) { %><div class="alert alert-warning"><%- icon('info') %><div class="grow small"><%= t('talent.not_open_note') %></div></div><% } %>
+        <div class="field"><label class="label" for="f-inv-job"><%= t('talent.job') %></label><select class="select" id="f-inv-job" name="job_id"><option value=""><%= t('talent.general_invite') %></option><% jobs.forEach(function (j) { %><option value="<%= j.id %>"<%= fit && fit.job.id === j.id ? ' selected' : '' %>><%= j.title %><%= j.marketplace ? '' : ' (' + t('talent.not_on_board') + ')' %></option><% }) %></select></div>
+        <div class="field"><label class="label" for="f-inv-msg"><%= t('talent.message') %></label><textarea class="textarea" id="f-inv-msg" name="message" rows="4" placeholder="<%= t('talent.invite_ph') %>"></textarea></div>
+        <button class="btn btn-dark" type="submit"<%= p.open_to_work ? '' : ' disabled' %>><%- icon('send') %><%= t('talent.send_invite') %></button>
+      </div>
+    </form>
+    <% } %>
+    <% if (!contact) { %><p class="muted small"><%- icon('lock', 'icon-sm') %> <%= t('talent.contact_hidden') %></p><% } %>
+  </aside>
+</div>

@@ -34,6 +34,7 @@ router.use('/documents', require('../modules/documents/web'));
 router.use('/', require('../modules/tasks/web'));
 router.use('/notifications', require('../modules/notifications/web'));
 router.use('/recruitment', require('../modules/recruitment/web'));
+router.use('/talent', require('../modules/talent/company.web'));
 router.use('/employee-onboarding', require('../modules/onboarding/plans.web'));
 router.use('/payroll', require('../modules/payroll/web'));
 router.use('/performance', require('../modules/performance/web'));

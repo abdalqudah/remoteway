@@ -56,6 +56,7 @@
   <% }) %>
 </div>
 
+<% if (talent) { %><%- include('../../partials/talent/job-panel', { talent: talent, job: job, manage: manage }) %><% } %>
 <div class="grid grid-2">
   <section class="panel"><div class="panel-head"><h2><%= t('recruitment.description') %></h2></div>
     <div class="panel-body"><p dir="auto" class="prose <%= job.description ? '' : 'muted' %>"><%= job.description || t('recruitment.no_description') %></p>

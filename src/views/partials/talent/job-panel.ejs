@@ -1,0 +1,22 @@
+<section class="panel mb-6 talent-job-panel">
+  <div class="panel-head">
+    <div><h2><%- icon('users', 'icon-sm') %> <%= t('talent.on_remoteway') %></h2><div class="panel-sub"><%= t('talent.on_remoteway_sub') %></div></div>
+    <div class="row-sm wrap">
+      <% if (job.marketplace && job.status === 'open') { %><a class="btn btn-ghost btn-sm" href="/jobs/<%= organization.slug %>/<%= job.slug %>" target="_blank" rel="noopener"><%- icon('external-link', 'icon-sm') %><%= t('talent.view_on_board') %></a><% } %>
+      <% if (manage) { %><form method="post" action="/app/talent/jobs/<%= job.id %>/marketplace"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><input type="hidden" name="on" value="<%= job.marketplace ? '0' : '1' %>">
+        <button class="btn <%= job.marketplace ? 'btn-ghost' : 'btn-secondary' %> btn-sm" type="submit"><%= job.marketplace ? t('talent.unpublish') : t('talent.publish') %></button></form><% } %>
+      <a class="btn btn-dark btn-sm" href="/app/talent/jobs/<%= job.id %>"><%- icon('sparkles', 'icon-sm') %><%= t('talent.recommended_candidates') %></a>
+    </div>
+  </div>
+  <div class="panel-body">
+    <div class="small mb-3"><span class="badge badge-dot <%= job.marketplace ? 'badge-success' : '' %>"><%= job.marketplace ? (job.status === 'open' ? t('talent.listed') : t('talent.listed_when_open')) : t('talent.not_listed') %></span></div>
+    <% if (!talent.recommended.length) { %><p class="muted small"><%= t('talent.no_recommended') %></p>
+    <% } else { %><div class="talent-mini-list"><% talent.recommended.forEach(function (r) { %>
+      <a class="talent-mini" href="/app/talent/p/<%= r.profile.id %>?job_id=<%= job.id %>">
+        <%- include('avatar', { p: r.profile, size: 36 }) %>
+        <span class="grow" style="min-width:0"><strong class="truncate" style="display:block"><%= r.profile.name %></strong><span class="muted small truncate" style="display:block"><%= r.profile.headline || r.profile.specialization || '' %></span></span>
+        <span class="match-pill"><%= r.match %>%</span>
+      </a>
+    <% }) %></div><% } %>
+  </div>
+</section>
