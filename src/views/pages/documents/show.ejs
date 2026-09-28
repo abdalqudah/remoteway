@@ -48,6 +48,7 @@
     <% } %>
   </section>
 </div>
+<% if (aiOn('documents') && (can('documents.view') || canManage)) { %><div class="mt-6"><%- include('../../partials/ai/panel', { url: '/app/ai/documents/' + d.id + '/summary', title: t('ai.doc_title'), sub: t('ai.doc_sub'), button: t('ai.summarise'), initial: aiDoc ? include('../../partials/ai/document-summary', { out: aiDoc.output, insight: aiDoc }) : '' }) %></div><% } %>
 <% if (canManage) { %>
 <dialog class="dialog" id="version-dialog">
   <form method="post" action="/app/documents/<%= d.id %>/versions" enctype="multipart/form-data" novalidate>

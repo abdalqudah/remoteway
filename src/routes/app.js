@@ -13,6 +13,10 @@ router.use((req, res, next) => {
   return next();
 });
 
+const aiWeb = require('../modules/ai/web');
+router.use(aiWeb.locals);
+router.use('/ai', aiWeb.actions);
+router.use('/insights', aiWeb.insights);
 router.use('/', require('../modules/dashboard/web'));
 router.use('/onboarding', require('../modules/onboarding/web'));
 router.use('/employees/import', require('../modules/workforce/import.web'));
@@ -30,6 +34,7 @@ router.use('/learning', require('../modules/learning/web'));
 const integrationsWeb = require('../modules/integrations/web');
 router.use('/settings/integrations', integrationsWeb.router);
 router.use('/settings/calendar', integrationsWeb.calendarRouter);
+router.use('/settings/ai', aiWeb.settings);
 router.use('/settings', require('../modules/settings/web'));
 router.use('/billing', require('../modules/billing/web'));
 

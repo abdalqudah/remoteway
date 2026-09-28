@@ -1,0 +1,22 @@
+<div class="ai-result stack-sm">
+  <div class="ai-note"><%- icon('sparkles', 'icon-sm') %><%= t('ai.draft_note') %></div>
+  <div class="ai-item" data-ai-item>
+    <div class="row between"><strong class="small"><%= t('recruitment.description') %></strong><button class="btn btn-secondary btn-sm" type="button" data-ai-insert="f-description"><%= t('ai.use_this') %></button></div>
+    <textarea hidden data-ai-value><%= out.description %></textarea>
+    <p class="prose small ai-text" dir="auto"><%= out.description %></p>
+  </div>
+  <% if (out.requirements) { %>
+  <div class="ai-item" data-ai-item>
+    <div class="row between"><strong class="small"><%= t('recruitment.requirements') %></strong><button class="btn btn-secondary btn-sm" type="button" data-ai-insert="f-requirements"><%= t('ai.use_this') %></button></div>
+    <textarea hidden data-ai-value><%= out.requirements %></textarea>
+    <p class="prose small ai-text" dir="auto"><%= out.requirements %></p>
+  </div>
+  <% } %>
+  <% if (out.skills && out.skills.length) { %>
+  <div class="ai-item" data-ai-item>
+    <div class="row between"><strong class="small"><%= t('recruitment.skills') %></strong><button class="btn btn-secondary btn-sm" type="button" data-ai-insert="f-skills"><%= t('ai.use_this') %></button></div>
+    <textarea hidden data-ai-value><%= out.skills.join(', ') %></textarea>
+    <div class="row-sm wrap"><% out.skills.forEach(function (s) { %><span class="tag"><%= s %></span><% }) %></div>
+  </div>
+  <% } %>
+</div>

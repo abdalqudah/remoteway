@@ -12,7 +12,7 @@ const form = (action, rerender) => wrap(async (req, res, next) => {
   try {
     await action(req, res, next);
   } catch (err) {
-    if (err instanceof AppError && [402, 409, 422, 404].includes(err.status) && rerender) {
+    if (err instanceof AppError && [402, 409, 422, 404, 502].includes(err.status) && rerender) {
       const translated = req.t(`errors.${err.code}`);
       res.status(err.status);
       return rerender(req, res, {

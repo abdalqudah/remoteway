@@ -1,0 +1,10 @@
+<div class="ai-result stack-sm" data-ai-item>
+  <div class="row between wrap"><div class="ai-note"><%- icon('sparkles', 'icon-sm') %><%= t('ai.quiz_note') %></div><button class="btn btn-secondary btn-sm" type="button" data-ai-quiz><%- icon('plus', 'icon-sm') %><%= t('ai.add_questions', { n: out.questions.length }) %></button></div>
+  <textarea hidden data-ai-value><%= JSON.stringify(out.questions) %></textarea>
+  <ol class="ai-list">
+    <% out.questions.forEach(function (q) { %>
+    <li><strong class="small" dir="auto"><%= q.question %></strong>
+      <ul class="ai-options"><% q.options.forEach(function (o, i) { %><li class="<%= i === q.correct_index ? 'ok' : '' %>" dir="auto"><%= o %><% if (i === q.correct_index) { %> <span class="tiny">✓</span><% } %></li><% }) %></ul></li>
+    <% }) %>
+  </ol>
+</div>

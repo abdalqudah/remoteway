@@ -1,0 +1,18 @@
+<% var canSet = can('documents.manage'); %>
+<div class="ai-result stack">
+  <div class="ai-note"><%- icon('sparkles', 'icon-sm') %><span><%= t('ai.doc_note') %><% if (typeof insight !== 'undefined' && insight) { %> · <%= t('ai.generated_by', { name: insight.created_by_name || '—', date: fmt.date(insight.created_at, { dateStyle: 'medium', timeStyle: 'short' }) }) %><% } %><% if (out.version) { %> · v<%= out.version %><% } %></span></div>
+  <% if (out.document_type) { %><div><span class="tag"><%= out.document_type %></span></div><% } %>
+  <p class="prose small" dir="auto"><%= out.summary %></p>
+  <% if (out.issue_date || out.expiry_date) { %>
+  <dl class="dl">
+    <% if (out.issue_date) { %><dt><%= t('documents.issue_date') %></dt><dd><span class="num"><%= out.issue_date %></span><% if (canSet) { %> <button class="btn btn-ghost btn-sm" type="button" data-ai-insert="f-issue_date" data-ai-text="<%= out.issue_date %>"><%= t('ai.fill_field') %></button><% } %></dd><% } %>
+    <% if (out.expiry_date) { %><dt><%= t('documents.expires_at') %></dt><dd><span class="num"><%= out.expiry_date %></span><% if (canSet) { %> <button class="btn btn-ghost btn-sm" type="button" data-ai-insert="f-expires_at" data-ai-text="<%= out.expiry_date %>"><%= t('ai.fill_field') %></button><% } %></dd><% } %>
+  </dl>
+  <% if (canSet) { %><p class="tiny muted"><%= t('ai.fill_then_save') %></p><% } %>
+  <% } %>
+  <% if (out.key_dates && out.key_dates.length) { %>
+  <div><div class="label"><%= t('ai.key_dates') %></div><ul class="ai-list"><% out.key_dates.forEach(function (d) { %><li><span class="num"><%= d.date %></span> — <span dir="auto"><%= d.label %></span></li><% }) %></ul></div>
+  <% } %>
+  <% if (out.parties && out.parties.length) { %><div><div class="label"><%= t('ai.parties') %></div><div class="row-sm wrap"><% out.parties.forEach(function (p) { %><span class="tag" dir="auto"><%= p %></span><% }) %></div></div><% } %>
+  <% if (out.notes && out.notes.length) { %><div><div class="label"><%= t('ai.notes') %></div><ul class="ai-list"><% out.notes.forEach(function (n) { %><li dir="auto"><%= n %></li><% }) %></ul></div><% } %>
+</div>

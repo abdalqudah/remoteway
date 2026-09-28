@@ -42,6 +42,7 @@ const PERMISSIONS = [
   ['tasks.manage', 'tasks', 'Create, assign and manage tasks and projects'],
   ['onboarding.manage', 'onboarding', 'Run onboarding plans and templates'],
   ['learning.manage', 'learning', 'Create courses, assign training and see learning reports'],
+  ['ai.manage', 'ai', 'Turn AI features on or off and see AI usage'],
 ];
 
 const ALL = PERMISSIONS.map((p) => p[0]);
@@ -111,16 +112,17 @@ const FEATURES = [
   ['custom_workflows', 'Custom Workflows', 'automation', 'coming_soon'],
   ['enterprise_reporting', 'Enterprise Reporting', 'analytics', 'coming_soon'],
   ['payway', 'PayWay Integration', 'integrations', 'integration_required'],
-  ['ai_recruitment', 'AI Recruitment', 'ai', 'coming_soon'],
-  ['ai_documents', 'AI Documents', 'ai', 'coming_soon'],
-  ['ai_performance', 'AI Performance', 'ai', 'coming_soon'],
-  ['ai_analytics', 'AI Analytics', 'ai', 'coming_soon'],
+  ['ai_recruitment', 'AI Recruitment', 'ai', 'available'],
+  ['ai_documents', 'AI Documents', 'ai', 'available'],
+  ['ai_performance', 'AI Performance', 'ai', 'available'],
+  ['ai_learning', 'AI Learning', 'ai', 'available'],
+  ['ai_analytics', 'AI Analytics', 'ai', 'available'],
   ['client_success', 'Client Success Portal', 'client_success', 'coming_soon'],
 ];
 
 const STARTER = ['employees', 'departments', 'attendance', 'leave', 'documents', 'tasks', 'basic_reports'];
 const BUSINESS = [...STARTER, 'recruitment', 'onboarding', 'payroll', 'performance', 'advanced_reports', 'projects', 'learning', 'integrations', 'compliance'];
-const PROFESSIONAL = [...BUSINESS, 'analytics', 'ai_recruitment', 'ai_documents', 'ai_performance', 'ai_analytics', 'api', 'advanced_permissions', 'automation'];
+const PROFESSIONAL = [...BUSINESS, 'analytics', 'ai_recruitment', 'ai_documents', 'ai_performance', 'ai_learning', 'ai_analytics', 'api', 'advanced_permissions', 'automation'];
 const ENTERPRISE = [...PROFESSIONAL, 'sso', 'custom_roles', 'custom_workflows', 'enterprise_reporting', 'client_success'];
 
 const LIMIT_KEYS = ['employees', 'users', 'storage_mb', 'api_calls_monthly', 'ai_requests_monthly', 'active_jobs'];

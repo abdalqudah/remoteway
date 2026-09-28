@@ -338,6 +338,108 @@
     });
   });
 
+  /* ---------- AI actions: run, then insert drafts into form fields (nothing is saved until the user saves) ---------- */
+  $$('[data-ai-box]').forEach(function (box) {
+    var out = box.querySelector('[data-ai-output]');
+    var showError = function (message) {
+      out.hidden = false;
+      out.textContent = '';
+      var d = document.createElement('div');
+      d.className = 'alert alert-error';
+      d.textContent = message;
+      out.appendChild(d);
+    };
+    var run = function (btn) {
+      if (btn.disabled) return;
+      var body = new URLSearchParams();
+      var formSel = btn.getAttribute('data-ai-form');
+      var f = formSel && document.querySelector(formSel);
+      if (f) new FormData(f).forEach(function (v, k) { if (typeof v === 'string') body.append(k, v); });
+      $$('[data-ai-param]', box).forEach(function (i) { body.set(i.getAttribute('data-ai-param'), i.value); });
+      body.set('_csrf', csrf);
+      var label = btn.querySelector('span');
+      var before = label ? label.textContent : '';
+      btn.disabled = true;
+      btn.classList.add('is-busy');
+      if (label) label.textContent = btn.getAttribute('data-ai-busy') || before;
+      box.setAttribute('aria-busy', 'true');
+      fetch(btn.getAttribute('data-ai-run'), {
+        method: 'POST', body: body, credentials: 'same-origin',
+        headers: { 'x-csrf-token': csrf, 'x-requested-with': 'fetch', Accept: 'application/json' },
+      })
+        .then(function (r) { return r.json().catch(function () { return { success: false, error: { message: 'HTTP ' + r.status } }; }); })
+        .then(function (j) {
+          if (j.success) { out.hidden = false; out.innerHTML = j.html; } else showError((j.error && j.error.message) || 'Error');
+        })
+        .catch(function () { showError(document.documentElement.lang === 'ar' ? 'تعذّر الاتصال بالخادم. حاول مرة أخرى.' : 'Could not reach the server. Try again.'); })
+        .then(function () {
+          btn.disabled = false;
+          btn.classList.remove('is-busy');
+          box.removeAttribute('aria-busy');
+          if (label) label.textContent = before;
+        });
+    };
+    box.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter' && e.target.hasAttribute('data-ai-param')) { e.preventDefault(); run(box.querySelector('[data-ai-run]')); }
+    });
+    box.addEventListener('click', function (e) {
+      var btn = e.target.closest('[data-ai-run]');
+      if (btn) return run(btn);
+      var ins = e.target.closest('[data-ai-insert], [data-ai-insert-name]');
+      if (ins) {
+        var item = ins.closest('[data-ai-item]');
+        var src = item && item.querySelector('[data-ai-value]');
+        var value = ins.hasAttribute('data-ai-text') ? ins.getAttribute('data-ai-text') : (src ? src.value : '');
+        var target = ins.getAttribute('data-ai-insert') ? document.getElementById(ins.getAttribute('data-ai-insert')) : null;
+        if (!target && ins.getAttribute('data-ai-insert-name')) {
+          ins.getAttribute('data-ai-insert-name').split(',').some(function (n) { target = document.querySelector('[name="' + n + '"]'); return target; });
+        }
+        if (!target) return;
+        target.value = value;
+        target.dispatchEvent(new Event('input', { bubbles: true }));
+        target.classList.add('ai-filled');
+        setTimeout(function () { target.classList.remove('ai-filled'); }, 1600);
+        target.focus();
+        ins.classList.add('is-done');
+        return;
+      }
+      var quiz = e.target.closest('[data-ai-quiz]');
+      if (quiz) {
+        var data = [];
+        try { data = JSON.parse(quiz.closest('[data-ai-item]').querySelector('[data-ai-value]').value); } catch (err) { data = []; }
+        var rep = $('[data-repeater]');
+        var rows = rep && rep.querySelector('[data-rows]');
+        var tpl = rep && rep.querySelector('template[data-row-template]');
+        if (!rows || !tpl || !data.length) return;
+        $$('[data-row]', rows).forEach(function (r) { var q = r.querySelector('input[name="q_text"]'); if (q && !q.value.trim()) r.remove(); });
+        data.forEach(function (q) {
+          var frag = tpl.content.cloneNode(true);
+          var row = frag.querySelector('[data-row]');
+          row.querySelector('[name="q_text"]').value = q.question;
+          (q.options || []).forEach(function (o, i) { var inp = row.querySelector('[name="q_opt' + i + '"]'); if (inp) inp.value = o; });
+          row.querySelector('[name="q_correct"]').value = String(q.correct_index);
+          rows.appendChild(frag);
+        });
+        quiz.disabled = true;
+        rows.lastElementChild.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+      return undefined;
+    });
+  });
+
+  /* ---------- Slow form actions (AI questions): show progress after the form is sent ---------- */
+  document.addEventListener('submit', function (e) {
+    var b = e.target.querySelector('[data-busy-label]');
+    if (!b) return;
+    setTimeout(function () {
+      if (e.defaultPrevented) return;
+      $$('button', e.target).forEach(function (x) { x.disabled = true; });
+      b.classList.add('is-busy');
+      var last = b.lastChild;
+      if (last && last.nodeType === 3) last.textContent = b.getAttribute('data-busy-label');
+    }, 0);
+  });
+
   // Keep csrf available for fetch-based features.
   window.RemoteWay = { csrf: csrf };
 })();

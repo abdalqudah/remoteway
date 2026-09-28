@@ -1,0 +1,78 @@
+<% var s = saved || {}; var o = old || {}; var val = function (k) { return o[k] !== undefined ? o[k] : s[k]; }; var prov = val('provider') || 'anthropic'; %>
+<div class="page-head"><div><h1><%= t('admin.ai') %></h1><p><%= t('admin.ai_sub') %></p></div></div>
+<div class="alert <%= s.enabled && s.api_key_enc ? 'alert-success' : 'alert-warning' %> mb-6"><%- icon(s.enabled && s.api_key_enc ? 'circle-check' : 'triangle-alert') %><div>
+  <div class="alert-title"><%= s.enabled && s.api_key_enc ? t('admin.ai_on', { provider: (providers[s.provider] || {}).label || s.provider, model: s.model }) : s.api_key_enc ? t('admin.ai_paused') : t('admin.ai_off') %></div>
+  <div class="small text-2"><%= t('admin.ai_how') %></div></div></div>
+
+<div class="grid grid-3">
+  <form class="panel span-2" method="post" action="/admin/ai" novalidate>
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+    <div class="panel-head"><div><h2><%= t('admin.ai_provider') %></h2><div class="panel-sub"><%= t('admin.ai_provider_sub') %></div></div></div>
+    <div class="panel-body stack">
+      <% if (formError) { %><div class="alert alert-error"><%= Object.values(errors)[0] || formError.message %></div><% } %>
+      <fieldset class="field"><legend class="label"><%= t('admin.ai_provider') %></legend>
+        <div class="row-sm wrap"><% Object.keys(providers).forEach(function (k) { %>
+          <label class="check provider-choice"><input type="radio" name="provider" value="<%= k %>" data-provider-radio<%= prov === k ? ' checked' : '' %>><%= providers[k].label %></label>
+        <% }) %></div>
+      </fieldset>
+      <div class="form-grid">
+        <div class="field"><label class="label" for="f-model"><%= t('admin.ai_model') %></label>
+          <input class="input<%= errors.model ? ' is-invalid' : '' %>" id="f-model" name="model" value="<%= val('model') || '' %>" list="ai-models" placeholder="claude-sonnet-5" dir="ltr" autocomplete="off">
+          <datalist id="ai-models"><% providers.anthropic.models.forEach(function (m) { %><option value="<%= m %>"><% }) %></datalist>
+          <% if (errors.model) { %><span class="field-error"><%= errors.model %></span><% } else { %><span class="help"><%= t('admin.ai_model_help') %></span><% } %></div>
+        <%- include('../../partials/field', { name: 'api_key', label: t('admin.ai_key'), type: 'password', autocomplete: 'new-password', placeholder: s.api_key_enc ? (s.api_key_hint || '••••••••') : '', help: s.api_key_enc ? t('admin.ai_key_keep') : t('admin.ai_key_help') }) %>
+      </div>
+      <div class="form-grid" data-provider-fields="azure"<%= prov === 'azure' ? '' : ' hidden' %>>
+        <%- include('../../partials/field', { name: 'endpoint', label: t('admin.ai_endpoint'), value: val('endpoint'), placeholder: 'https://your-resource.openai.azure.com' }) %>
+        <%- include('../../partials/field', { name: 'deployment', label: t('admin.ai_deployment'), value: val('deployment') }) %>
+        <%- include('../../partials/field', { name: 'api_version', label: t('admin.ai_api_version'), value: val('api_version') || '2024-10-21' }) %>
+      </div>
+      <div class="form-grid">
+        <%- include('../../partials/field', { name: 'price_in', label: t('admin.ai_price_in'), type: 'number', value: val('price_in'), attrs: 'min="0" step="any"', help: t('admin.ai_price_help') }) %>
+        <%- include('../../partials/field', { name: 'price_out', label: t('admin.ai_price_out'), type: 'number', value: val('price_out'), attrs: 'min="0" step="any"' }) %>
+        <%- include('../../partials/field', { name: 'max_tokens', label: t('admin.ai_max_tokens'), type: 'number', value: val('max_tokens') || 1500, attrs: 'min="256" max="8000"', help: t('admin.ai_max_tokens_help') }) %>
+      </div>
+      <label class="check"><input type="checkbox" name="enabled"<%= (o.provider ? o.enabled === 'on' : s.enabled !== false) ? ' checked' : '' %>><%= t('admin.ai_enabled') %></label>
+    </div>
+    <div class="panel-foot row-sm" style="justify-content:flex-end">
+      <% if (saved) { %><button class="btn btn-danger-ghost btn-sm" type="submit" name="action" value="clear"><%= t('admin.ai_clear') %></button><% } %>
+      <button class="btn btn-secondary btn-sm" type="submit" formaction="/admin/ai/test"><%- icon('zap', 'icon-sm') %><%= t('admin.ai_test') %></button>
+      <button class="btn btn-dark btn-sm" type="submit"><%= t('common.save') %></button>
+    </div>
+  </form>
+
+  <div class="stack-lg">
+    <section class="panel">
+      <div class="panel-head"><h2><%= t('admin.ai_month') %></h2></div>
+      <div class="panel-body">
+        <dl class="dl" style="grid-template-columns:1fr auto">
+          <dt><%= t('admin.ai_requests_ok') %></dt><dd class="num"><%= fmt.number(usage.ok) %></dd>
+          <dt><%= t('admin.ai_requests_failed') %></dt><dd class="num"><%= fmt.number(usage.failed) %></dd>
+          <dt><%= t('ai.tokens') %></dt><dd class="num"><%= fmt.number(usage.tokens) %></dd>
+          <dt><%= t('admin.ai_cost') %></dt><dd class="num"><%= usage.cost != null ? '$' + usage.cost.toFixed(2) : '—' %></dd>
+          <dt><%= t('admin.ai_latency') %></dt><dd class="num"><%= usage.latency != null ? (usage.latency / 1000).toFixed(1) + ' s' : '—' %></dd>
+        </dl>
+      </div>
+    </section>
+    <section class="panel"><div class="panel-head"><h2><%= t('admin.ai_notes') %></h2></div><div class="panel-body small text-2 stack-sm">
+      <p><%= t('admin.ai_note1') %></p><p><%= t('admin.ai_note2') %></p><p><%= t('admin.ai_note3') %></p>
+    </div></section>
+  </div>
+</div>
+
+<div class="grid grid-2 mt-6">
+  <section class="panel">
+    <div class="panel-head"><h2><%= t('admin.ai_by_org') %></h2></div>
+    <% if (!usage.byOrg.length) { %><div class="empty"><p><%= t('ai.no_requests') %></p></div><% } else { %>
+    <div class="table-wrap"><table class="table"><tbody><% usage.byOrg.forEach(function (r) { %>
+      <tr><td><%= r.name || '—' %></td><td class="text-end num"><%= fmt.number(r.n) %></td><td class="text-end num muted"><%= r.cost != null ? '$' + r.cost.toFixed(2) : '' %></td></tr>
+    <% }) %></tbody></table></div><% } %>
+  </section>
+  <section class="panel">
+    <div class="panel-head"><h2><%= t('admin.ai_errors') %></h2></div>
+    <% if (!usage.errors.length) { %><div class="empty"><p><%= t('admin.ai_no_errors') %></p></div><% } else { %>
+    <div class="table-wrap"><table class="table"><tbody><% usage.errors.forEach(function (r) { %>
+      <tr><td class="nowrap muted small"><%= fmt.date(r.created_at, { dateStyle: 'short', timeStyle: 'short' }) %></td><td class="small"><%= r.organization_name || '—' %> · <%= r.action %></td><td class="small"><span class="st st-rejected"><%= r.status %></span> <span class="muted" dir="ltr"><%= (r.error || '').slice(0, 140) %></span></td></tr>
+    <% }) %></tbody></table></div><% } %>
+  </section>
+</div>

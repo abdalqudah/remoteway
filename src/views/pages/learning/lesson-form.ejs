@@ -16,7 +16,7 @@
   <% if (lesson) { %><div class="page-actions"><form method="post" action="/app/learning/manage/courses/<%= course.id %>/lessons/<%= lesson.id %>/delete" data-confirm="<%= t('learning.confirm_delete_lesson') %>"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><button class="btn btn-danger-ghost" type="submit"><%- icon('trash-2') %><%= t('common.delete') %></button></form></div><% } %>
 </div>
 <% if (formError) { %><div class="alert alert-error mb-4"><%= Object.values(errors)[0] || formError.message %></div><% } %>
-<form method="post" action="/app/learning/manage/courses/<%= course.id %>/lessons<%= lesson ? '/' + lesson.id : '' %>" enctype="multipart/form-data" novalidate>
+<form method="post" action="/app/learning/manage/courses/<%= course.id %>/lessons<%= lesson ? '/' + lesson.id : '' %>" enctype="multipart/form-data" id="lesson-form" novalidate>
   <input type="hidden" name="_csrf" value="<%= csrfToken %>"><input type="hidden" name="kind" value="<%= kind %>">
   <div class="stack-lg" style="max-width:860px">
     <section class="panel"><div class="panel-body stack">
@@ -30,6 +30,8 @@
         <% if (errors.file) { %><span class="field-error"><%= errors.file %></span><% } else { %><span class="help"><%= l.file_name ? t('learning.file_replace', { name: l.file_name }) : t('learning.file_help') %></span><% } %></div><% } %>
       <%- include('../../partials/field', { name: 'body', label: kind === 'text' ? t('learning.content') : t('learning.notes_optional'), type: 'textarea', value: l.body, help: t('learning.format_help') }) %>
     </div></section>
+    <% if (kind === 'quiz' && aiOn('learning')) { %><%- include('../../partials/ai/panel', { url: '/app/ai/learning/courses/' + course.id + '/quiz', form: '#lesson-form', title: t('ai.quiz_title'), sub: t('ai.quiz_sub'), button: t('ai.generate'),
+      params: '<input class="input input-sm" data-ai-param="topic" maxlength="300" placeholder="' + escapeHtml(t('ai.quiz_topic_ph')) + '" aria-label="' + escapeHtml(t('ai.quiz_topic')) + '" style="width:220px"><select class="select select-sm" data-ai-param="count" aria-label="' + escapeHtml(t('ai.quiz_count')) + '" style="width:auto">' + [3, 5, 8, 10].map(function (n) { return '<option value="' + n + '"' + (n === 5 ? ' selected' : '') + '>' + escapeHtml(t('ai.n_questions', { n: n })) + '</option>'; }).join('') + '</select>' }) %><% } %>
     <% if (kind === 'quiz') { %>
     <section class="panel" data-repeater>
       <div class="panel-head"><div><h2><%= t('learning.questions') %></h2><div class="panel-sub"><%= t('learning.questions_sub', { n: course.passing_score }) %></div></div></div>

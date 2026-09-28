@@ -7,6 +7,7 @@ const structure = require('../workforce/structure.service');
 const employees = require('../workforce/employee.service');
 const tasks = require('../tasks/task.service');
 const orgs = require('../organizations/organization.service');
+const ai = require('../ai/ai.service');
 
 const router = express.Router();
 router.use(feature('recruitment'));
@@ -132,7 +133,8 @@ const renderApp = async (req, res, extra = {}) => {
   const [app, members, managers] = await Promise.all([
     rec.getApplication(req.ctx, Number(req.params.id)), tasks.members(req.ctx.organizationId), employees.options(req.ctx.organizationId),
   ]);
-  res.page('pages/recruitment/application', { title: `${app.first_name} ${app.last_name}`, app, members, managers, stages: rec.STAGES, ...extra });
+  const aiMatch = res.locals.aiOn('recruitment') ? await ai.latestInsight(req.ctx.organizationId, 'candidate_match', 'application', app.id) : null;
+  res.page('pages/recruitment/application', { title: `${app.first_name} ${app.last_name}`, app, members, managers, stages: rec.STAGES, aiMatch, ...extra });
 };
 router.get('/applications/:id', can('recruitment.view'), wrap((req, res) => renderApp(req, res)));
 

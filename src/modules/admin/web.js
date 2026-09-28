@@ -180,6 +180,72 @@ router.post('/email/test', form(async (req, res) => {
   res.redirect('/admin/email');
 }, renderEmail));
 
+// ---------- AI provider ----------
+const aiService = require('../ai/ai.service');
+const { PROVIDERS } = require('../ai/providers');
+const { validateUrl } = require('../../core/http');
+
+const renderAi = async (req, res, extra = {}) => res.page('pages/admin/ai', {
+  layout: 'admin', title: req.t('admin.ai'), saved: await aiService.rawConfig(), providers: PROVIDERS, usage: await aiService.platformUsage(), ...extra,
+});
+router.get('/ai', wrap((req, res) => renderAi(req, res)));
+
+function aiInput(body, saved) {
+  const errors = {};
+  const provider = String(body.provider || '');
+  if (!PROVIDERS[provider]) errors.provider = 'Choose a provider.';
+  const model = String(body.model || '').trim().slice(0, 120);
+  const deployment = String(body.deployment || '').trim().slice(0, 120);
+  const endpoint = String(body.endpoint || '').trim().replace(/\/+$/, '');
+  let apiKey = String(body.api_key || '').trim();
+  const keepKey = !apiKey && saved && saved.api_key_enc && saved.provider === provider;
+  if (keepKey) apiKey = secrets.decrypt(saved.api_key_enc) || '';
+  if (!apiKey) errors.api_key = 'Enter the API key.';
+  if (provider === 'azure') {
+    if (!deployment) errors.deployment = 'Enter the deployment name.';
+    const u = validateUrl(endpoint);
+    if (!endpoint || u.error) errors.endpoint = u.error || 'Enter the endpoint URL.';
+  } else if (!/^[A-Za-z0-9._:\/-]{2,120}$/.test(model)) errors.model = 'Enter the model name exactly as the provider lists it.';
+  const num = (v, max) => { if (v === undefined || v === '') return null; const x = Number(v); return Number.isFinite(x) && x >= 0 && x <= max ? x : NaN; };
+  const priceIn = num(body.price_in, 1000); const priceOut = num(body.price_out, 1000);
+  if (Number.isNaN(priceIn)) errors.price_in = 'Enter a price between 0 and 1000.';
+  if (Number.isNaN(priceOut)) errors.price_out = 'Enter a price between 0 and 1000.';
+  const maxTokens = Number(body.max_tokens || 1500);
+  if (!Number.isInteger(maxTokens) || maxTokens < 256 || maxTokens > 8000) errors.max_tokens = 'Use a number between 256 and 8000.';
+  if (Object.keys(errors).length) throw E.validation(errors);
+  return {
+    provider, model: provider === 'azure' ? (model || deployment) : model, deployment: provider === 'azure' ? deployment : null, endpoint: provider === 'azure' ? endpoint : null,
+    api_version: provider === 'azure' ? (String(body.api_version || '').trim() || '2024-10-21') : null, apiKey, price_in: priceIn, price_out: priceOut, max_tokens: maxTokens,
+    enabled: body.enabled === 'on',
+  };
+}
+
+router.post('/ai', form(async (req, res) => {
+  if (req.body.action === 'clear') {
+    await knex('platform_settings').where({ key: 'ai' }).del();
+  } else {
+    const c = aiInput(req.body, await aiService.rawConfig());
+    const { apiKey, ...rest } = c;
+    const value = JSON.stringify({ ...rest, api_key_enc: secrets.encrypt(apiKey), api_key_hint: secrets.mask ? secrets.mask(apiKey) : null });
+    await knex('platform_settings').insert({ key: 'ai', value }).onConflict('key').merge({ value, updated_at: new Date() });
+  }
+  aiService.invalidateConfig();
+  await require('../../core/audit').record(req.ctx, 'platform.ai_updated', { entityType: 'platform' });
+  flash(req, 'success', req.t('common.saved'));
+  res.redirect('/admin/ai');
+}, renderAi));
+
+router.post('/ai/test', form(async (req, res) => {
+  const c = aiInput(req.body, await aiService.rawConfig());
+  try {
+    const r = await aiService.testConnection({ provider: c.provider, model: c.model, apiKey: c.apiKey, endpoint: c.endpoint, deployment: c.deployment, apiVersion: c.api_version });
+    flash(req, 'success', req.t('admin.ai_test_ok', { ms: r.latency }));
+  } catch (err) {
+    flash(req, 'error', req.t('admin.ai_test_failed', { error: String(err.message).slice(0, 300) }));
+  }
+  res.redirect('/admin/ai');
+}, renderAi));
+
 // ---------- Background jobs ----------
 router.get('/jobs', wrap(async (req, res) => {
   const [stat, failed, recent] = await Promise.all([

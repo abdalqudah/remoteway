@@ -1,0 +1,22 @@
+<div class="ai-result stack-sm">
+  <div class="ai-note"><%- icon('sparkles', 'icon-sm') %><%= t('ai.review_note') %></div>
+  <div class="ai-item" data-ai-item>
+    <div class="row between"><strong class="small"><%= t('ai.summary') %></strong><button class="btn btn-secondary btn-sm" type="button" data-ai-insert-name="self_summary,manager_summary"><%= t('ai.use_this') %></button></div>
+    <textarea hidden data-ai-value><%= out.summary %></textarea>
+    <p class="prose small ai-text" dir="auto"><%= out.summary %></p>
+  </div>
+  <% if (out.strengths) { %>
+  <div class="ai-item" data-ai-item>
+    <div class="row between"><strong class="small"><%= t('performance.strengths') %></strong><button class="btn btn-secondary btn-sm" type="button" data-ai-insert="rv-str"><%= t('ai.use_this') %></button></div>
+    <textarea hidden data-ai-value><%= out.strengths %></textarea>
+    <p class="prose small ai-text" dir="auto"><%= out.strengths %></p>
+  </div>
+  <% } %>
+  <% if (out.improvements) { %>
+  <div class="ai-item" data-ai-item>
+    <div class="row between"><strong class="small"><%= t('performance.improvements') %></strong><button class="btn btn-secondary btn-sm" type="button" data-ai-insert="rv-imp"><%= t('ai.use_this') %></button></div>
+    <textarea hidden data-ai-value><%= out.improvements %></textarea>
+    <p class="prose small ai-text" dir="auto"><%= out.improvements %></p>
+  </div>
+  <% } %>
+</div>

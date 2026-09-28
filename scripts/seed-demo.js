@@ -429,6 +429,9 @@ function monthsAgo(n) {
     await seedPhase4(ctx, empIds);
     await seedPhase5(ctx, empIds, userIds);
     await seedPhase6(ctx, empIds, userIds);
+    // Phase 8: AI switched on for the demo company. It works once the platform has an AI provider
+    // (Super Admin → AI) and the company is on a plan with AI features (Professional / Enterprise).
+    await knex('ai_settings').insert({ organization_id: organizationId, enabled: true, features: JSON.stringify(['recruitment', 'documents', 'performance', 'learning', 'analytics']) });
 
     console.log('\nRemoteWay Demo Company is ready.');
     console.log(`Password for all demo users: ${PASSWORD}\n`);

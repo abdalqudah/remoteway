@@ -130,7 +130,7 @@ All of them carry `organization_id` and a composite index that starts with it.
 | 10 | Performance (Goals/OKRs, check-ins, review cycles, competencies, feedback) | 5 | **Built** |
 | 11 | Learning (Courses, lessons & quizzes, Paths, Assignments, Certificates) | 6 | **Built** |
 | 12 | Integration hub: Webhooks, SMS, Chat, Calendar feeds, Email (SMTP), background jobs; PayWay awaiting API docs; Accounting later | 7 | **Built** |
-| 13 | AI layer | 8 | Planned |
+| 13 | AI layer (providers, governance, metering; recruitment, documents, performance, learning, analytics assistant) | 8 | **Built** |
 | 14 | SSO, custom workflows, enterprise reporting, client success portal | 9 | Planned |
 
 ### API map (v1)
@@ -219,10 +219,11 @@ Auth is `Authorization: Bearer rw_…` (Settings → API; requires the `api` fea
 | Custom Workflows (`custom_workflows`) | coming_soon |  |  |  | ✓ |
 | Enterprise Reporting (`enterprise_reporting`) | coming_soon |  |  |  | ✓ |
 | PayWay Integration (`payway`) | integration_required |  |  |  |  |
-| AI Recruitment (`ai_recruitment`) | coming_soon |  |  | ✓ | ✓ |
-| AI Documents (`ai_documents`) | coming_soon |  |  | ✓ | ✓ |
-| AI Performance (`ai_performance`) | coming_soon |  |  | ✓ | ✓ |
-| AI Analytics (`ai_analytics`) | coming_soon |  |  | ✓ | ✓ |
+| AI Recruitment (`ai_recruitment`) | available |  |  | ✓ | ✓ |
+| AI Documents (`ai_documents`) | available |  |  | ✓ | ✓ |
+| AI Performance (`ai_performance`) | available |  |  | ✓ | ✓ |
+| AI Learning (`ai_learning`) | available |  |  | ✓ | ✓ |
+| AI Analytics (`ai_analytics`) | available |  |  | ✓ | ✓ |
 | Client Success Portal (`client_success`) | coming_soon |  |  |  | ✓ |
 
 | Limit | Starter | Business | Professional | Enterprise |
@@ -239,13 +240,14 @@ Blank limit = unlimited, `0` = not included. Add-ons (extra employees/storage, A
 Statuses are `trial → active → past_due (grace) → suspended / cancelled`. An expired trial, or a grace period that has run out, makes the workspace **read-only** (`SUBSCRIPTION_INACTIVE`).
 Limit checks run inside a transaction that holds `SELECT … FOR UPDATE` on the tenant's subscription row, so concurrent requests cannot exceed a limit (covered by a test).
 
-## J. AI architecture (Phase 8 — planned)
+## J. AI architecture (Phase 8 — built)
 
 - **`AiService`** with operations `generateText, analyzeText, extractData, classify, summarize, match, recommend`, and **provider adapters** (`OpenAIProvider`, `AnthropicProvider`, `GeminiProvider`, `AzureOpenAIProvider`). Provider, model and API key are chosen by the super admin, and keys are stored encrypted.
 - **Pipeline:** request → permission check (`ai.<feature>` + data scope: self / team / HR / finance) → retrieve the minimum data needed → sanitize (strip IDs, salaries and national IDs unless needed) → provider → validate the output (schema) → display as a *draft or insight*. The AI never makes hire/fire/promote/salary/disciplinary decisions.
 - **Governance:** org-level switch plus per-feature switches (Recruitment AI, Documents AI, Performance AI, Analytics AI, Learning AI), gated by plan features `ai_*`.
 - **Cost control:** `ai_requests` rows (org, user, feature, provider, model, tokens in/out, estimated cost, latency, status) are metered against `ai_requests_monthly` (plan + AI Pack add-on).
 - **Numbers never come from the model:** the analytics assistant calls SQL-backed metric functions and the model only explains the results.
+- **Implementation:** `src/modules/ai/` — `providers.js` (adapters), `ai.service.js` (pipeline, governance, quota, logging, insights), `features.js` (tasks), `metrics.js` (SQL metrics), `extract.js` (docx text / file attachments), `web.js`. Tables `ai_settings`, `ai_requests`, `ai_insights`; the provider config is `platform_settings.ai`.
 - **Failure fallback:** every AI action is optional. If a call fails, the manual form stays usable.
 
 ## K. PayWay architecture (Phase 7 — planned; no endpoints invented)
@@ -277,7 +279,7 @@ Payroll / Employees ─► domain events (payroll.approved, employee.updated)
 | **5 — Performance** | Goals/OKRs with key results and check-ins, alignment, review cycles (self + manager, weighted scores, release on close, acknowledgement), competencies, feedback | ✅ Done — 10 more tests (OKR maths, scoring, goal permissions & visibility, cycle workflow, hidden manager assessment, feedback privacy) |
 | **6 — Learning** | Courses (text, video, file, link, quiz), catalog, assignments, paths, progress, certificates with public verification and expiry, reports | ✅ Done — 12 more tests (safe content, embeds, publishing rules, access to lessons/files, assignment scope, quiz scoring, certificates & verification, retake, paths) |
 | **7 — Integrations** | Integration hub, database job queue (retries, cron script), encrypted credentials, SSRF-safe HTTP, signed outbound webhooks, SMS (Taqnyat/Unifonic/Msegat), Slack/Google Chat, ICS calendar feeds, SMTP & jobs in Super Admin; PayWay adapter once docs are available | ✅ Done — 15 more tests (encryption, SSRF blocking, signatures, phone normalisation, ICS, webhook outbox/retry/auto-disable, SMS formats, chat, calendar feeds, queue) — 136 total |
-| 8 — AI | AI service layer and features as in J | |
+| **8 — AI** | Provider adapters (Anthropic, OpenAI, Gemini, Azure OpenAI), Super Admin config (encrypted key, test, usage), company switches, metered `ai_requests`, schema-validated output, redaction; job drafts, candidate requirement match, document summaries & dates, review drafts, quiz generation, analytics assistant over SQL metrics | ✅ Done — 17 more tests (redaction, provider formats, governance, quota & refunds, invalid output, CV/PDF handling, access rules, tenant isolation, analytics scoping, admin key storage) — 153 total |
 | 9 — Enterprise | SSO (SAML/OIDC), custom workflows, enterprise reporting, client success portal | |
 
 **Definition of done per module:** migration + service + web UI + API + validation + permissions + tenant isolation + loading/empty/error states + responsive + Arabic + English + tests.

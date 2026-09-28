@@ -1,0 +1,19 @@
+<div class="ai-result stack">
+  <div class="ai-note"><%- icon('sparkles', 'icon-sm') %><span><%= t('ai.match_note') %><% if (typeof insight !== 'undefined' && insight) { %> · <%= t('ai.generated_by', { name: insight.created_by_name || '—', date: fmt.date(insight.created_at, { dateStyle: 'medium', timeStyle: 'short' }) }) %><% } %><% if (out.cv === 'none') { %> · <%= t('ai.no_cv_read') %><% } %></span></div>
+  <p class="prose small" dir="auto"><%= out.summary %></p>
+  <% if (out.requirements && out.requirements.length) { %>
+  <div class="table-wrap"><table class="table table-compact">
+    <thead><tr><th><%= t('ai.requirement') %></th><th><%= t('ai.coverage') %></th><th><%= t('ai.evidence') %></th></tr></thead>
+    <tbody><% out.requirements.forEach(function (r) { %>
+      <tr><td class="small" dir="auto"><%= r.requirement %></td><td class="nowrap"><span class="st st-ai-<%= r.status %>"><%= t('ai.status_' + r.status) %></span></td><td class="small muted" dir="auto"><%= r.evidence %></td></tr>
+    <% }) %></tbody>
+  </table></div>
+  <% } %>
+  <div class="grid grid-2">
+    <div><div class="label"><%= t('ai.strengths') %></div><% if (out.strengths.length) { %><ul class="ai-list"><% out.strengths.forEach(function (s) { %><li dir="auto"><%= s %></li><% }) %></ul><% } else { %><p class="muted small">—</p><% } %></div>
+    <div><div class="label"><%= t('ai.gaps') %></div><% if (out.gaps.length) { %><ul class="ai-list"><% out.gaps.forEach(function (s) { %><li dir="auto"><%= s %></li><% }) %></ul><% } else { %><p class="muted small">—</p><% } %></div>
+  </div>
+  <% if (out.questions && out.questions.length) { %>
+  <div><div class="label"><%= t('ai.questions') %></div><ol class="ai-list"><% out.questions.forEach(function (q) { %><li dir="auto"><%= q %></li><% }) %></ol></div>
+  <% } %>
+</div>

@@ -7,7 +7,7 @@
   <div><div class="eyebrow"><a href="/app/recruitment"><%= t('nav.recruitment') %></a><%- icon('chevron-right', 'icon-sm flip-rtl') %><%= job ? t('recruitment.edit_job') : t('recruitment.new_job') %></div><h1><%= job ? job.title : t('recruitment.new_job') %></h1></div>
 </div>
 <% if (formError) { %><div class="alert alert-error mb-4"><%= formError.message %></div><% } %>
-<form method="post" action="<%= job ? '/app/recruitment/jobs/' + job.id : '/app/recruitment/jobs' %>" novalidate>
+<form method="post" action="<%= job ? '/app/recruitment/jobs/' + job.id : '/app/recruitment/jobs' %>" id="job-form" novalidate>
   <input type="hidden" name="_csrf" value="<%= csrfToken %>">
   <div class="grid grid-3">
     <div class="span-2 stack-lg">
@@ -19,6 +19,7 @@
           <%- include('../../partials/field', { name: 'skills', label: t('recruitment.skills'), value: skills, help: t('recruitment.skills_help') }) %>
         </div>
       </section>
+      <% if (aiOn('recruitment')) { %><%- include('../../partials/ai/panel', { url: '/app/ai/recruitment/job-description', form: '#job-form', title: t('ai.job_title'), sub: t('ai.job_sub'), button: t('ai.draft') }) %><% } %>
     </div>
     <div class="stack-lg">
       <section class="panel"><div class="panel-head"><h2><%= t('recruitment.job_setup') %></h2></div>

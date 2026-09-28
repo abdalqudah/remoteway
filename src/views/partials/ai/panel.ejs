@@ -1,0 +1,14 @@
+<%
+  // Params: url, title, sub, button, [form] (CSS selector of a form whose fields are sent), [params] (extra inputs HTML), [initial] (rendered HTML), [refresh]
+  var _form = typeof form !== 'undefined' ? form : '';
+%>
+<section class="panel ai-panel" data-ai-box>
+  <div class="panel-head">
+    <div><h2 class="row-sm"><%- icon('sparkles', 'icon-sm') %><%= title %></h2><% if (typeof sub !== 'undefined' && sub) { %><div class="panel-sub"><%= sub %></div><% } %></div>
+    <div class="row-sm">
+      <% if (typeof params !== 'undefined' && params) { %><%- params %><% } %>
+      <button class="btn btn-ai btn-sm" type="button" data-ai-run="<%= url %>"<% if (_form) { %> data-ai-form="<%= _form %>"<% } %> data-ai-busy="<%= t('ai.working') %>"><%- icon('sparkles', 'icon-sm') %><span><%= typeof initial !== 'undefined' && initial ? (typeof refresh !== 'undefined' ? refresh : t('ai.regenerate')) : button %></span></button>
+    </div>
+  </div>
+  <div class="panel-body" data-ai-output aria-live="polite"<%= typeof initial !== 'undefined' && initial ? '' : ' hidden' %>><% if (typeof initial !== 'undefined' && initial) { %><%- initial %><% } %></div>
+</section>

@@ -1,0 +1,72 @@
+<%
+  var a = s.areas.analytics;
+  var latest = history[0];
+  var suggestions = ['q1', 'q2', 'q3', 'q4', 'q5', 'q6'];
+  var areaIcons = { workforce: 'users', leave: 'plane', attendance: 'calendar-check', recruitment: 'briefcase', payroll: 'wallet', performance: 'target', learning: 'graduation-cap', documents: 'file-text', tasks: 'list-checks' };
+%>
+<div class="page-head"><div><h1 class="row-sm"><%- icon('sparkles') %><%= t('ai.insights') %></h1><p><%= t('ai.insights_sub') %></p></div></div>
+
+<% if (!a.usable) { %>
+<div class="alert <%= !a.inPlan ? 'alert-info' : 'alert-warning' %> mb-6"><%- icon('info') %><div>
+  <div class="alert-title"><%= !s.configured ? t('ai.not_configured') : !a.inPlan ? t('ai.analytics_not_in_plan') : t('ai.analytics_off') %></div>
+  <div class="small text-2"><%= !s.configured ? t('ai.not_configured_text') : !a.inPlan ? t('ai.upgrade_text') : t('ai.turn_on_text') %></div>
+  <div class="row-sm mt-2"><% if (!a.inPlan && can('billing.view')) { %><a class="btn btn-dark btn-sm" href="/app/billing"><%= t('ai.see_plans') %></a><% } %><% if (a.inPlan && s.configured && can('ai.manage')) { %><a class="btn btn-dark btn-sm" href="/app/settings/ai"><%= t('ai.open_settings') %></a><% } %></div>
+</div></div>
+<% } %>
+
+<div class="grid grid-3">
+  <div class="span-2 stack-lg">
+    <% if (a.usable) { %>
+    <form class="panel ai-panel" method="post" action="/app/insights/ask" novalidate>
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+      <div class="panel-body stack">
+        <label class="label" for="ask-q"><%= t('ai.ask_label') %></label>
+        <div class="row-sm"><input class="input grow<%= errors.question ? ' is-invalid' : '' %>" id="ask-q" name="question" maxlength="500" value="<%= old.question || '' %>" placeholder="<%= t('ai.ask_ph') %>" autocomplete="off" required>
+          <button class="btn btn-ai" type="submit" data-busy-label="<%= t('ai.working') %>"><%- icon('sparkles', 'icon-sm') %><%= t('ai.ask') %></button></div>
+        <% if (errors.question) { %><span class="field-error"><%= errors.question %></span><% } %>
+        <% if (formError && !errors.question) { %><div class="alert alert-error"><%= formError.message %><% if (formError.details && formError.details.reason) { %> <span class="small">(<%= formError.details.reason %>)</span><% } %></div><% } %>
+        <div class="row-sm wrap"><% suggestions.forEach(function (q) { %><button class="chip-btn" type="submit" name="question" value="<%= t('ai.' + q) %>"><%= t('ai.' + q) %></button><% }) %></div>
+      </div>
+    </form>
+    <% } %>
+
+    <% if (latest) { %>
+    <section class="panel" id="answer">
+      <div class="panel-head"><div><h2 dir="auto"><%= latest.question %></h2><div class="panel-sub"><%= fmt.date(latest.created_at, { dateStyle: 'medium', timeStyle: 'short' }) %> · <%= t('ai.data_as_of', { date: latest.asOf }) %></div></div></div>
+      <div class="panel-body stack">
+        <p class="prose" dir="auto"><%= latest.answer %></p>
+        <% if (latest.highlights && latest.highlights.length) { %><ul class="ai-list"><% latest.highlights.forEach(function (h) { %><li dir="auto"><%= h %></li><% }) %></ul><% } %>
+        <% if (latest.caveats && latest.caveats.length) { %><div class="small muted"><%- icon('info', 'icon-sm') %> <%= latest.caveats.join(' · ') %></div><% } %>
+        <div class="ai-note"><%- icon('sparkles', 'icon-sm') %><%= t('ai.answer_note') %></div>
+      </div>
+    </section>
+    <% } %>
+
+    <% if (history.length > 1) { %>
+    <section class="panel">
+      <div class="panel-head"><h2><%= t('ai.previous') %></h2></div>
+      <div class="stack-sm panel-body">
+        <% history.slice(1).forEach(function (h) { %>
+        <details class="ai-history"><summary><span dir="auto"><%= h.question %></span> <span class="tiny muted"><%= fmt.date(h.created_at, { dateStyle: 'medium' }) %></span></summary>
+          <p class="prose small mt-2" dir="auto"><%= h.answer %></p>
+          <% if (h.highlights && h.highlights.length) { %><ul class="ai-list small"><% h.highlights.forEach(function (x) { %><li dir="auto"><%= x %></li><% }) %></ul><% } %>
+        </details>
+        <% }) %>
+      </div>
+    </section>
+    <% } %>
+  </div>
+
+  <section class="panel">
+    <div class="panel-head"><div><h2><%= t('ai.data_used') %></h2><div class="panel-sub"><%= t('ai.data_used_sub', { date: metrics.asOf }) %></div></div></div>
+    <div class="panel-body stack-sm">
+      <% var keys = Object.keys(metrics.areas); if (!keys.length) { %><p class="muted small"><%= t('ai.no_metrics') %></p><% } %>
+      <% keys.forEach(function (k) { %>
+      <details class="ai-metrics"><summary class="row-sm"><%- icon(areaIcons[k] || 'chart-column', 'icon-sm') %><strong class="small"><%= t('ai.metric_' + k) %></strong></summary>
+        <pre class="code-box tiny" dir="ltr"><%= JSON.stringify(metrics.areas[k], null, 2) %></pre>
+      </details>
+      <% }) %>
+      <p class="tiny muted mt-2"><%= t('ai.data_scope') %></p>
+    </div>
+  </section>
+</div>

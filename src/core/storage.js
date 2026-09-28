@@ -25,6 +25,9 @@ const localDisk = {
     await fs.promises.mkdir(path.dirname(full), { recursive: true, mode: 0o700 });
     await fs.promises.writeFile(full, buffer, { mode: 0o600 });
   },
+  async read(key) {
+    return fs.promises.readFile(resolveKey(key));
+  },
   createReadStream(key) {
     return fs.createReadStream(resolveKey(key));
   },

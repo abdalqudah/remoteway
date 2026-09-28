@@ -1,0 +1,63 @@
+<%
+  var icons = { recruitment: 'briefcase', documents: 'file-text', performance: 'target', learning: 'graduation-cap', analytics: 'chart-column' };
+  var pct = usage.limit ? Math.min(100, Math.round(usage.used / usage.limit * 100)) : 0;
+%>
+<div class="page-head"><div><h1><%= t('nav.settings') %></h1><p><%= t('ai.settings_sub') %></p></div></div>
+<%- include('../../partials/settings-nav') %>
+
+<% if (!s.configured) { %>
+<div class="alert alert-warning mb-6"><%- icon('triangle-alert') %><div><div class="alert-title"><%= t('ai.not_configured') %></div><div class="small text-2"><%= t('ai.not_configured_text') %></div></div></div>
+<% } %>
+<% if (formError) { %><div class="alert alert-error mb-4"><%= formError.message %></div><% } %>
+
+<div class="grid grid-3">
+  <form class="panel span-2" method="post" action="/app/settings/ai" novalidate>
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+    <div class="panel-head"><div><h2><%= t('ai.governance') %></h2><div class="panel-sub"><%= t('ai.governance_sub') %></div></div></div>
+    <div class="panel-body stack">
+      <label class="check ai-master"><input type="checkbox" name="enabled"<%= s.enabled ? ' checked' : '' %>><span><strong><%= t('ai.enable_company') %></strong><span class="help" style="display:block"><%= t('ai.enable_company_help') %></span></span></label>
+      <div class="ai-areas">
+        <% areas.forEach(function (k) { var a = s.areas[k]; %>
+        <label class="ai-area<%= a.inPlan ? '' : ' is-locked' %>">
+          <input type="checkbox" name="features" value="<%= k %>"<%= a.switchedOn ? ' checked' : '' %><%= a.inPlan ? '' : ' disabled' %>>
+          <span class="ai-area-icon"><%- icon(icons[k]) %></span>
+          <span class="grow"><strong><%= t('ai.area_' + k) %></strong><span class="help" style="display:block"><%= t('ai.area_' + k + '_text') %></span></span>
+          <% if (!a.inPlan) { %><span class="badge badge-soon"><%- icon('lock', 'icon-sm') %><%= t('ai.not_in_plan') %></span><% } else if (a.usable) { %><span class="st st-active"><%= t('ai.on') %></span><% } %>
+        </label>
+        <% }) %>
+      </div>
+    </div>
+    <div class="panel-foot" style="justify-content:flex-end"><button class="btn btn-dark btn-sm" type="submit"><%= t('common.save') %></button></div>
+  </form>
+
+  <div class="stack-lg">
+    <section class="panel">
+      <div class="panel-head"><h2><%= t('ai.usage_month') %></h2></div>
+      <div class="panel-body stack-sm">
+        <div class="kpi-value num"><%= fmt.number(usage.used) %> <span class="muted small">/ <%= usage.limit === null ? '∞' : fmt.number(usage.limit || 0) %></span></div>
+        <% if (usage.limit) { %><div class="meter <%= pct >= 100 ? 'full' : pct >= 90 ? 'warn' : '' %>"><span style="width:<%= pct %>%"></span></div><% } %>
+        <div class="small muted"><%= usage.limit === 0 ? t('ai.no_quota') : t('ai.usage_help') %></div>
+        <% if (usage.byArea.length) { %><dl class="dl mt-2" style="grid-template-columns:1fr auto"><% usage.byArea.forEach(function (b) { %><dt><%= t('ai.area_' + b.feature) %></dt><dd class="num"><%= fmt.number(b.count) %></dd><% }) %></dl><% } %>
+        <% if (can('billing.view')) { %><a class="link small" href="/app/billing"><%= t('ai.more_quota') %></a><% } %>
+      </div>
+    </section>
+    <section class="panel">
+      <div class="panel-head"><h2><%= t('ai.privacy') %></h2></div>
+      <div class="panel-body small text-2 stack-sm">
+        <p><%= t('ai.privacy_1') %></p><p><%= t('ai.privacy_2') %></p><p><%= t('ai.privacy_3') %></p><p><%= t('ai.privacy_4') %></p>
+      </div>
+    </section>
+  </div>
+</div>
+
+<section class="panel mt-6">
+  <div class="panel-head"><h2><%= t('ai.recent') %></h2></div>
+  <% if (!usage.recent.length) { %><div class="empty"><p><%= t('ai.no_requests') %></p></div><% } else { %>
+  <div class="table-wrap"><table class="table">
+    <thead><tr><th><%= t('billing.date') %></th><th><%= t('ai.user') %></th><th><%= t('ai.area') %></th><th><%= t('ai.action') %></th><th><%= t('ai.status') %></th><th class="text-end"><%= t('ai.tokens') %></th></tr></thead>
+    <tbody><% usage.recent.forEach(function (r) { %>
+      <tr><td class="nowrap muted"><%= fmt.date(r.created_at, { dateStyle: 'medium', timeStyle: 'short' }) %></td><td><%= r.user_name || '—' %></td><td><%= t('ai.area_' + r.feature) %></td><td><%= t('ai.act_' + r.action) %></td>
+        <td><span class="st <%= r.status === 'ok' ? 'st-done' : 'st-rejected' %>"><%= t('ai.req_' + r.status) %></span></td><td class="text-end num muted"><%= fmt.number((r.tokens_in || 0) + (r.tokens_out || 0)) %></td></tr>
+    <% }) %></tbody>
+  </table></div><% } %>
+</section>

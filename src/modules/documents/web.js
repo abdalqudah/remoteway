@@ -4,6 +4,7 @@ const { feature } = require('../../middleware/context');
 const { singleFile } = require('../../middleware/upload');
 const documents = require('./document.service');
 const employees = require('../workforce/employee.service');
+const ai = require('../ai/ai.service');
 
 const router = express.Router();
 router.use(feature('documents'));
@@ -26,7 +27,8 @@ router.post('/', ...singleFile('file'), form(async (req, res) => {
 
 const renderShow = async (req, res, extra = {}) => {
   const doc = await documents.get(req.ctx, Number(req.params.id));
-  res.page('pages/documents/show', { title: doc.title, doc, categories: documents.CATEGORIES, ...extra });
+  const aiDoc = res.locals.aiOn('documents') ? await ai.latestInsight(req.ctx.organizationId, 'document_summary', 'document', doc.id) : null;
+  res.page('pages/documents/show', { title: doc.title, doc, categories: documents.CATEGORIES, aiDoc, ...extra });
 };
 
 router.get('/:id', wrap((req, res) => renderShow(req, res)));

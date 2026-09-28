@@ -9,11 +9,21 @@
 | Runtime | Node.js ≥ 20 (Express 4, server-rendered EJS, no build step) |
 | Database | MySQL 8 / MariaDB ≥ 10.3 (all data, including sessions, lives in the database) |
 | Hosting | Any cPanel host with **Setup Node.js App** (e.g. Orange Host), or any VPS |
-| Status | **Phases 1–7** (SaaS Core, Workforce, Talent, Payroll, Performance, Learning, Integrations) complete and tested (see `docs/ARCHITECTURE.md`) |
+| Status | **Phases 1–8** (SaaS Core, Workforce, Talent, Payroll, Performance, Learning, Integrations, AI) complete and tested (see `docs/ARCHITECTURE.md`) |
 
 ---
 
-## What works today (Phases 1–7)
+## What works today (Phases 1–8)
+
+**Phase 8 — AI:**
+- **Providers:** Anthropic (Claude), OpenAI, Google Gemini or Azure OpenAI, chosen by the Super Admin (Super Admin → AI) with an encrypted API key, connection test, optional token prices for cost estimates, and platform usage (requests, tokens, cost, latency, failures).
+- **Governance:** AI features come with the plan (`ai_recruitment`, `ai_documents`, `ai_performance`, `ai_learning`, `ai_analytics`) and each company switches them on in Settings → AI (off by default). Every request is metered against `ai_requests_monthly`; failed requests are not counted. There is a full request log (user, feature, tokens, status).
+- **Recruitment:** job posting drafts, and a CV/profile ↔ requirements match with evidence, gaps and interview questions. There is no score, no ranking and no hire/reject advice. Word CVs are read as text; PDFs are sent to the provider.
+- **Documents:** summary, parties and key dates, with one-click filling of the issue and expiry dates (saved only when you click Save).
+- **Performance:** review summary drafts from ratings, comments, goal progress and feedback. The AI never proposes a rating.
+- **Learning:** quiz questions from course content (4 options, one correct), added to the quiz editor for review.
+- **AI assistant** (`/app/insights`): answers questions from company-level metrics computed with SQL, limited to what the user may see. It sends no names or salaries per person, and the data used is shown next to the answer.
+- **Data minimisation:** emails, phone numbers, IBANs and ID numbers are masked in text before sending, the candidate's name is not sent, and output is validated against a schema before display.
 
 **Phase 7 — Integrations:**
 - **Integration hub** (Settings → Integrations) with honest status for every connector. PayWay shows "awaiting API docs" until the provider documentation is available.

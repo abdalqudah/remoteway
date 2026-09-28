@@ -40,7 +40,7 @@
 <% } %>
 
 <% var mode = r.canSelf ? 'self' : r.canManage ? 'manager' : 'read'; %>
-<form method="post" action="/app/performance/reviews/<%= r.id %>/<%= mode === 'self' ? 'self' : 'manager' %>" novalidate>
+<form method="post" action="/app/performance/reviews/<%= r.id %>/<%= mode === 'self' ? 'self' : 'manager' %>" id="review-form" novalidate>
   <input type="hidden" name="_csrf" value="<%= csrfToken %>">
   <% groups.forEach(function (gp) { var items = r.items.filter(function (it) { return it.item_type === gp[0]; }); if (!items.length) return; %>
   <section class="panel mb-6">
@@ -61,6 +61,7 @@
   <% }) %>
   <% if (!r.items.length) { %><section class="panel mb-6"><div class="empty"><p><%= t('performance.no_items') %></p></div></section><% } %>
 
+  <% if (mode !== 'read' && aiOn('performance')) { %><div class="mb-6"><%- include('../../partials/ai/panel', { url: '/app/ai/performance/reviews/' + r.id + '/draft', form: '#review-form', title: t('ai.review_title'), sub: t(mode === 'self' ? 'ai.review_sub_self' : 'ai.review_sub_manager'), button: t('ai.draft') }) %></div><% } %>
   <div class="grid <%= r.showManager ? 'grid-2' : '' %> mb-6">
     <section class="panel"><div class="panel-head"><h2><%= t('performance.self_summary') %></h2></div><div class="panel-body">
       <% if (mode === 'self') { %><textarea class="textarea" name="self_summary" maxlength="5000" rows="5" placeholder="<%= t('performance.self_summary_ph') %>" aria-label="<%= t('performance.self_summary') %>"><%= old.self_summary || r.self_summary || '' %></textarea>

@@ -57,6 +57,8 @@
     </section>
     <% } %>
 
+    <% if (aiOn('recruitment')) { %><%- include('../../partials/ai/panel', { url: '/app/ai/recruitment/applications/' + a.id + '/match', title: t('ai.match_title'), sub: t('ai.match_sub'), button: t('ai.analyse'), initial: aiMatch ? include('../../partials/ai/candidate-match', { out: aiMatch.output, insight: aiMatch }) : '' }) %><% } %>
+
     <section class="panel">
       <div class="panel-head"><h2><%= t('recruitment.interviews') %></h2><% if (manage && !hired) { %><button class="btn btn-secondary btn-sm" type="button" data-open-dialog="iv-dialog"><%- icon('plus', 'icon-sm') %><%= t('recruitment.schedule_interview') %></button><% } %></div>
       <% if (!a.interviews.length) { %><div class="empty" style="padding:24px"><p><%= t('recruitment.no_interviews') %></p></div><% } else { %>
