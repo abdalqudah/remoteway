@@ -1006,3 +1006,22 @@ tr.row-link { cursor: pointer; } tr.row-link:hover td { background: var(--surfac
 .match-big { display: flex; flex-direction: column; align-items: center; justify-content: center; min-width: 64px; padding: 6px 10px; border-radius: 12px; background: var(--accent-soft); color: var(--accent-strong); flex: none; }
 .match-big span { font-size: 22px; font-weight: 800; line-height: 1; font-variant-numeric: tabular-nums; } .match-big small { font-size: 11px; }
 .talent-actions form { display: inline; }
+/* Internal CRM */
+.crm-stage { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; padding: 2px 9px; border-radius: var(--pill); background: color-mix(in srgb, var(--stage) 14%, transparent); color: var(--text); white-space: nowrap; }
+.crm-stage .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--stage); }
+.field-inline { display: inline-flex; align-items: center; gap: 6px; }
+.field-inline .label { margin: 0; white-space: nowrap; }
+.insight-box { border: 1px solid var(--border); border-radius: var(--radius); padding: 14px; }
+.ai-note { color: var(--text-2); margin-top: 2px; }
+.text-danger { color: var(--danger) !important; }
+.kpi { color: inherit; text-decoration: none; }
+.crm-timeline { list-style: none; margin: 0; padding: 8px 20px 20px; display: grid; gap: 14px; }
+.crm-timeline li { display: flex; gap: 12px; align-items: flex-start; }
+.tl-icon { width: 30px; height: 30px; border-radius: 50%; background: var(--surface-sunken); display: inline-flex; align-items: center; justify-content: center; flex: none; color: var(--text-2); }
+.crm-timeline li.is-in .tl-icon { background: var(--info-soft); color: var(--info); }
+.crm-timeline li.is-out .tl-icon { background: var(--accent-soft); color: var(--accent-strong); }
+.fu-row { display: flex; gap: 8px; align-items: flex-start; padding: 8px 10px; border: 1px solid var(--border); border-radius: var(--radius); }
+.fu-row.is-done { opacity: .6; }
+.suggest-box { border: 1px dashed var(--border-strong); border-radius: var(--radius); padding: 10px; }
+.hp-field { position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden; }
+.board.crm-board { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(230px, 250px); grid-template-columns: none; overflow-x: auto; padding-bottom: 8px; }

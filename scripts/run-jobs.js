@@ -11,6 +11,7 @@ const jobs = require('../src/modules/integrations/handlers');
     await require('../src/modules/automation/automation.service').runScheduled(); // date-based automations
     await require('../src/modules/billing/subscription.service').renewalSweep(); // renewal invoices, overdue subscriptions
     await require('../src/modules/payments/payments.service').reconcile(); // payments left open at the gateway
+    await require('../src/modules/crm/crm.service').sendReminders(); // CRM follow-up reminders
     let total = { done: 0, retry: 0, dead: 0 };
     for (let i = 0; i < 20; i += 1) {
       const r = await jobs.runDue({ limit: 50 });

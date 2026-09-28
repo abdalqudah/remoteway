@@ -9,11 +9,23 @@
 | Runtime | Node.js ≥ 20 (Express 4, server-rendered EJS, no build step) |
 | Database | MySQL 8 / MariaDB ≥ 10.3 (all data, including sessions, lives in the database) |
 | Hosting | Any cPanel host with **Setup Node.js App** (e.g. Orange Host), or any VPS |
-| Status | **Phases 1–9 + Advanced Analytics + Compliance + Automation + Online payments + Talent marketplace** (SaaS Core, Workforce, Talent, Payroll, Performance, Learning, Integrations, AI, Enterprise, Analytics, Compliance, Automation, Payments) complete and tested (see `docs/ARCHITECTURE.md`) |
+| Status | **Phases 1–9 + Advanced Analytics + Compliance + Automation + Online payments + Talent marketplace + Internal CRM** (SaaS Core, Workforce, Talent, Payroll, Performance, Learning, Integrations, AI, Enterprise, Analytics, Compliance, Automation, Payments) complete and tested (see `docs/ARCHITECTURE.md`) |
 
 ---
 
 ## What works today
+
+**RemoteWay internal CRM** (Super Admin → CRM — for the RemoteWay team only, not offered to companies):
+
+- **Contacts** for everyone on or around the platform: company owners and users, individuals, applicants, leads (manual, website `/demo` form, inbound WhatsApp), with source, registration date, status, last contact and by whom, responsible team member, notes, tags, next follow-up and per-channel opt-outs.
+- **Pipeline** with customisable statuses (New lead, Contacted, Interested, Registered, Follow up, Expected to subscribe, Subscribed successfully, Not interested, Inactive, plus your own) on a drag-and-drop board; every change is recorded with who and when.
+- **Communication centre:** email (platform mailer), SMS (Taqnyat / Unifonic / Msegat) and WhatsApp Business Cloud API — send from the contact page, templates with placeholders, the 24-hour WhatsApp rule, inbound WhatsApp messages via a signed webhook.
+- **Timeline** per contact: messages in/out, calls, meetings, notes, status changes, registration, profile completion, applications, subscription started/paid, follow-ups — with date, team member, channel and content.
+- **Follow-ups** with due date, assignee, note, e-mail reminder and status; "My follow-ups".
+- **Live platform events:** company or individual sign-up → contact; profile completed / applied → timeline; invoice issued → Expected to subscribe; invoice paid → Subscribed successfully.
+- **Dashboard** with date / team member / status / source filters: totals, new registrations, pending follow-ups, stage counts, messages sent, conversion, by source, by team member, weekly chart.
+- **AI (existing AI layer, platform budget):** contact summary with interest level, next step and a suggested message; pipeline priorities (need follow-up, most engaged, likely to subscribe, disengaged). AI only suggests.
+- **Team:** new platform role *Sales*; CRM for owners, admins, sales and support; settings (statuses, channels, templates) for owners and admins.
 
 **Talent & Jobs Marketplace** (built on the existing users, companies, recruitment and AI):
 

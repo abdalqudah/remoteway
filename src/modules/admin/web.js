@@ -287,6 +287,9 @@ router.post('/ai/test', form(async (req, res) => {
   res.redirect('/admin/ai');
 }, renderAi));
 
+// ---------- Internal CRM ----------
+router.use('/crm', require('../crm/web'));
+
 // ---------- Platform team ----------
 const renderTeam = async (req, res, extra = {}) => res.page('pages/admin/team', {
   layout: 'admin', title: req.t('admin.team'), members: await team.list(), roles: access.ROLES, sections: access.SECTIONS, ...extra,

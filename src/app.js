@@ -42,7 +42,7 @@ function createApp() {
   app.use('/', express.static(path.join(__dirname, '..', 'public'), { maxAge: config.isProd ? '7d' : 0, index: false }));
   app.use('/org-brand', require('./modules/branding/web').files); // company logos and white-label themes (public)
   app.use(express.urlencoded({ extended: true, limit: '200kb' }));
-  app.use(express.json({ limit: '200kb' }));
+  app.use(express.json({ limit: '200kb', verify: (req, res, buf) => { if (req.originalUrl.startsWith('/webhooks/')) req.rawBody = buf; } })); // signed webhooks need the raw bytes
   app.use(cookieParser());
 
   // Sessions are stored in MySQL (table `sessions`), so they survive restarts and work across processes.

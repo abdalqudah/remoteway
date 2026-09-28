@@ -1,0 +1,30 @@
+<%- include('_tabs') %>
+<% var o = old || {}; var x = c || {}; var v = function (k) { return o[k] !== undefined ? o[k] : (x[k] != null ? x[k] : ''); }; %>
+<form class="panel" method="post" action="<%= c ? '/admin/crm/contacts/' + c.id : '/admin/crm/contacts' %>" novalidate style="max-width:900px">
+  <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+  <div class="panel-head"><h2><%= c ? t('crm.edit_contact') : t('crm.new_contact') %></h2></div>
+  <div class="panel-body stack">
+    <% if (formError) { %><div class="alert alert-error"><%- icon('circle-alert') %><div class="grow small"><%= Object.values(errors)[0] || formError.message %></div></div><% } %>
+    <div class="form-grid">
+      <%- include('../../../partials/field', { name: 'name', label: t('fields.name'), value: v('name'), required: true }) %>
+      <%- include('../../../partials/field', { name: 'email', label: t('fields.email'), type: 'email', value: v('email'), attrs: 'dir="ltr"' }) %>
+      <%- include('../../../partials/field', { name: 'phone', label: t('crm.phone_whatsapp'), value: x.phone && !o.phone ? '+' + x.phone : v('phone'), placeholder: '+9665…', attrs: 'dir="ltr"', help: t('crm.phone_help') }) %>
+      <%- include('../../../partials/field', { name: 'company_name', label: t('talent.company'), value: v('company_name') }) %>
+      <%- include('../../../partials/field', { name: 'job_title', label: t('me.job_title'), value: v('job_title') }) %>
+      <%- include('../../../partials/field', { name: 'city', label: t('fields.city'), value: v('city') }) %>
+      <%- include('../../../partials/field', { name: 'kind', label: t('crm.kind'), type: 'select', value: v('kind') || 'lead', options: crmKinds.map(function (k) { return { value: k, label: t('crm.kind_' + k) }; }) }) %>
+      <%- include('../../../partials/field', { name: 'source', label: t('crm.source'), type: 'select', value: v('source') || 'manual', options: crmSources.map(function (k) { return { value: k, label: t('crm.src_' + k) }; }) }) %>
+      <% if (!c) { %>
+        <%- include('../../../partials/field', { name: 'stage_id', label: t('crm.stage'), type: 'select', value: v('stage_id'), options: crmStages.map(function (s) { return { value: s.id, label: stName(s) }; }) }) %>
+        <%- include('../../../partials/field', { name: 'owner_user_id', label: t('crm.owner'), type: 'select', value: v('owner_user_id') || currentUser.id, options: crmTeam.map(function (u) { return { value: u.id, label: u.name }; }) }) %>
+      <% } %>
+      <%- include('../../../partials/field', { name: 'locale', label: t('crm.language'), type: 'select', value: v('locale') || 'ar', options: [{ value: 'ar', label: 'العربية' }, { value: 'en', label: 'English' }] }) %>
+      <%- include('../../../partials/field', { name: 'tags', label: t('crm.tags'), value: o.tags !== undefined ? o.tags : (x.tags || []).join(', '), help: t('me.comma_help') }) %>
+    </div>
+    <%- include('../../../partials/field', { name: 'notes', label: t('crm.notes'), type: 'textarea', value: v('notes') }) %>
+    <fieldset class="field"><legend class="label"><%= t('crm.opt_out') %></legend><div class="row-sm wrap">
+      <% ['email', 'sms', 'whatsapp'].forEach(function (ch) { %><label class="check provider-choice"><input type="checkbox" name="opt_out_<%= ch %>"<%= (o._csrf ? o['opt_out_' + ch] === 'on' : x['opt_out_' + ch]) ? ' checked' : '' %>><%= t('crm.ch_' + ch) %></label><% }) %>
+    </div><span class="help"><%= t('crm.opt_out_help') %></span></fieldset>
+  </div>
+  <div class="panel-foot row-sm"><a class="btn btn-ghost" href="<%= c ? '/admin/crm/contacts/' + c.id : '/admin/crm/contacts' %>"><%= t('common.cancel') %></a><button class="btn btn-dark" type="submit"><%= t('common.save') %></button></div>
+</form>

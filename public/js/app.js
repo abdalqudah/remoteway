@@ -516,6 +516,17 @@
     box.scrollBy({ left: dir * step, behavior: 'smooth' });
   });
 
+  // CRM composer: picking a saved template fills the subject and message.
+  document.addEventListener('change', function (e) {
+    var sel = e.target.closest('[data-template-select]');
+    if (!sel) return;
+    var opt = sel.options[sel.selectedIndex];
+    var f = sel.form;
+    if (!opt || !opt.value || !f) return;
+    if (f.subject && opt.getAttribute('data-subject')) f.subject.value = opt.getAttribute('data-subject');
+    if (f.body) f.body.value = opt.getAttribute('data-body') || '';
+  });
+
   // Keep csrf available for fetch-based features.
   window.RemoteWay = { csrf: csrf };
 })();

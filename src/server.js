@@ -128,6 +128,9 @@ async function start() {
   setTimeout(renewals, 90_000).unref();
   setInterval(renewals, 3600_000).unref();
   setInterval(() => payments.reconcile().catch((e) => console.error('[payments]', e.message)), 5 * 60_000).unref();
+  // Internal CRM: e-mail reminders for due follow-ups (every 15 minutes).
+  const crm = require('./modules/crm/crm.service');
+  setInterval(() => crm.sendReminders().catch((e) => console.error('[crm]', e.message)), 15 * 60_000).unref();
   // Phusion Passenger / LiteSpeed (cPanel "Setup Node.js App") passes a socket path via PORT; listen() accepts both.
   const server = app.listen(PORT, () => console.log(`[remoteway] listening on ${PORT} (${config.env})`));
   const shutdown = () => server.close(() => knex.destroy().then(() => process.exit(0)));

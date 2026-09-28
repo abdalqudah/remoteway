@@ -191,6 +191,16 @@ async function execute(cfg, task, { base: b, onFail }) {
   return parsed.data;
 }
 
+// ---------- Platform AI (RemoteWay's own team, e.g. CRM insights) ----------
+// Not billed to any company; a generous per-person daily cap protects the platform's AI budget.
+async function runPlatform(userId, task, { dailyCap = 200, feature = 'crm' } = {}) {
+  const cfg = await config();
+  if (!cfg) throw err.notConfigured();
+  const [{ n }] = await knex('ai_requests').where({ user_id: userId, feature }).whereNull('organization_id').where('created_at', '>=', new Date(Date.now() - 86_400_000)).count({ n: '*' });
+  if (Number(n) >= dailyCap) throw new AppError('AI_DAILY_LIMIT', 'The daily AI limit for the team has been reached. Try again tomorrow.', 429);
+  return execute(cfg, task, { base: { organization_id: null, user_id: userId, feature }, onFail: async () => {} });
+}
+
 // ---------- Personal AI (individual profiles on the talent marketplace) ----------
 // Individuals have no company plan, so the platform funds a small daily allowance per person
 // (Super Admin → AI sets it; 0 switches personal AI off). Requests are logged like company ones.
@@ -278,5 +288,5 @@ async function testConnection(cfg) {
 
 module.exports = {
   AREAS, AREA_KEYS, rawConfig, config, invalidateConfig, orgSettings, saveOrgSettings, status, assertUsable,
-  redact, clip, parseJson, run, runPersonal, personalStatus, saveInsight, latestInsight, orgUsage, platformUsage, testConnection,
+  redact, clip, parseJson, run, runPersonal, runPlatform, personalStatus, saveInsight, latestInsight, orgUsage, platformUsage, testConnection,
 };

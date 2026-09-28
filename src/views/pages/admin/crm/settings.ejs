@@ -1,0 +1,67 @@
+<%- include('_tabs') %>
+<% var sms = raw.sms || {}; var wa = raw.whatsapp || {}; %>
+<% if (formError) { %><div class="alert alert-error mb-4"><%- icon('circle-alert') %><div class="grow small"><%= Object.values(errors || {})[0] || formError.message %></div></div><% } %>
+<section class="panel" id="stages">
+  <div class="panel-head"><div><h2><%= t('crm.stages') %></h2><div class="panel-sub"><%= t('crm.stages_sub') %></div></div></div>
+  <div class="table-wrap"><table class="table">
+    <thead><tr><th><%= t('crm.order') %></th><th><%= t('fields.name') %></th><th>العربية</th><th><%= t('crm.color') %></th><th><%= t('fields.status') %></th><th class="actions"></th></tr></thead>
+    <tbody><% allStages.forEach(function (s, i) { %><tr>
+      <td class="nowrap"><form method="post" action="/admin/crm/settings/stages/order" class="row-sm"><input type="hidden" name="_csrf" value="<%= csrfToken %>">
+        <% var ids = allStages.map(function (x) { return x.id; }); var up = ids.slice(); if (i > 0) { up[i] = ids[i - 1]; up[i - 1] = ids[i]; } up.forEach(function (id) { %><input type="hidden" name="ids" value="<%= id %>"><% }) %>
+        <button class="btn btn-ghost btn-icon btn-sm" type="submit"<%= i === 0 ? ' disabled' : '' %> aria-label="<%= t('crm.move_up') %>">↑</button></form></td>
+      <td colspan="4"><form method="post" action="/admin/crm/settings/stages" class="row-sm wrap"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><input type="hidden" name="id" value="<%= s.id %>">
+        <input class="input input-sm" name="name" value="<%= s.name %>" aria-label="<%= t('fields.name') %>" style="max-width:200px">
+        <input class="input input-sm" name="name_ar" value="<%= s.name_ar || '' %>" dir="rtl" aria-label="العربية" style="max-width:200px">
+        <input class="input input-sm" type="color" name="color" value="<%= s.color %>" aria-label="<%= t('crm.color') %>" style="width:48px;padding:2px">
+        <select class="select select-sm" name="is_active" aria-label="<%= t('fields.status') %>"><option value="on"<%= s.is_active ? ' selected' : '' %>><%= t('crm.shown') %></option><option value="off"<%= s.is_active ? '' : ' selected' %>><%= t('crm.hidden') %></option></select>
+        <button class="btn btn-secondary btn-sm" type="submit"><%= t('common.save') %></button><% if (s.is_system) { %><span class="muted tiny"><%= t('crm.system_stage') %></span><% } %></form></td>
+      <td class="actions"><% if (!s.is_system) { %><form method="post" action="/admin/crm/settings/stages/<%= s.id %>/delete" data-confirm="<%= t('crm.confirm_stage_delete') %>"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><button class="btn btn-danger-ghost btn-sm" type="submit"><%= t('branding.remove') %></button></form><% } %></td>
+    </tr><% }) %></tbody></table></div>
+  <form method="post" action="/admin/crm/settings/stages" class="panel-foot row-sm wrap"><input type="hidden" name="_csrf" value="<%= csrfToken %>">
+    <input class="input input-sm" name="name" placeholder="<%= t('crm.new_stage') %>" aria-label="<%= t('crm.new_stage') %>" style="max-width:220px"><input class="input input-sm" name="name_ar" placeholder="الاسم بالعربية" dir="rtl" aria-label="العربية" style="max-width:220px"><input class="input input-sm" type="color" name="color" value="#2563EB" aria-label="<%= t('crm.color') %>" style="width:48px;padding:2px">
+    <button class="btn btn-dark btn-sm" type="submit"><%- icon('plus', 'icon-sm') %><%= t('crm.add_stage') %></button></form>
+</section>
+
+<div class="grid grid-2 mt-6">
+  <form class="panel" id="sms" method="post" action="/admin/crm/settings/channels/sms" autocomplete="off">
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+    <div class="panel-head"><div><h2><%= t('crm.ch_sms') %></h2><div class="panel-sub"><%= t('crm.sms_sub') %></div></div><span class="badge badge-dot <%= raw.sms ? 'badge-success' : '' %>"><%= raw.sms ? t('admin.pay_enabled') : t('admin.pay_not_set') %></span></div>
+    <div class="panel-body stack">
+      <%- include('../../../partials/field', { name: 'provider', label: t('crm.provider'), type: 'select', value: sms.provider || 'taqnyat', options: Object.keys(smsProviders).map(function (k) { return { value: k, label: smsProviders[k].name }; }) }) %>
+      <% ['token', 'app_sid', 'username', 'api_key'].forEach(function (fld) { %><%- include('../../../partials/field', { name: fld, label: t('integrations.f_' + fld), type: 'password', autocomplete: 'new-password', help: raw.sms ? t('admin.pay_keep_secret') : t('crm.sms_field_help') }) %><% }) %>
+      <%- include('../../../partials/field', { name: 'sender', label: t('integrations.sender'), value: sms.sender || '', help: t('crm.sender_help') }) %>
+    </div>
+    <div class="panel-foot row-sm"><% if (raw.sms) { %><button class="btn btn-danger-ghost btn-sm" type="submit" name="action" value="remove"><%= t('admin.pay_remove') %></button><% } %><button class="btn btn-dark btn-sm" type="submit"><%= t('common.save') %></button></div>
+  </form>
+  <form class="panel" id="whatsapp" method="post" action="/admin/crm/settings/channels/whatsapp" autocomplete="off">
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+    <div class="panel-head"><div><h2>WhatsApp Business</h2><div class="panel-sub"><%= t('crm.wa_sub') %></div></div><span class="badge badge-dot <%= raw.whatsapp ? 'badge-success' : '' %>"><%= raw.whatsapp ? t('admin.pay_enabled') : t('admin.pay_not_set') %></span></div>
+    <div class="panel-body stack">
+      <%- include('../../../partials/field', { name: 'phone_number_id', label: 'Phone number ID', value: wa.phone_number_id || '', attrs: 'dir="ltr"' }) %>
+      <%- include('../../../partials/field', { name: 'access_token', label: t('crm.wa_token'), type: 'password', autocomplete: 'new-password', placeholder: wa.token_hint || '', help: raw.whatsapp ? t('admin.pay_keep_secret') : t('crm.wa_token_help') }) %>
+      <%- include('../../../partials/field', { name: 'app_secret', label: 'App secret', type: 'password', autocomplete: 'new-password', help: t('crm.wa_secret_help') }) %>
+      <%- include('../../../partials/field', { name: 'api_version', label: 'Graph API version', value: wa.api_version || 'v21.0', attrs: 'dir="ltr"' }) %>
+      <% if (raw.whatsapp) { %><div class="field"><span class="label"><%= t('crm.wa_webhook') %></span><code class="mono small" dir="ltr" style="word-break:break-all"><%= webhookUrl %></code>
+        <span class="label mt-2"><%= t('crm.wa_verify_token') %></span><code class="mono small" dir="ltr"><%= wa.verify_token %></code><span class="help"><%= t('crm.wa_webhook_help') %></span></div><% } %>
+    </div>
+    <div class="panel-foot row-sm"><% if (raw.whatsapp) { %><button class="btn btn-danger-ghost btn-sm" type="submit" name="action" value="remove"><%= t('admin.pay_remove') %></button><% } %><button class="btn btn-dark btn-sm" type="submit"><%= t('common.save') %></button></div>
+  </form>
+</div>
+
+<section class="panel mt-6" id="templates">
+  <div class="panel-head"><div><h2><%= t('crm.templates') %></h2><div class="panel-sub"><%= t('crm.templates_sub') %></div></div></div>
+  <% if (templates.length) { %><div class="table-wrap"><table class="table"><tbody><% templates.forEach(function (x) { %><tr>
+    <td><span class="tag"><%= t('crm.ch_' + x.channel) %></span> <strong><%= x.name %></strong><% if (x.wa_template) { %> <span class="muted small" dir="ltr">(<%= x.wa_template %> · <%= x.wa_language %>)</span><% } %><div class="muted small truncate" style="max-width:640px"><%= x.subject ? x.subject + ' — ' : '' %><%= x.body %></div></td>
+    <td class="actions"><form method="post" action="/admin/crm/settings/templates/<%= x.id %>/delete"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><button class="btn btn-danger-ghost btn-sm" type="submit"><%= t('branding.remove') %></button></form></td></tr><% }) %></tbody></table></div><% } %>
+  <form method="post" action="/admin/crm/settings/templates" class="panel-body stack"><input type="hidden" name="_csrf" value="<%= csrfToken %>">
+    <div class="form-grid">
+      <%- include('../../../partials/field', { name: 'channel', label: t('crm.channel'), type: 'select', value: 'email', options: ['email', 'sms', 'whatsapp'].map(function (c) { return { value: c, label: t('crm.ch_' + c) }; }) }) %>
+      <%- include('../../../partials/field', { name: 'name', label: t('fields.name') }) %>
+      <%- include('../../../partials/field', { name: 'subject', label: t('crm.subject_email_only') }) %>
+      <%- include('../../../partials/field', { name: 'wa_template', label: t('crm.wa_template_name'), attrs: 'dir="ltr"', help: t('crm.wa_template_help') }) %>
+      <%- include('../../../partials/field', { name: 'wa_language', label: t('crm.wa_template_lang'), value: 'ar', attrs: 'dir="ltr"' }) %>
+    </div>
+    <%- include('../../../partials/field', { name: 'body', label: t('crm.message'), type: 'textarea', help: t('crm.placeholders') }) %>
+    <div><button class="btn btn-dark btn-sm" type="submit"><%- icon('plus', 'icon-sm') %><%= t('crm.add_template') %></button></div>
+  </form>
+</section>

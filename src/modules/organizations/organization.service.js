@@ -73,16 +73,20 @@ async function createOrganization(trx, { ownerUserId, company, planKey }, ctx = 
 
 /** Public sign-up: new user + new organization, atomically. */
 async function registerCompany({ account, company, planKey }, ctx = {}) {
-  return knex.transaction(async (trx) => {
+  const out = await knex.transaction(async (trx) => {
     const userId = await authService.createUser(trx, account);
     const organizationId = await createOrganization(trx, { ownerUserId: userId, company, planKey }, ctx);
     return { userId, organizationId };
   });
+  await require('../crm/crm.service').track('company_signup', { organizationId: out.organizationId, plan: planKey }); // eslint-disable-line global-require
+  return out;
 }
 
 /** An existing user creates an additional organization. */
 async function createAdditionalOrganization(userId, { company, planKey }, ctx = {}) {
-  return knex.transaction((trx) => createOrganization(trx, { ownerUserId: userId, company, planKey }, ctx));
+  const organizationId = await knex.transaction((trx) => createOrganization(trx, { ownerUserId: userId, company, planKey }, ctx));
+  await require('../crm/crm.service').track('company_signup', { organizationId, plan: planKey }); // eslint-disable-line global-require
+  return organizationId;
 }
 
 async function listForUser(userId) {

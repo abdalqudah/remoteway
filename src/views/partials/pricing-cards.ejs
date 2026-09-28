@@ -13,7 +13,7 @@
       <% if (custom) { %><div class="amount"><%= t('billing.custom') %></div><div class="per"><%= t('billing.talk_to_sales') %></div>
       <% } else { %><div class="amount num"><%= fmt.money(price, p.currency) %></div><div class="per"><%= cycle === 'yearly' ? t('billing.per_year_excl_vat') : t('billing.per_month_excl_vat') %></div><% } %>
     </div>
-    <a class="btn <%= p.key === 'business' ? 'btn-primary' : 'btn-dark' %> btn-block" href="<%= custom ? 'mailto:Info@remoteway.com?subject=RemoteWay%20Enterprise' : '/signup?plan=' + p.key %>"><%= custom ? t('site.contact_sales') : (p.trial_days > 0 ? t('site.start_trial', { days: p.trial_days }) : t('site.get_started')) %></a>
+    <a class="btn <%= p.key === 'business' ? 'btn-primary' : 'btn-dark' %> btn-block" href="<%= custom ? '/demo?plan=enterprise' : '/signup?plan=' + p.key %>"><%= custom ? t('site.contact_sales') : (p.trial_days > 0 ? t('site.start_trial', { days: p.trial_days }) : t('site.get_started')) %></a>
     <ul>
       <li><%- icon('users') %><strong><%= p.limits.employees === null ? t('billing.unlimited_employees') : t('billing.up_to_employees', { n: fmt.number(p.limits.employees) }) %></strong></li>
       <li><%- icon('user-cog') %><%= p.limits.users === null ? t('billing.unlimited_users') : t('billing.up_to_users', { n: fmt.number(p.limits.users) }) %></li>

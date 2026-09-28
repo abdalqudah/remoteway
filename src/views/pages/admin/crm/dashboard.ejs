@@ -1,0 +1,69 @@
+<%- include('_tabs') %>
+<% var k = dash.kpis; var sN = function (key) { var s = crmStages.find(function (x) { return x.key === key; }); return s ? (locale === 'ar' && s.name_ar ? s.name_ar : s.name) : key; }; %>
+<form class="filter-bar mb-6" method="get" action="/admin/crm">
+  <label class="field-inline"><span class="label"><%= t('crm.from') %></span><input class="input" type="date" name="from" value="<%= f.from || dash.range.from.toISOString().slice(0, 10) %>"></label>
+  <label class="field-inline"><span class="label"><%= t('crm.to') %></span><input class="input" type="date" name="to" value="<%= f.to || dash.range.to.toISOString().slice(0, 10) %>"></label>
+  <select class="select" name="owner" aria-label="<%= t('crm.owner') %>"><option value=""><%= t('crm.any_owner') %></option><option value="none"<%= f.owner === 'none' ? ' selected' : '' %>><%= t('crm.unassigned') %></option><% crmTeam.forEach(function (u) { %><option value="<%= u.id %>"<%= String(f.owner) === String(u.id) ? ' selected' : '' %>><%= u.name %></option><% }) %></select>
+  <select class="select" name="stage_id" aria-label="<%= t('crm.stage') %>"><option value=""><%= t('crm.any_stage') %></option><% crmStages.forEach(function (s) { %><option value="<%= s.id %>"<%= String(f.stage_id) === String(s.id) ? ' selected' : '' %>><%= stName(s) %></option><% }) %></select>
+  <select class="select" name="source" aria-label="<%= t('crm.source') %>"><option value=""><%= t('crm.any_source') %></option><% crmSources.forEach(function (s) { %><option value="<%= s %>"<%= f.source === s ? ' selected' : '' %>><%= t('crm.src_' + s) %></option><% }) %></select>
+  <button class="btn btn-dark" type="submit"><%- icon('filter', 'icon-sm') %><%= t('crm.apply') %></button>
+</form>
+
+<div class="kpis kpis-auto mb-6">
+  <a class="kpi" href="/admin/crm/contacts"><div class="kpi-label"><%= t('crm.k_total') %></div><div class="kpi-value num"><%= fmt.number(k.total) %></div><div class="kpi-meta"><%= t('crm.k_new', { n: fmt.number(k.new_contacts) }) %></div></a>
+  <div class="kpi"><div class="kpi-label"><%= t('crm.k_registrations') %></div><div class="kpi-value num"><%= fmt.number(k.registrations) %></div><div class="kpi-meta"><%= t('crm.in_range') %></div></div>
+  <a class="kpi" href="/admin/crm/followups?who=all"><div class="kpi-label"><%= t('crm.k_pending') %></div><div class="kpi-value num"><%= fmt.number(k.pending_followups) %></div><div class="kpi-meta<%= k.overdue_followups ? ' text-danger' : '' %>"><%= t('crm.k_overdue', { n: k.overdue_followups }) %></div></a>
+  <div class="kpi"><div class="kpi-label"><%= sN('interested') %></div><div class="kpi-value num"><%= fmt.number(k.interested) %></div></div>
+  <div class="kpi"><div class="kpi-label"><%= sN('expected_to_subscribe') %></div><div class="kpi-value num"><%= fmt.number(k.expected) %></div></div>
+  <div class="kpi"><div class="kpi-label"><%= sN('subscribed') %></div><div class="kpi-value num"><%= fmt.number(k.subscribed) %></div><div class="kpi-meta"><%= t('crm.k_sub_range', { n: k.subscribed_in_range }) %></div></div>
+  <div class="kpi"><div class="kpi-label"><%= sN('inactive') %></div><div class="kpi-value num"><%= fmt.number(k.inactive) %></div></div>
+  <div class="kpi"><div class="kpi-label"><%= t('crm.k_comms') %></div><div class="kpi-value num"><%= fmt.number(k.comms_sent) %></div><div class="kpi-meta"><%= ['email','sms','whatsapp'].map(function (c) { return t('crm.ch_' + c) + ' ' + (dash.comms[c] || 0); }).join(' · ') %></div></div>
+  <div class="kpi"><div class="kpi-label"><%= t('crm.k_conversion') %></div><div class="kpi-value num"><%= k.conversion_pct == null ? '—' : k.conversion_pct + '%' %></div><div class="kpi-meta"><%= t('crm.k_conversion_hint') %></div></div>
+</div>
+
+<div class="grid grid-2">
+  <section class="panel"><div class="panel-head"><h2><%= t('crm.chart_weekly') %></h2></div><div class="panel-body"><%- weekly %></div></section>
+  <section class="panel"><div class="panel-head"><h2><%= t('crm.by_stage') %></h2><a class="btn btn-ghost btn-sm" href="/admin/crm/pipeline"><%= t('crm.pipeline') %></a></div><div class="panel-body"><%- stageBars %></div></section>
+</div>
+
+<div class="grid grid-2 mt-6">
+  <section class="panel"><div class="panel-head"><h2><%= t('crm.by_source') %></h2></div>
+    <div class="table-wrap"><table class="table"><thead><tr><th><%= t('crm.source') %></th><th class="text-end"><%= t('crm.contacts') %></th><th class="text-end"><%= t('crm.registered_count') %></th><th class="text-end"><%= sN('subscribed') %></th><th class="text-end"><%= t('crm.rate') %></th></tr></thead>
+    <tbody><% if (!dash.bySource.length) { %><tr><td colspan="5" class="muted"><%= t('crm.no_data') %></td></tr><% } %><% dash.bySource.forEach(function (r) { %><tr><td><%= t('crm.src_' + r.source) %></td><td class="text-end num"><%= r.contacts %></td><td class="text-end num"><%= r.registered %></td><td class="text-end num"><%= r.subscribed %></td><td class="text-end num"><%= r.contacts ? Math.round(r.subscribed / r.contacts * 100) + '%' : '—' %></td></tr><% }) %></tbody></table></div></section>
+  <section class="panel"><div class="panel-head"><h2><%= t('crm.by_team') %></h2></div>
+    <div class="table-wrap"><table class="table"><thead><tr><th><%= t('crm.member') %></th><th class="text-end"><%= t('crm.owned') %></th><th class="text-end"><%= t('crm.sent') %></th><th class="text-end"><%= t('crm.logged') %></th><th class="text-end"><%= t('crm.open_followups') %></th><th class="text-end"><%= sN('subscribed') %></th></tr></thead>
+    <tbody><% dash.byOwner.forEach(function (r) { %><tr><td><a href="/admin/crm/contacts?owner=<%= r.id %>"><%= r.name %></a></td><td class="text-end num"><%= r.owned %></td><td class="text-end num"><%= r.sent %></td><td class="text-end num"><%= r.logged %></td><td class="text-end num"><%= r.open_followups %></td><td class="text-end num"><%= r.subscribed %></td></tr><% }) %></tbody></table></div></section>
+</div>
+
+<section class="panel mt-6" id="ai">
+  <div class="panel-head"><div><h2><%- icon('sparkles', 'icon-sm') %> <%= t('crm.insights') %></h2><div class="panel-sub"><%= t('crm.insights_sub') %></div></div>
+    <form method="post" action="/admin/crm/insights"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><button class="btn btn-secondary btn-sm" type="submit" data-busy-label="<%= t('ai.working') %>"><%- icon('sparkles', 'icon-sm') %><%= t('crm.ai_prioritise') %></button></form></div>
+  <div class="panel-body">
+    <% if (aiLast && aiLast.result) { %>
+      <div class="alert alert-info mb-4"><%- icon('sparkles') %><div class="grow small"><strong><%= t('crm.ai_overview') %>:</strong> <%= aiLast.result.overview %> <span class="muted">· <%= fmt.date(aiLast.at, { dateStyle: 'medium', timeStyle: 'short' }) %></span></div></div>
+    <% } %>
+    <div class="grid grid-2">
+      <% [['needFollowUp', 'need_follow_up'], ['likelyToSubscribe', 'likely_to_subscribe'], ['mostEngaged', 'most_engaged'], ['disengaged', 'disengaged']].forEach(function (g) {
+        var aiGroup = aiLast && aiLast.result ? (aiLast.result.groups.find(function (x) { return x.key === g[1]; }) || null) : null;
+        var aiBy = {}; if (aiGroup) aiGroup.items.forEach(function (i) { aiBy[i.contact.id] = i; }); %>
+        <div class="insight-box"><div class="label"><%= t('crm.ins_' + g[1]) %> <span class="muted">(<%= rules[g[0]].length %>)</span></div>
+          <% if (!rules[g[0]].length) { %><p class="muted small"><%= t('crm.none') %></p><% } %>
+          <ul class="plain-list small"><% rules[g[0]].slice(0, 6).forEach(function (c) { var a = aiBy[c.id]; %>
+            <li><a href="/admin/crm/contacts/<%= c.id %>"><strong><%= c.name %></strong></a> <%- include('../../../partials/crm-stage', { color: c.stage_color, name: locale === 'ar' && c.stage_name_ar ? c.stage_name_ar : c.stage_name }) %>
+              <span class="muted"> · <%= t('crm.engagement_n', { n: c.score }) %><%= c.contact_days != null ? ' · ' + t('crm.contacted_days', { n: c.contact_days }) : ' · ' + t('crm.never_contacted') %></span>
+              <% if (a) { %><div class="ai-note"><%- icon('sparkles', 'icon-sm') %> <%= a.reason %><%= a.action ? ' → ' + a.action : '' %></div><% } %></li>
+          <% }) %></ul></div>
+      <% }) %>
+    </div>
+    <p class="muted tiny mt-3"><%= t('crm.ai_note') %></p>
+  </div>
+</section>
+
+<section class="panel mt-6">
+  <div class="panel-head"><h2><%= t('crm.my_followups') %></h2><a class="btn btn-ghost btn-sm" href="/admin/crm/followups"><%= t('common.view_all') %></a></div>
+  <% if (!mine.length) { %><div class="empty"><p><%= t('crm.no_followups') %></p></div><% } else { %>
+  <div class="table-wrap"><table class="table"><tbody><% mine.forEach(function (fu) { var late = new Date(fu.due_at) < new Date(); %>
+    <tr class="row-link" data-href="/admin/crm/contacts/<%= fu.contact_id %>"><td><a href="/admin/crm/contacts/<%= fu.contact_id %>"><strong><%= fu.contact_name %></strong></a><div class="muted small"><%= fu.note || '' %></div></td>
+    <td class="nowrap<%= late ? ' text-danger' : '' %>"><%= fmt.date(fu.due_at, { dateStyle: 'medium', timeStyle: 'short' }) %></td></tr>
+  <% }) %></tbody></table></div><% } %>
+</section>

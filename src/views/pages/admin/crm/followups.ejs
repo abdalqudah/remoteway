@@ -1,0 +1,20 @@
+<%- include('_tabs') %>
+<div class="row-sm wrap mb-4">
+  <% [['me', 'open'], ['me', 'overdue'], ['all', 'open'], ['all', 'overdue'], ['all', 'all']].forEach(function (o) { %>
+    <a class="btn btn-sm <%= who === o[0] && scope === o[1] ? 'btn-dark' : 'btn-ghost' %>" href="?who=<%= o[0] %>&scope=<%= o[1] %>"><%= t('crm.fu_filter_' + o[0] + '_' + o[1]) %></a>
+  <% }) %>
+</div>
+<section class="panel">
+  <% if (!list.length) { %><div class="empty"><span class="empty-icon"><%- icon('clock') %></span><p><%= t('crm.no_followups') %></p></div><% } else { %>
+  <div class="table-wrap"><table class="table">
+    <thead><tr><th><%= t('crm.due_at') %></th><th><%= t('crm.contact') %></th><th><%= t('crm.notes') %></th><th><%= t('crm.assigned_to') %></th><th><%= t('fields.status') %></th><th class="actions"></th></tr></thead>
+    <tbody><% list.forEach(function (fu) { var late = fu.status === 'open' && new Date(fu.due_at) < new Date(); %><tr>
+      <td class="nowrap<%= late ? ' text-danger' : '' %>"><%= fmt.date(fu.due_at, { dateStyle: 'medium', timeStyle: 'short' }) %></td>
+      <td><a href="/admin/crm/contacts/<%= fu.contact_id %>"><strong><%= fu.contact_name %></strong></a><div class="muted small"><%= fu.company_name || '' %><%= fu.phone ? ' · +' + fu.phone : '' %></div></td>
+      <td class="small"><%= fu.note || '—' %></td>
+      <td class="small"><%= fu.assignee_name || '—' %></td>
+      <td><span class="st st-<%= fu.status === 'done' ? 'approved' : fu.status === 'cancelled' ? 'rejected' : 'pending' %>"><%= t('crm.fu_' + fu.status) %></span></td>
+      <td class="actions"><% if (fu.status === 'open') { %><form method="post" action="/admin/crm/followups/<%= fu.id %>/status" class="row-sm" style="justify-content:flex-end"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><input type="hidden" name="back" value="<%= fullPath %>">
+        <button class="btn btn-secondary btn-sm" type="submit" name="status" value="done"><%- icon('check', 'icon-sm') %><%= t('crm.mark_done') %></button><button class="btn btn-ghost btn-sm" type="submit" name="status" value="cancelled"><%= t('common.cancel') %></button></form><% } %></td>
+    </tr><% }) %></tbody></table></div><% } %>
+</section>

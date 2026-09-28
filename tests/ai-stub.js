@@ -26,6 +26,11 @@ function defaultReply(prompt) {
   if (prompt.includes('Summarise this HR document')) return { summary: 'An employment contract for one year.', document_type: 'Employment contract', parties: ['Employer', 'Employee'], key_dates: [{ label: 'Start', date: '2026-01-01' }, { label: 'End', date: '2026-12-31' }], issue_date: '2026-01-01', expiry_date: '2026-12-31', notes: ['60 days notice'] };
   if (prompt.includes('Draft the written summary')) return { summary: 'You delivered your goals this period.', strengths: '- Reliable delivery', improvements: '- Share progress earlier' };
   if (prompt.includes('multiple-choice questions')) return { questions: [{ question: 'What is the pass mark?', options: ['50%', '70%', '90%', '100%'], correct_index: 1 }, { question: 'Who approves leave?', options: ['HR', 'Manager', 'Finance', 'IT'], correct_index: 1 }] };
+  if (prompt.includes('RemoteWay sales and success team')) return { summary: 'Registered a company and asked about pricing.', interest_level: 'high', next_action: 'Call to walk through the Business plan', suggested_message: 'Hi {{first_name}}, shall we book 15 minutes this week?', risks: ['Budget not confirmed'] };
+  if (prompt.includes('prioritise their CRM')) {
+    const refs = [...prompt.matchAll(/^(P\d+):/gm)].map((m) => m[1]);
+    return { overview: 'Most activity comes from new sign-ups.', groups: [{ key: 'likely_to_subscribe', items: refs.slice(0, 2).map((ref) => ({ ref, reason: 'Recent activity', action: 'Offer a demo' })) }, { key: 'need_follow_up', items: refs.slice(0, 1).map((ref) => ({ ref, reason: 'No contact yet', action: 'Call today' })) }] };
+  }
   if (prompt.includes('A company describes who it is looking for')) {
     const refs = [...prompt.matchAll(/### (C\d+)\nHeadline: ([^|]+)/g)].map((m) => [m[1], m[2].trim()]);
     return { results: refs.slice(0, 6).map(([ref, head], i) => ({ ref, match: 90 - i * 8, reason: `Relevant background as ${head}.`, matched_skills: [], experience: 'Relevant hands-on experience', gaps: i ? ['One requested skill not shown'] : [] })) };

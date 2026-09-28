@@ -1,0 +1,31 @@
+<%- include('_tabs') %>
+<form class="filter-bar mb-4" method="get" action="/admin/crm/contacts">
+  <input class="input" type="search" name="q" value="<%= f.q || '' %>" placeholder="<%= t('crm.search_ph') %>" aria-label="<%= t('common.search') %>">
+  <select class="select" name="stage_id" aria-label="<%= t('crm.stage') %>"><option value=""><%= t('crm.any_stage') %></option><% crmStages.forEach(function (s) { %><option value="<%= s.id %>"<%= String(f.stage_id) === String(s.id) ? ' selected' : '' %>><%= stName(s) %></option><% }) %></select>
+  <select class="select" name="owner" aria-label="<%= t('crm.owner') %>"><option value=""><%= t('crm.any_owner') %></option><option value="none"<%= f.owner === 'none' ? ' selected' : '' %>><%= t('crm.unassigned') %></option><% crmTeam.forEach(function (u) { %><option value="<%= u.id %>"<%= String(f.owner) === String(u.id) ? ' selected' : '' %>><%= u.name %></option><% }) %></select>
+  <select class="select" name="source" aria-label="<%= t('crm.source') %>"><option value=""><%= t('crm.any_source') %></option><% crmSources.forEach(function (s) { %><option value="<%= s %>"<%= f.source === s ? ' selected' : '' %>><%= t('crm.src_' + s) %></option><% }) %></select>
+  <select class="select" name="kind" aria-label="<%= t('crm.kind') %>"><option value=""><%= t('crm.any_kind') %></option><% crmKinds.forEach(function (s) { %><option value="<%= s %>"<%= f.kind === s ? ' selected' : '' %>><%= t('crm.kind_' + s) %></option><% }) %></select>
+  <select class="select" name="follow" aria-label="<%= t('crm.followups') %>"><option value=""><%= t('crm.any_followup') %></option><option value="due"<%= f.follow === 'due' ? ' selected' : '' %>><%= t('crm.follow_due') %></option><option value="none"<%= f.follow === 'none' ? ' selected' : '' %>><%= t('crm.follow_none') %></option></select>
+  <label class="field-inline"><span class="label"><%= t('crm.from') %></span><input class="input" type="date" name="from" value="<%= f.from || '' %>"></label>
+  <label class="field-inline"><span class="label"><%= t('crm.to') %></span><input class="input" type="date" name="to" value="<%= f.to || '' %>"></label>
+  <select class="select" name="sort" aria-label="<%= t('crm.sort') %>"><% [['', 'sort_updated'], ['created', 'sort_created'], ['last_contact', 'sort_contact'], ['follow_up', 'sort_follow'], ['name', 'sort_name']].forEach(function (o) { %><option value="<%= o[0] %>"<%= (f.sort || '') === o[0] ? ' selected' : '' %>><%= t('crm.' + o[1]) %></option><% }) %></select>
+  <button class="btn btn-dark" type="submit"><%- icon('search', 'icon-sm') %><%= t('common.search') %></button>
+</form>
+<div class="row between wrap mb-4"><span class="muted small"><%= t('crm.n_contacts', { n: fmt.number(result.total) }) %></span>
+  <div class="row-sm"><a class="btn btn-ghost btn-sm" href="?<%= new URLSearchParams(Object.assign({}, query, { format: 'csv' })).toString() %>"><%- icon('download', 'icon-sm') %><%= t('reports.export_csv') %></a>
+    <form method="post" action="/admin/crm/sync"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><button class="btn btn-ghost btn-sm" type="submit"><%- icon('history', 'icon-sm') %><%= t('crm.sync') %></button></form></div></div>
+<section class="panel">
+  <% if (!result.items.length) { %><div class="empty"><span class="empty-icon"><%- icon('users') %></span><p><%= t('crm.no_contacts') %></p></div><% } else { %>
+  <div class="table-wrap"><table class="table">
+    <thead><tr><th><%= t('fields.name') %></th><th><%= t('crm.stage') %></th><th><%= t('crm.source') %></th><th><%= t('crm.registered') %></th><th><%= t('crm.last_contact') %></th><th><%= t('crm.owner') %></th><th><%= t('crm.next_followup') %></th></tr></thead>
+    <tbody><% result.items.forEach(function (c) { var late = c.next_follow_up_at && new Date(c.next_follow_up_at) < new Date(); %><tr class="row-link" data-href="/admin/crm/contacts/<%= c.id %>">
+      <td><a href="/admin/crm/contacts/<%= c.id %>"><strong><%= c.name %></strong></a><div class="muted small"><span dir="ltr"><%= c.email || '' %></span><%= c.phone ? ' · +' + c.phone : '' %><%= c.company_name ? ' · ' + c.company_name : '' %></div><div class="muted tiny"><%= t('crm.kind_' + c.kind) %></div></td>
+      <td><%- include('../../../partials/crm-stage', { color: c.stage_color, name: locale === 'ar' && c.stage_name_ar ? c.stage_name_ar : c.stage_name }) %></td>
+      <td class="small"><%= t('crm.src_' + c.source) %></td>
+      <td class="small nowrap"><%= c.registered_at ? fmt.date(c.registered_at) : '—' %></td>
+      <td class="small"><%= c.last_contact_at ? fmt.date(c.last_contact_at) : '—' %><% if (c.last_contact_by_name) { %><div class="muted tiny"><%= c.last_contact_by_name %></div><% } %></td>
+      <td class="small"><%= c.owner_name || '—' %></td>
+      <td class="small nowrap<%= late ? ' text-danger' : '' %>"><%= c.next_follow_up_at ? fmt.date(c.next_follow_up_at, { dateStyle: 'medium', timeStyle: 'short' }) : '—' %></td>
+    </tr><% }) %></tbody></table></div>
+  <%- include('../../../partials/talent/pager', { total: result.total, page: result.page, perPage: result.perPage }) %><% } %>
+</section>

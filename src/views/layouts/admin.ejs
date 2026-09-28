@@ -8,6 +8,7 @@
     <div class="org-switch" style="margin:12px"><div class="row" style="padding:8px 10px;border:1px solid var(--border);border-radius:var(--radius);background:var(--surface-2)"><span class="org-mark"><%- icon('gauge', 'icon-sm') %></span><span><span class="org-name" style="display:block"><%= t('admin.title') %></span><span class="org-plan"><%= typeof platformRole !== 'undefined' && platformRole ? t('admin.role_' + platformRole) : t('admin.subtitle') %></span></span></div></div>
     <nav class="nav">
       <a href="/admin" class="<%= adminSection === 'overview' ? 'active' : '' %>"><%- icon('layout-dashboard') %><%= t('admin.overview') %></a>
+      <% if (_can('crm')) { %><a href="/admin/crm" class="<%= adminSection === 'crm' ? 'active' : '' %>"><%- icon('users') %><%= t('crm.title') %></a><% } %>
       <% if (_can('organizations')) { %><a href="/admin/organizations" class="<%= adminSection === 'organizations' ? 'active' : '' %>"><%- icon('building-2') %><%= t('admin.organizations') %></a><% } %>
       <% if (_can('plans')) { %><a href="/admin/plans" class="<%= adminSection === 'plans' ? 'active' : '' %>"><%- icon('layers') %><%= t('admin.plans') %></a><% } %>
       <% if (_can('invoices')) { %><a href="/admin/invoices" class="<%= adminSection === 'invoices' ? 'active' : '' %>"><%- icon('receipt') %><%= t('admin.invoices') %></a><% } %>

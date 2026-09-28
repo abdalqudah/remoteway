@@ -118,6 +118,7 @@ async function apply(user, job, { cover_note: coverNote } = {}) {
   const applicationId = await recruitment.addToJob(ctx, candidate.id, job.id, { coverNote: note, source: 'remoteway' });
   await knex('talent_invitations').where({ organization_id: orgId, profile_id: p.id, status: 'sent' }).where((w) => w.where('job_id', job.id).orWhereNull('job_id'))
     .update({ status: 'applied', responded_at: new Date() });
+  await require('../crm/crm.service').track('applied', { userId: user.id, jobTitle: job.title, company: job.org_name }); // eslint-disable-line global-require
   await audit.record({ organizationId: null, userId: user.id }, 'talent.applied', { entityType: 'job', entityId: job.id, newValues: { organization_id: orgId } });
   return applicationId;
 }

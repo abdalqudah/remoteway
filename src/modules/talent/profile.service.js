@@ -89,6 +89,7 @@ async function refresh(profileId, trx = knex) {
   const c = completion(row);
   const computed = computeYears(row.experience);
   await trx('talent_profiles').where({ id: profileId }).update({ completion: c.percent, computed_years: computed, updated_at: new Date() });
+  if (row.completion < 80 && c.percent >= 80) await require('../crm/crm.service').track('profile_completed', { userId: row.user_id, completion: c.percent }); // eslint-disable-line global-require
 }
 
 // ---------- Accounts ----------
@@ -101,12 +102,14 @@ const signupSchema = z.object({
 async function signup(input, { ip } = {}) {
   const d = validate(signupSchema, input);
   if (await knex('users').where({ email: d.email }).first('id')) throw E.conflict('EMAIL_TAKEN', 'An account with this email already exists. Sign in instead.');
-  return knex.transaction(async (trx) => {
+  const user = await knex.transaction(async (trx) => {
     const [userId] = await trx('users').insert({ name: d.name, email: d.email, password_hash: await bcrypt.hash(d.password, config.bcryptRounds) });
     await trx('talent_profiles').insert({ user_id: userId, slug: await uniqueSlug(d.name), skills: '[]', education: '[]', experience: '[]', certifications: '[]', projects: '[]', languages: '[]', preferences: '{}' });
     await audit.record({ organizationId: null, userId, ip }, 'talent.signup', { entityType: 'user', entityId: userId }, trx);
     return trx('users').where({ id: userId }).first();
   });
+  await require('../crm/crm.service').track('individual_signup', { userId: user.id }); // eslint-disable-line global-require
+  return user;
 }
 
 /** An existing user (e.g. a company member) starts a profile. */

@@ -82,6 +82,8 @@ async function issueInvoice(trx, { organizationId, subscriptionId, cycle, items,
   await trx('invoice_items').insert(items.map((i) => ({
     invoice_id: invoiceId, description: i.description, quantity: i.quantity, unit_price: i.unit_price, amount: round2(i.unit_price * i.quantity),
   })));
+  const { number } = await trx('invoices').where({ id: invoiceId }).first('number');
+  await require('../crm/crm.service').track('subscription_started', { organizationId, invoiceNumber: number }, trx); // eslint-disable-line global-require
   return invoiceId;
 }
 
@@ -217,6 +219,7 @@ async function markInvoicePaidTrx(trx, ctx, invoiceId, reference) {
   await audit.record({ ...ctx, organizationId: invoice.organization_id }, 'invoice.paid', {
     entityType: 'invoice', entityId: invoiceId, newValues: { payment_reference: reference || null },
   }, trx);
+  await require('../crm/crm.service').track('subscription_paid', { organizationId: invoice.organization_id, invoiceNumber: invoice.number }, trx); // eslint-disable-line global-require
   ent.invalidate(invoice.organization_id);
 }
 

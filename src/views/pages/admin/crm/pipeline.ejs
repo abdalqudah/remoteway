@@ -1,0 +1,29 @@
+<%- include('_tabs') %>
+<form class="filter-bar mb-4" method="get" action="/admin/crm/pipeline">
+  <input class="input" type="search" name="q" value="<%= f.q || '' %>" placeholder="<%= t('crm.search_ph') %>" aria-label="<%= t('common.search') %>">
+  <select class="select" name="owner" aria-label="<%= t('crm.owner') %>"><option value=""><%= t('crm.any_owner') %></option><option value="none"<%= f.owner === 'none' ? ' selected' : '' %>><%= t('crm.unassigned') %></option><% crmTeam.forEach(function (u) { %><option value="<%= u.id %>"<%= String(f.owner) === String(u.id) ? ' selected' : '' %>><%= u.name %></option><% }) %></select>
+  <select class="select" name="source" aria-label="<%= t('crm.source') %>"><option value=""><%= t('crm.any_source') %></option><% crmSources.forEach(function (s) { %><option value="<%= s %>"<%= f.source === s ? ' selected' : '' %>><%= t('crm.src_' + s) %></option><% }) %></select>
+  <button class="btn btn-dark" type="submit"><%- icon('filter', 'icon-sm') %><%= t('crm.apply') %></button>
+</form>
+<p class="muted small mb-4"><%= t('crm.drag_hint') %></p>
+<div class="board board-pipeline crm-board" data-board data-endpoint="/admin/crm/contacts/:id/stage" data-field="stage_id">
+  <% cols.forEach(function (col) { %>
+  <div class="board-col" data-status="<%= col.stage.id %>">
+    <div class="board-head"><%- include('../../../partials/crm-stage', { color: col.stage.color, name: stName(col.stage) }) %><span class="muted small"><%= col.total %></span></div>
+    <div class="board-list">
+      <% col.items.forEach(function (c) { var late = c.next_follow_up_at && new Date(c.next_follow_up_at) < new Date(); %>
+      <article class="task-card" draggable="true" data-id="<%= c.id %>">
+        <a class="t" href="/admin/crm/contacts/<%= c.id %>"><%= c.name %></a>
+        <div class="tiny muted mt-1 truncate"><%= c.company_name || c.email || (c.phone ? '+' + c.phone : '') %></div>
+        <div class="meta">
+          <span><%= c.owner_name ? initials(c.owner_name) : '—' %></span>
+          <% if (c.next_follow_up_at) { %><span class="<%= late ? 'text-danger' : '' %>"><%- icon('clock', 'icon-sm') %> <%= fmt.date(c.next_follow_up_at, { day: 'numeric', month: 'short' }) %></span><% } %>
+          <span style="margin-inline-start:auto"><%= t('crm.src_' + c.source) %></span>
+        </div>
+      </article>
+      <% }) %>
+      <% if (col.total > col.items.length) { %><a class="muted small" href="/admin/crm/contacts?stage_id=<%= col.stage.id %>"><%= t('crm.more_n', { n: col.total - col.items.length }) %></a><% } %>
+    </div>
+  </div>
+  <% }) %>
+</div>

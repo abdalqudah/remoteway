@@ -1,0 +1,26 @@
+<section class="section" style="border-top:0">
+  <div class="container" style="max-width:720px">
+    <div class="section-head"><h1 class="h-display"><%= t('crm.demo_title') %></h1><p><%= t('crm.demo_lead') %></p></div>
+    <% if (sent) { %><div class="alert alert-success"><%- icon('circle-check') %><div class="grow"><div class="alert-title"><%= t('crm.demo_thanks') %></div><div class="small text-2"><%= t('crm.demo_thanks_text') %></div></div></div>
+    <% } else { %>
+    <form class="panel" method="post" action="/demo" novalidate>
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+      <div class="panel-body stack">
+        <% if (formError) { %><div class="alert alert-error"><%- icon('circle-alert') %><div class="grow small"><%= Object.values(errors || {})[0] || formError.message %></div></div><% } %>
+        <div class="form-grid">
+          <%- include('../../partials/field', { name: 'name', label: t('fields.full_name'), required: true }) %>
+          <%- include('../../partials/field', { name: 'company_name', label: t('talent.company') }) %>
+          <%- include('../../partials/field', { name: 'email', label: t('fields.work_email'), type: 'email', required: true, attrs: 'dir="ltr"' }) %>
+          <%- include('../../partials/field', { name: 'phone', label: t('fields.phone'), placeholder: '05xxxxxxxx', attrs: 'dir="ltr"' }) %>
+          <%- include('../../partials/field', { name: 'company_size', label: t('crm.company_size'), type: 'select', placeholder: '—', options: ['1-10', '11-50', '51-200', '201-500', '500+'].map(function (x) { return { value: x, label: x }; }) }) %>
+          <%- include('../../partials/field', { name: 'city', label: t('fields.city') }) %>
+        </div>
+        <%- include('../../partials/field', { name: 'message', label: t('crm.demo_message'), type: 'textarea' }) %>
+        <div class="hp-field" aria-hidden="true"><label>Website<input name="website" tabindex="-1" autocomplete="off"></label></div>
+        <input type="hidden" name="locale" value="<%= locale %>">
+        <button class="btn btn-primary btn-lg" type="submit"><%= t('crm.demo_submit') %></button>
+        <p class="muted tiny"><%= t('crm.demo_privacy') %></p>
+      </div>
+    </form><% } %>
+  </div>
+</section>

@@ -1,0 +1,164 @@
+<%- include('_tabs') %>
+<%
+  var s = c.signals; var a = c.ai_summary;
+  var icons = { note: 'pencil', call: 'phone', meeting: 'users', email: 'mail', sms: 'message-square', whatsapp: 'message-square', stage_change: 'arrow-right', registration: 'user-plus', profile_completed: 'badge-check',
+    applied: 'briefcase', subscription_started: 'receipt', subscription_paid: 'credit-card', follow_up: 'clock', follow_up_done: 'circle-check', assigned: 'user-cog', demo_request: 'sparkles', system: 'info' };
+  var tpl = function (ch) { return templates.filter(function (x) { return x.channel === ch; }); };
+  var err = errors || {};
+%>
+<div class="crm-head panel mb-6"><div class="panel-body row between wrap" style="gap:16px">
+  <div class="row-sm" style="align-items:flex-start">
+    <span class="avatar avatar-lg"><%= initials(c.name) %></span>
+    <div><h2 style="font-size:22px"><%= c.name %></h2>
+      <div class="muted small"><%= c.job_title ? c.job_title + ' · ' : '' %><%= c.company_name || '' %></div>
+      <div class="row-sm wrap mt-2"><%- include('../../../partials/crm-stage', { color: c.stage_color, name: locale === 'ar' && c.stage_name_ar ? c.stage_name_ar : c.stage_name }) %>
+        <span class="tag"><%= t('crm.kind_' + c.kind) %></span><span class="tag"><%= t('crm.src_' + c.source) %></span><% c.tags.forEach(function (tg) { %><span class="tag"><%= tg %></span><% }) %></div></div>
+  </div>
+  <div class="row-sm wrap">
+    <% if (c.email) { %><a class="btn btn-ghost btn-sm" href="mailto:<%= c.email %>" dir="ltr"><%- icon('mail', 'icon-sm') %><%= c.email %></a><% } %>
+    <% if (c.phone) { %><a class="btn btn-ghost btn-sm" href="tel:+<%= c.phone %>" dir="ltr"><%- icon('phone', 'icon-sm') %>+<%= c.phone %></a><% } %>
+    <a class="btn btn-secondary btn-sm" href="/admin/crm/contacts/<%= c.id %>/edit"><%- icon('pencil', 'icon-sm') %><%= t('common.edit') %></a>
+    <% if (crmCanManage) { %><form method="post" action="/admin/crm/contacts/<%= c.id %>/delete" data-confirm="<%= t('crm.confirm_delete') %>"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><button class="btn btn-danger-ghost btn-sm" type="submit"><%- icon('trash-2', 'icon-sm') %></button></form><% } %>
+  </div>
+</div></div>
+
+<div class="grid grid-3" style="align-items:start">
+  <div class="span-2 stack-lg">
+    <!-- Communication centre -->
+    <section class="panel" id="compose">
+      <nav class="tabs" style="padding:0 16px" aria-label="<%= t('crm.communication') %>">
+        <% ['email', 'sms', 'whatsapp', 'note', 'followup'].forEach(function (x) { %><a href="?tab=<%= x %>#compose" class="<%= tab === x ? 'active' : '' %>"><%= t('crm.tab_' + x) %></a><% }) %>
+      </nav>
+      <div class="panel-body stack">
+        <% if (formError) { %><div class="alert alert-error"><%- icon('circle-alert') %><div class="grow small"><%= Object.values(err)[0] || formError.message %></div></div><% } %>
+        <% if (tab === 'email') { %>
+          <% if (!channels.email) { %><div class="alert alert-warning"><%- icon('info') %><div class="grow small"><%= t('crm.email_off') %></div></div><% } %>
+          <% if (c.opt_out_email) { %><div class="alert alert-warning"><%- icon('lock') %><div class="grow small"><%= t('crm.opted_out') %></div></div><% } %>
+          <form method="post" action="/admin/crm/contacts/<%= c.id %>/email" class="stack">
+            <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+            <% if (tpl('email').length) { %><select class="select" data-template-select aria-label="<%= t('crm.template') %>"><option value=""><%= t('crm.use_template') %></option><% tpl('email').forEach(function (x) { %><option value="<%= x.id %>" data-subject="<%= x.subject || '' %>" data-body="<%= x.body %>"><%= x.name %></option><% }) %></select><% } %>
+            <input class="input" name="subject" placeholder="<%= t('crm.subject') %>" aria-label="<%= t('crm.subject') %>" value="<%= (old && old.subject) || '' %>">
+            <textarea class="textarea" name="body" rows="6" placeholder="<%= t('crm.message_ph') %>" aria-label="<%= t('crm.message') %>"><%= (old && old.body) || '' %></textarea>
+            <div class="row between wrap"><span class="help"><%= t('crm.placeholders') %></span><button class="btn btn-dark" type="submit"<%= !c.email || c.opt_out_email ? ' disabled' : '' %>><%- icon('send') %><%= t('crm.send_email') %></button></div>
+          </form>
+        <% } else if (tab === 'sms') { %>
+          <% if (!channels.sms) { %><div class="alert alert-warning"><%- icon('info') %><div class="grow small"><%= t('crm.sms_off') %></div></div><% } %>
+          <form method="post" action="/admin/crm/contacts/<%= c.id %>/sms" class="stack">
+            <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+            <% if (tpl('sms').length) { %><select class="select" data-template-select aria-label="<%= t('crm.template') %>"><option value=""><%= t('crm.use_template') %></option><% tpl('sms').forEach(function (x) { %><option value="<%= x.id %>" data-body="<%= x.body %>"><%= x.name %></option><% }) %></select><% } %>
+            <textarea class="textarea" name="body" rows="4" maxlength="900" placeholder="<%= t('crm.message_ph') %>" aria-label="<%= t('crm.message') %>"></textarea>
+            <div class="row between wrap"><span class="help"><%= t('crm.placeholders') %></span><button class="btn btn-dark" type="submit"<%= !c.phone || c.opt_out_sms || !channels.sms ? ' disabled' : '' %>><%- icon('send') %><%= t('crm.send_sms') %></button></div>
+          </form>
+        <% } else if (tab === 'whatsapp') { %>
+          <% if (!channels.whatsapp) { %><div class="alert alert-warning"><%- icon('info') %><div class="grow small"><%= t('crm.wa_off') %><% if (c.phone) { %> <a href="https://wa.me/<%= c.phone %>" target="_blank" rel="noopener"><%= t('crm.wa_open_manual') %></a><% } %></div></div><% } else { %>
+          <div class="alert <%= waWindow ? 'alert-success' : 'alert-info' %>"><%- icon(waWindow ? 'circle-check' : 'clock') %><div class="grow small"><%= waWindow ? t('crm.wa_window_open') : t('crm.wa_window_closed') %></div></div><% } %>
+          <form method="post" action="/admin/crm/contacts/<%= c.id %>/whatsapp" class="stack">
+            <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+            <select class="select" name="template_id" aria-label="<%= t('crm.template') %>"><option value=""><%= waWindow ? t('crm.free_text') : t('crm.choose_wa_template') %></option><% tpl('whatsapp').forEach(function (x) { %><option value="<%= x.id %>"><%= x.name %><%= x.wa_template ? ' (' + x.wa_template + ')' : '' %></option><% }) %></select>
+            <textarea class="textarea" name="body" rows="4" placeholder="<%= t('crm.message_ph') %>" aria-label="<%= t('crm.message') %>"<%= waWindow ? '' : ' disabled' %>></textarea>
+            <div class="row between wrap"><span class="help"><%= t('crm.wa_help') %></span><button class="btn btn-dark" type="submit"<%= !c.phone || c.opt_out_whatsapp || !channels.whatsapp ? ' disabled' : '' %>><%- icon('send') %><%= t('crm.send_whatsapp') %></button></div>
+          </form>
+        <% } else if (tab === 'note') { %>
+          <form method="post" action="/admin/crm/contacts/<%= c.id %>/note" class="stack">
+            <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+            <div class="row-sm wrap"><% ['note', 'call', 'meeting'].forEach(function (x, i) { %><label class="check provider-choice"><input type="radio" name="type" value="<%= x %>"<%= i === 0 ? ' checked' : '' %>><%= t('crm.act_' + x) %></label><% }) %></div>
+            <input class="input" name="subject" placeholder="<%= t('crm.subject_optional') %>" aria-label="<%= t('crm.subject') %>">
+            <textarea class="textarea" name="body" rows="4" placeholder="<%= t('crm.note_ph') %>" aria-label="<%= t('crm.notes') %>"></textarea>
+            <div><button class="btn btn-dark" type="submit"><%= t('crm.log') %></button></div>
+          </form>
+        <% } else { %>
+          <form method="post" action="/admin/crm/contacts/<%= c.id %>/followups" class="stack">
+            <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+            <div class="form-grid">
+              <div class="field"><label class="label" for="f-due"><%= t('crm.due_at') %></label><input class="input" id="f-due" type="datetime-local" name="due_at" required></div>
+              <div class="field"><label class="label" for="f-assign"><%= t('crm.assigned_to') %></label><select class="select" id="f-assign" name="assigned_to"><% crmTeam.forEach(function (u) { %><option value="<%= u.id %>"<%= u.id === currentUser.id ? ' selected' : '' %>><%= u.name %></option><% }) %></select></div>
+            </div>
+            <textarea class="textarea" name="note" rows="3" placeholder="<%= t('crm.followup_ph') %>" aria-label="<%= t('crm.notes') %>"></textarea>
+            <label class="check"><input type="checkbox" name="remind" value="on" checked><%= t('crm.remind') %></label>
+            <div><button class="btn btn-dark" type="submit"><%- icon('clock') %><%= t('crm.add_followup') %></button></div>
+          </form>
+        <% } %>
+      </div>
+    </section>
+
+    <!-- Timeline -->
+    <section class="panel">
+      <div class="panel-head"><h2><%= t('crm.timeline') %></h2><span class="muted small"><%= t('crm.n_entries', { n: c.activities.length }) %></span></div>
+      <% if (!c.activities.length) { %><div class="empty"><p><%= t('crm.no_activity') %></p></div><% } else { %>
+      <ol class="crm-timeline"><% c.activities.forEach(function (x) { %>
+        <li class="<%= x.direction === 'in' ? 'is-in' : x.direction === 'out' ? 'is-out' : '' %>">
+          <span class="tl-icon"><%- icon(icons[x.type] || 'info', 'icon-sm') %></span>
+          <div class="grow" style="min-width:0">
+            <div class="small"><strong><%= t('crm.act_' + x.type) %></strong><% if (x.direction) { %> <span class="tag"><%= t('crm.dir_' + x.direction) %></span><% } %><% if (x.channel) { %> <span class="muted">· <%= t('crm.ch_' + x.channel) %></span><% } %><% if (x.status) { %> <span class="st st-<%= x.status === 'failed' ? 'rejected' : x.status === 'received' ? 'pending' : 'approved' %>"><%= t('crm.status_' + x.status) %></span><% } %></div>
+            <% if (x.subject) { %><div class="small" style="font-weight:600"><%= x.subject %></div><% } %>
+            <% if (x.body) { %><div class="prose small text-2"><%= x.body.length > 1200 ? x.body.slice(0, 1200) + '…' : x.body %></div><% } %>
+            <% if (x.meta && x.meta.error) { %><div class="small text-danger" dir="ltr"><%= x.meta.error %></div><% } %>
+            <div class="muted tiny"><%= fmt.date(x.created_at, { dateStyle: 'medium', timeStyle: 'short' }) %> · <%= x.user_name || t('crm.system') %></div>
+          </div>
+        </li>
+      <% }) %></ol><% } %>
+    </section>
+  </div>
+
+  <aside class="stack-lg">
+    <section class="panel"><div class="panel-head"><h2><%= t('crm.status_owner') %></h2></div><div class="panel-body stack">
+      <form method="post" action="/admin/crm/contacts/<%= c.id %>/stage" class="stack-sm">
+        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+        <label class="label" for="f-stage"><%= t('crm.stage') %></label>
+        <select class="select" id="f-stage" name="stage_id"><% crmStages.forEach(function (st) { %><option value="<%= st.id %>"<%= st.id === c.stage_id ? ' selected' : '' %>><%= stName(st) %></option><% }) %></select>
+        <input class="input" name="note" placeholder="<%= t('crm.stage_note') %>" aria-label="<%= t('crm.stage_note') %>">
+        <button class="btn btn-secondary btn-sm" type="submit"><%= t('crm.change_stage') %></button>
+      </form>
+      <form method="post" action="/admin/crm/contacts/<%= c.id %>/assign" class="stack-sm">
+        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+        <label class="label" for="f-owner"><%= t('crm.owner') %></label>
+        <select class="select" id="f-owner" name="owner_user_id"><option value=""><%= t('crm.unassigned') %></option><% crmTeam.forEach(function (u) { %><option value="<%= u.id %>"<%= u.id === c.owner_user_id ? ' selected' : '' %>><%= u.name %></option><% }) %></select>
+        <button class="btn btn-secondary btn-sm" type="submit"><%= t('crm.assign') %></button>
+      </form>
+      <dl class="dl small">
+        <dt><%= t('crm.last_contact') %></dt><dd><%= c.last_contact_at ? fmt.date(c.last_contact_at, { dateStyle: 'medium', timeStyle: 'short' }) + (c.last_contact_by_name ? ' · ' + c.last_contact_by_name : '') : '—' %></dd>
+        <dt><%= t('crm.last_inbound') %></dt><dd><%= c.last_inbound_at ? fmt.date(c.last_inbound_at, { dateStyle: 'medium', timeStyle: 'short' }) : '—' %></dd>
+        <dt><%= t('crm.registered') %></dt><dd><%= c.registered_at ? fmt.date(c.registered_at) : '—' %></dd>
+        <dt><%= t('crm.subscribed_at') %></dt><dd><%= c.subscribed_at ? fmt.date(c.subscribed_at) : '—' %></dd>
+        <dt><%= t('crm.created') %></dt><dd><%= fmt.date(c.created_at) %></dd>
+      </dl>
+    </div></section>
+
+    <section class="panel"><div class="panel-head"><h2><%= t('crm.followups') %></h2></div><div class="panel-body stack-sm">
+      <% if (!c.followups.length) { %><p class="muted small"><%= t('crm.no_followups') %></p><% } %>
+      <% c.followups.forEach(function (fu) { var late = fu.status === 'open' && new Date(fu.due_at) < new Date(); %>
+        <div class="fu-row<%= fu.status !== 'open' ? ' is-done' : '' %>"><div class="grow small"><strong class="<%= late ? 'text-danger' : '' %>"><%= fmt.date(fu.due_at, { dateStyle: 'medium', timeStyle: 'short' }) %></strong> · <%= fu.assignee_name || '—' %>
+          <% if (fu.note) { %><div class="text-2"><%= fu.note %></div><% } %><div class="muted tiny"><%= t('crm.fu_' + fu.status) %></div></div>
+          <% if (fu.status === 'open') { %><form method="post" action="/admin/crm/followups/<%= fu.id %>/status"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><input type="hidden" name="back" value="/admin/crm/contacts/<%= c.id %>"><button class="btn btn-ghost btn-sm" type="submit" name="status" value="done"><%- icon('check', 'icon-sm') %></button></form><% } %></div>
+      <% }) %>
+      <a class="btn btn-ghost btn-sm" href="?tab=followup#compose"><%- icon('plus', 'icon-sm') %><%= t('crm.add_followup') %></a>
+    </div></section>
+
+    <section class="panel"><div class="panel-head"><h2><%= t('crm.on_platform') %></h2></div><div class="panel-body">
+      <dl class="dl small">
+        <dt><%= t('crm.account') %></dt><dd><%= c.user_id ? t('crm.has_account') : t('crm.no_account') %></dd>
+        <% if (c.user_id) { %><dt><%= t('crm.last_login') %></dt><dd><%= s.last_login_at ? fmt.date(s.last_login_at, { dateStyle: 'medium', timeStyle: 'short' }) : t('crm.never') %></dd><% } %>
+        <% if (s.company) { %><dt><%= t('talent.company') %></dt><dd><a href="/admin/organizations/<%= c.organization_id %>"><%= s.company %></a></dd>
+          <dt><%= t('fields.plan') %></dt><dd><%= s.plan || '—' %> · <%= s.sub_status ? t('billing.status_' + s.sub_status) : '—' %></dd>
+          <dt><%= t('nav.employees') %></dt><dd class="num"><%= s.employees %></dd>
+          <dt><%= t('billing.invoices') %></dt><dd><%= t('crm.invoices_line', { open: s.invoices_open, paid: s.invoices_paid }) %></dd><% } %>
+        <% if (s.profile_completion != null) { %><dt><%= t('me.completion') %></dt><dd><a href="/talent/<%= s.profile_slug %>" target="_blank" rel="noopener"><%= s.profile_completion %>%</a></dd><dt><%= t('me.applications') %></dt><dd class="num"><%= s.applications %></dd><% } %>
+        <dt><%= t('crm.messages') %></dt><dd><%= t('crm.in_out', { i: s.inbound, o: s.outbound }) %></dd>
+      </dl>
+      <% if (c.notes) { %><div class="label mt-3"><%= t('crm.notes') %></div><div class="prose small"><%= c.notes %></div><% } %>
+    </div></section>
+
+    <section class="panel" id="ai"><div class="panel-head"><h2><%- icon('sparkles', 'icon-sm') %> <%= t('crm.ai_summary') %></h2>
+      <form method="post" action="/admin/crm/contacts/<%= c.id %>/summary"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><button class="btn btn-ghost btn-sm" type="submit" data-busy-label="<%= t('ai.working') %>"><%= a ? t('crm.refresh') : t('crm.summarize') %></button></form></div>
+      <div class="panel-body small stack-sm">
+        <% if (!a) { %><p class="muted"><%= t('crm.ai_summary_none') %></p><% } else { %>
+          <p><%= a.summary %></p>
+          <div><span class="label"><%= t('crm.interest') %>:</span> <%= t('crm.interest_' + a.interest_level) %></div>
+          <% if (a.next_action) { %><div><span class="label"><%= t('crm.next_action') %>:</span> <%= a.next_action %></div><% } %>
+          <% if (a.risks.length) { %><ul class="plain-list"><% a.risks.forEach(function (r) { %><li>⚠ <%= r %></li><% }) %></ul><% } %>
+          <% if (a.suggested_message) { %><div class="label"><%= t('crm.suggested_message') %></div><div class="suggest-box prose"><%= a.suggested_message %></div><% } %>
+          <p class="muted tiny"><%= t('crm.ai_note') %> · <%= fmt.date(c.ai_summary_at, { dateStyle: 'medium', timeStyle: 'short' }) %></p>
+        <% } %>
+      </div></section>
+  </aside>
+</div>

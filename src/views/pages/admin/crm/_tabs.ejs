@@ -1,0 +1,9 @@
+<div class="page-head"><div><h1><%= t('crm.title') %></h1><p><%= t('crm.sub') %></p></div>
+  <div class="page-actions"><a class="btn btn-dark" href="/admin/crm/contacts/new"><%- icon('user-plus') %><%= t('crm.new_contact') %></a></div></div>
+<nav class="tabs mb-6" aria-label="<%= t('crm.title') %>">
+  <a href="/admin/crm" class="<%= crmTab === 'dashboard' ? 'active' : '' %>"><%= t('crm.dashboard') %></a>
+  <a href="/admin/crm/contacts" class="<%= crmTab === 'contacts' ? 'active' : '' %>"><%= t('crm.contacts') %></a>
+  <a href="/admin/crm/pipeline" class="<%= crmTab === 'pipeline' ? 'active' : '' %>"><%= t('crm.pipeline') %></a>
+  <a href="/admin/crm/followups" class="<%= crmTab === 'followups' ? 'active' : '' %>"><%= t('crm.followups') %></a>
+  <% if (crmCanManage) { %><a href="/admin/crm/settings" class="<%= crmTab === 'settings' ? 'active' : '' %>"><%= t('crm.settings') %></a><% } %>
+</nav>

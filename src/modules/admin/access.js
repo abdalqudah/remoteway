@@ -3,7 +3,8 @@
 //   admin   — runs the platform (companies, plans, settings) but cannot manage the team or update the system
 //   finance — companies' subscriptions, invoices and payments
 //   support — reads companies and answers support tickets
-const ROLES = ['owner', 'admin', 'finance', 'support'];
+//   sales   — the internal CRM (contacts, pipeline, messages) and reads companies
+const ROLES = ['owner', 'admin', 'sales', 'finance', 'support'];
 const ALL = ROLES;
 const SECTIONS = {
   overview: ALL,
@@ -18,6 +19,7 @@ const SECTIONS = {
   jobs: ['owner', 'admin'],
   system: ['owner'],
   team: ['owner'],
+  crm: ['owner', 'admin', 'sales', 'support'],
 };
 // Changing things (POST) in these sections needs a narrower role than reading them.
 const WRITE = {
