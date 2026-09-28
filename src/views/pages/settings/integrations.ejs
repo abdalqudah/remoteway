@@ -1,0 +1,51 @@
+<%
+  var on = hasFeature('integrations');
+  var card = function (o) { %>
+  <a class="integration-card<%= o.locked ? ' is-locked' : '' %>" href="<%= o.href %>">
+    <span class="integration-logo" style="background:<%= o.bg %>"><%- icon(o.icon) %></span>
+    <span class="grow" style="min-width:0"><strong><%= o.title %></strong><span class="small muted" style="display:block"><%= o.text %></span></span>
+    <span class="st st-<%= o.state === 'on' ? 'approved' : o.state === 'warn' ? 'pending' : o.state === 'setup' ? 'in_progress' : 'todo' %>"><%= o.stateLabel %></span>
+  </a>
+<% }; %>
+<div class="page-head"><div><h1><%= t('nav.settings') %></h1><p><%= t('integrations.subtitle') %></p></div></div>
+<%- include('../../partials/settings-nav') %>
+<% if (!on) { %><div class="alert alert-warning mb-6"><%- icon('lock') %><div><%= t('integrations.locked') %><% if (can('billing.manage')) { %> <a class="link" href="/app/billing"><%= t('billing.upgrade_plan') %></a><% } %></div></div><% } %>
+
+<h2 class="section-title"><%= t('integrations.group_notify') %></h2>
+<div class="integration-grid mb-6">
+  <% card({ href: '/app/settings/integrations/sms', icon: 'phone', bg: 'var(--info-soft)', title: t('integrations.sms'), text: t('integrations.sms_text'), locked: !on,
+    state: sms && sms.is_active ? 'on' : 'off', stateLabel: sms ? (sms.is_active ? ({ taqnyat: 'Taqnyat', unifonic: 'Unifonic', msegat: 'Msegat' })[sms.provider] : t('integrations.paused')) : t('integrations.not_connected') }); %>
+  <% card({ href: '/app/settings/integrations/chat', icon: 'message-square', bg: 'var(--accent-soft)', title: t('integrations.chat'), text: t('integrations.chat_text'), locked: !on,
+    state: chat && chat.is_active ? 'on' : 'off', stateLabel: chat ? (chat.is_active ? ({ slack: 'Slack', google_chat: 'Google Chat' })[chat.provider] : t('integrations.paused')) : t('integrations.not_connected') }); %>
+  <% card({ href: currentUser.is_super_admin ? '/admin/email' : '#email', icon: 'mail', bg: 'var(--warning-soft)', title: t('integrations.email'), text: t('integrations.email_text'),
+    state: emailOn ? 'on' : 'warn', stateLabel: emailOn ? t('integrations.connected') : t('integrations.platform_setup') }); %>
+</div>
+
+<h2 class="section-title"><%= t('integrations.group_dev') %></h2>
+<div class="integration-grid mb-6">
+  <% card({ href: '/app/settings/integrations/webhooks/new', icon: 'zap', bg: 'var(--surface-sunken)', title: t('integrations.webhooks'), text: t('integrations.webhooks_text'), locked: !on,
+    state: hooks.some(function (h) { return h.is_active; }) ? 'on' : 'off', stateLabel: hooks.length ? t('integrations.n_endpoints', { n: hooks.length }) : t('integrations.not_connected') }); %>
+  <% card({ href: '/app/settings/api', icon: 'key-round', bg: 'var(--surface-sunken)', title: t('integrations.api'), text: t('integrations.api_text'),
+    state: hasFeature('api') ? 'on' : 'off', stateLabel: hasFeature('api') ? t('integrations.available') : t('integrations.in_higher_plan') }); %>
+  <% card({ href: '/app/settings/calendar', icon: 'calendar-days', bg: 'var(--info-soft)', title: t('integrations.calendar'), text: t('integrations.calendar_text'), locked: !on,
+    state: on ? 'on' : 'off', stateLabel: on ? t('integrations.available') : t('integrations.in_higher_plan') }); %>
+</div>
+
+<h2 class="section-title"><%= t('integrations.group_payments') %></h2>
+<div class="integration-grid mb-6">
+  <div class="integration-card is-static">
+    <span class="integration-logo" style="background:var(--inverse);color:var(--inverse-ink)"><%- icon('credit-card') %></span>
+    <span class="grow"><strong>PayWay</strong><span class="small muted" style="display:block"><%= t('integrations.payway_text') %></span></span>
+    <span class="st st-pending"><%= t('integrations.awaiting_docs') %></span>
+  </div>
+</div>
+
+<% if (hooks.length) { %>
+<section class="panel">
+  <div class="panel-head"><h2><%= t('integrations.webhooks') %></h2><a class="btn btn-secondary btn-sm" href="/app/settings/integrations/webhooks/new"><%- icon('plus', 'icon-sm') %><%= t('integrations.new_webhook') %></a></div>
+  <ul class="action-list"><% hooks.forEach(function (h) { %>
+    <li><a href="/app/settings/integrations/webhooks/<%= h.id %>"><span class="action-icon <%= h.is_active ? '' : 'danger' %>"><%- icon('zap', 'icon-sm') %></span><span class="grow small" style="min-width:0"><strong class="truncate" style="display:block" dir="ltr"><%= h.url %></strong><span class="muted"><%= h.description || '' %><%= h.description ? ' · ' : '' %><%= h.events[0] === '*' ? t('integrations.all_events') : t('integrations.n_events', { n: h.events.length }) %></span></span>
+      <span class="st st-<%= h.is_active ? 'approved' : 'rejected' %>"><%= h.is_active ? t('integrations.active') : t('integrations.disabled') %></span></a></li>
+  <% }) %></ul>
+</section>
+<% } %>

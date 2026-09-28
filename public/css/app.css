@@ -778,3 +778,18 @@ tr.row-error td { background: var(--danger-soft); }
 @media print { .certificate { box-shadow: none; padding: 0; } .cert-inner { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
 .certificate .logo-light { display: inline-block !important; }
 .certificate .logo-dark { display: none !important; }
+
+/* ---------- Integrations ---------- */
+.section-title { font-size: 13px; text-transform: uppercase; letter-spacing: .06em; color: var(--text-3); margin: 0 0 10px; }
+.integration-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 12px; }
+.integration-card { display: flex; gap: 14px; align-items: center; padding: 16px 18px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); color: inherit; box-shadow: var(--shadow-sm); }
+a.integration-card:hover { border-color: var(--accent); }
+.integration-card.is-locked { opacity: .6; }
+.integration-logo { width: 44px; height: 44px; border-radius: 12px; display: inline-flex; align-items: center; justify-content: center; flex: none; color: var(--text); }
+.event-groups { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 12px; }
+.event-group { border: 1px solid var(--border); border-radius: var(--radius); padding: 10px 12px; margin: 0; display: grid; gap: 4px; }
+.event-group legend { font-weight: 700; font-size: 12px; padding: 0 4px; }
+.provider-choice { border: 1px solid var(--border); border-radius: var(--radius); padding: 8px 14px; }
+
+/* The hidden attribute always wins over component display rules. */
+[hidden] { display: none !important; }

@@ -1,0 +1,42 @@
+<%
+  var s = setting || { provider: 'taqnyat', options: { events: ['leave_approved', 'leave_rejected', 'payslip_available'] }, masked: {}, is_active: true };
+  var prov = old.provider || s.provider;
+  var sel = old.events ? [].concat(old.events) : (s.options.events || []);
+  var fieldLabels = { token: t('integrations.f_token'), app_sid: 'AppSid', username: t('integrations.f_username'), api_key: t('integrations.f_api_key') };
+%>
+<div class="page-head"><div><div class="eyebrow"><a href="/app/settings/integrations"><%= t('integrations.title') %></a></div><h1><%= t('integrations.sms') %></h1><p><%= t('integrations.sms_sub') %></p></div></div>
+<% if (formError) { %><div class="alert alert-error mb-4"><%= Object.values(errors)[0] || formError.message %></div><% } %>
+<div class="grid grid-3">
+  <div class="span-2 stack-lg">
+    <form class="panel" method="post" action="/app/settings/integrations/sms" novalidate>
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+      <div class="panel-body stack">
+        <div class="field"><span class="label"><%= t('integrations.provider') %></span>
+          <div class="row-sm wrap"><% Object.keys(providers).forEach(function (k) { %><label class="check provider-choice"><input type="radio" name="provider" value="<%= k %>"<%= prov === k ? ' checked' : '' %> data-provider-radio><strong><%= providers[k].name %></strong></label><% }) %></div></div>
+        <% Object.keys(providers).forEach(function (k) { %>
+          <div class="form-grid" data-provider-fields="<%= k %>"<%= prov === k ? '' : ' hidden' %>>
+            <% providers[k].fields.forEach(function (f) { var saved = setting && setting.provider === k && setting.masked[f]; %>
+              <div class="field"><label class="label" for="sms-<%= k %>-<%= f %>"><%= fieldLabels[f] %></label><input class="input<%= errors[f] ? ' is-invalid' : '' %>" id="sms-<%= k %>-<%= f %>" name="<%= prov === k ? f : '' %>" data-name="<%= f %>" type="password" autocomplete="new-password" placeholder="<%= saved ? saved + ' (' + t('integrations.saved') + ')' : '' %>" dir="ltr">
+                <% if (errors[f] && prov === k) { %><span class="field-error"><%= errors[f] %></span><% } else { %><span class="help"><a class="link" href="<%= providers[k].docs %>" target="_blank" rel="noopener"><%= t('integrations.provider_docs', { name: providers[k].name }) %></a></span><% } %></div>
+            <% }) %>
+          </div>
+        <% }) %>
+        <%- include('../../partials/field', { name: 'sender', label: t('integrations.sender'), value: s.options.sender, attrs: 'maxlength="11" dir="ltr"', help: t('integrations.sender_help') }) %>
+        <div class="field"><span class="label"><%= t('integrations.sms_events') %></span><span class="help"><%= t('integrations.sms_events_help') %></span>
+          <div class="check-grid mt-2"><% smsEvents.forEach(function (ev) { %><label class="check small"><input type="checkbox" name="events" value="<%= ev %>"<%= sel.indexOf(ev) !== -1 ? ' checked' : '' %>><%= t('integrations.ev_' + ev) %></label><% }) %></div></div>
+        <label class="check"><input type="checkbox" name="is_active"<%= s.is_active ? ' checked' : '' %>><%= t('integrations.enabled') %></label>
+      </div>
+      <div class="panel-foot row-sm" style="justify-content:flex-end"><% if (setting) { %><button class="btn btn-danger-ghost btn-sm" type="submit" name="action" value="remove" formnovalidate><%= t('integrations.disconnect') %></button><% } %><button class="btn btn-dark btn-sm" type="submit"><%= t('common.save') %></button></div>
+    </form>
+    <%- include('../../partials/integration-log', { logs: logs }) %>
+  </div>
+  <div class="stack-lg">
+    <form class="panel" method="post" action="/app/settings/integrations/sms/test" novalidate>
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+      <div class="panel-head"><h2><%= t('integrations.test_sms') %></h2></div>
+      <div class="panel-body stack"><%- include('../../partials/field', { name: 'phone', label: t('fields.phone'), type: 'tel', placeholder: '05xxxxxxxx', attrs: 'dir="ltr"' }) %></div>
+      <div class="panel-foot"><button class="btn btn-secondary btn-sm" type="submit"<%= setting ? '' : ' disabled' %>><%- icon('send', 'icon-sm') %><%= t('integrations.send_test') %></button></div>
+    </form>
+    <section class="panel"><div class="panel-body small text-2 stack-sm"><p><%= t('integrations.sms_note1') %></p><p><%= t('integrations.sms_note2') %></p></div></section>
+  </div>
+</div>

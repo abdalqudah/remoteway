@@ -1,0 +1,61 @@
+<% var h = hook; %>
+<div class="page-head">
+  <div><div class="eyebrow"><a href="/app/settings/integrations"><%= t('integrations.title') %></a></div><h1 class="truncate" dir="ltr" style="max-width:720px"><%= h.url %></h1>
+    <div class="row-sm wrap mt-2 small muted"><span class="st st-<%= h.is_active ? 'approved' : 'rejected' %>"><%= h.is_active ? t('integrations.active') : t('integrations.disabled') %></span><span><%= h.description || '' %></span><span><%= h.events[0] === '*' ? t('integrations.all_events') : t('integrations.n_events', { n: h.events.length }) %></span></div></div>
+  <div class="page-actions">
+    <form method="post" action="/app/settings/integrations/webhooks/<%= h.id %>/test"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><button class="btn btn-secondary" type="submit"><%- icon('send') %><%= t('integrations.send_test') %></button></form>
+    <button class="btn btn-secondary" type="button" data-open-dialog="edit-dialog"><%- icon('pencil') %><%= t('common.edit') %></button>
+    <form method="post" action="/app/settings/integrations/webhooks/<%= h.id %>/delete" data-confirm="<%= t('integrations.confirm_delete') %>"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><button class="btn btn-danger-ghost" type="submit" aria-label="<%= t('common.delete') %>"><%- icon('trash-2') %></button></form>
+  </div>
+</div>
+<% if (h.disabled_reason) { %><div class="alert alert-error mb-4"><%- icon('triangle-alert') %><div><%= t('integrations.auto_disabled') %></div></div><% } %>
+<div class="grid grid-3 mb-6">
+  <section class="panel span-2">
+    <div class="panel-head"><div><h2><%= t('integrations.signing') %></h2><div class="panel-sub"><%= t('integrations.signing_sub') %></div></div>
+      <form method="post" action="/app/settings/integrations/webhooks/<%= h.id %>/rotate" data-confirm="<%= t('integrations.confirm_rotate') %>"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><button class="btn btn-ghost btn-sm" type="submit"><%= t('integrations.rotate') %></button></form></div>
+    <div class="panel-body stack">
+      <div class="row-sm"><code class="code-box grow" dir="ltr" data-copy-source><%= reveal ? h.secret : (h.secret ? h.secret.slice(0, 9) + '••••••••••••••••' : '—') %></code><% if (reveal) { %><button class="btn btn-secondary btn-sm" type="button" data-copy><%- icon('copy', 'icon-sm') %><%= t('common.copy') %></button><% } else { %><a class="btn btn-ghost btn-sm" href="?reveal=1"><%- icon('eye', 'icon-sm') %><%= t('integrations.reveal') %></a><% } %></div>
+      <details><summary class="link small"><%= t('integrations.how_to_verify') %></summary>
+        <div class="small text-2 mt-2 stack-sm"><p><%= t('integrations.verify_text') %></p>
+<pre class="code-box" dir="ltr" style="white-space:pre-wrap">// Node.js
+const [t, v1] = req.get('x-remoteway-signature').split(',').map((p) => p.split('=')[1]);
+const expected = crypto.createHmac('sha256', SECRET).update(`${t}.${rawBody}`).digest('hex');
+const valid = crypto.timingSafeEqual(Buffer.from(v1), Buffer.from(expected)) &amp;&amp; Math.abs(Date.now() / 1000 - t) &lt; 300;</pre>
+          <p><%= t('integrations.payload_text') %></p></div></details>
+    </div>
+  </section>
+  <section class="panel"><div class="panel-head"><h2><%= t('integrations.health') %></h2></div><div class="panel-body"><dl class="dl" style="grid-template-columns:1fr">
+    <dt><%= t('integrations.last_success') %></dt><dd><%= h.last_success_at ? fmt.date(h.last_success_at, { dateStyle: 'medium', timeStyle: 'short' }) : '—' %></dd>
+    <dt><%= t('integrations.last_failure') %></dt><dd><%= h.last_failure_at ? fmt.date(h.last_failure_at, { dateStyle: 'medium', timeStyle: 'short' }) : '—' %></dd>
+    <dt><%= t('integrations.failures_in_row') %></dt><dd><%= h.failure_count %></dd>
+  </dl></div></section>
+</div>
+<section class="panel">
+  <div class="panel-head"><div><h2><%= t('integrations.deliveries') %></h2><div class="panel-sub"><%= t('integrations.deliveries_sub') %></div></div></div>
+  <% if (!h.deliveries.length) { %><div class="empty" style="padding:28px"><p><%= t('integrations.no_deliveries') %></p></div><% } else { %>
+  <div class="table-wrap"><table class="table">
+    <thead><tr><th><%= t('integrations.event') %></th><th><%= t('fields.status') %></th><th class="num"><%= t('integrations.response') %></th><th class="num"><%= t('integrations.attempts') %></th><th><%= t('integrations.when') %></th><th></th></tr></thead>
+    <tbody><% h.deliveries.forEach(function (d) { %>
+      <tr><td><code class="small" dir="ltr"><%= d.event %></code><div class="tiny muted mono" dir="ltr"><%= d.event_id %></div></td>
+        <td><span class="st st-<%= d.status === 'success' ? 'approved' : d.status === 'failed' ? 'rejected' : 'pending' %>"><%= t('integrations.delivery_' + d.status) %></span><% if (d.error) { %><div class="tiny muted" style="max-width:260px" dir="ltr"><%= d.error %></div><% } %><% if (d.status === 'pending' && d.next_retry_at) { %><div class="tiny muted"><%= t('integrations.retry_at', { at: fmt.date(d.next_retry_at, { timeStyle: 'short', dateStyle: 'short' }) }) %></div><% } %></td>
+        <td class="num"><%= d.response_status || '—' %><% if (d.duration_ms != null) { %><div class="tiny muted"><%= d.duration_ms %> ms</div><% } %></td>
+        <td class="num"><%= d.attempts %></td>
+        <td class="small nowrap"><%= fmt.date(d.created_at, { dateStyle: 'short', timeStyle: 'short' }) %></td>
+        <td class="text-end"><% if (d.status !== 'pending') { %><form method="post" action="/app/settings/integrations/webhooks/<%= h.id %>/deliveries/<%= d.id %>/redeliver"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><button class="btn btn-ghost btn-sm" type="submit"><%= t('integrations.redeliver') %></button></form><% } %></td></tr>
+    <% }) %></tbody>
+  </table></div><% } %>
+</section>
+<dialog class="dialog" id="edit-dialog"<%= openDialog === 'edit' ? ' data-open-on-load' : '' %>>
+  <form method="post" action="/app/settings/integrations/webhooks/<%= h.id %>" novalidate>
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+    <div class="dialog-head"><h2><%= t('integrations.edit_webhook') %></h2><button class="btn btn-ghost btn-icon btn-sm" type="button" data-close-dialog aria-label="<%= t('common.close') %>"><%- icon('x') %></button></div>
+    <div class="dialog-body stack">
+      <% if (openDialog === 'edit' && formError) { %><div class="alert alert-error"><%= Object.values(errors)[0] || formError.message %></div><% } %>
+      <%- include('../../partials/field', { name: 'url', label: t('integrations.endpoint_url'), required: true, value: h.url }) %>
+      <%- include('../../partials/field', { name: 'description', label: t('fields.description'), value: h.description }) %>
+      <label class="check"><input type="checkbox" name="is_active"<%= h.is_active ? ' checked' : '' %>><%= t('integrations.active') %></label>
+      <%- include('../../partials/event-picker', { groups: groups, selected: h.events, name: 'events' }) %>
+    </div>
+    <div class="dialog-foot"><button class="btn btn-ghost" type="button" data-close-dialog><%= t('common.cancel') %></button><button class="btn btn-dark" type="submit"><%= t('common.save_changes') %></button></div>
+  </form>
+</dialog>

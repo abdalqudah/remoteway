@@ -1,0 +1,10 @@
+<div class="page-head"><div><div class="eyebrow"><a href="/app/settings/integrations"><%= t('integrations.title') %></a></div><h1><%= t('integrations.new_webhook') %></h1><p><%= t('integrations.webhook_sub') %></p></div></div>
+<% if (formError) { %><div class="alert alert-error mb-4"><%= Object.values(errors)[0] || formError.message %></div><% } %>
+<form method="post" action="/app/settings/integrations/webhooks" novalidate style="max-width:900px">
+  <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+  <section class="panel"><div class="panel-body stack">
+    <%- include('../../partials/field', { name: 'url', label: t('integrations.endpoint_url'), required: true, placeholder: 'https://example.com/webhooks/remoteway', help: t('integrations.endpoint_help') }) %>
+    <%- include('../../partials/field', { name: 'description', label: t('fields.description'), placeholder: t('integrations.description_ph') }) %>
+    <%- include('../../partials/event-picker', { groups: groups, selected: [].concat(old.events || []), name: 'events' }) %>
+  </div><div class="panel-foot"><a class="btn btn-ghost" href="/app/settings/integrations"><%= t('common.cancel') %></a><button class="btn btn-dark" type="submit"><%= t('integrations.create_webhook') %></button></div></section>
+</form>

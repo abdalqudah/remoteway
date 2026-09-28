@@ -107,6 +107,11 @@ async function start() {
     });
   }
   const app = createApp();
+  // Background work (webhooks, emails, SMS, chat) runs inside the app every 15 seconds.
+  await require('./core/mailer').refresh();
+  const jobs = require('./modules/integrations/handlers');
+  jobs.startWorker();
+  setInterval(() => jobs.prune(30).catch(() => {}), 24 * 3600_000).unref();
   // Phusion Passenger / LiteSpeed (cPanel "Setup Node.js App") passes a socket path via PORT; listen() accepts both.
   const server = app.listen(PORT, () => console.log(`[remoteway] listening on ${PORT} (${config.env})`));
   const shutdown = () => server.close(() => knex.destroy().then(() => process.exit(0)));

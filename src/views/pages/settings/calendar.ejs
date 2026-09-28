@@ -1,0 +1,25 @@
+<%
+  var row = function (kind, title, text) { var f = feeds[kind]; var url = f && f.token ? baseUrl + '/calendar/' + f.token + '.ics' : null; %>
+  <section class="panel">
+    <div class="panel-head"><div><h2><%= title %></h2><div class="panel-sub"><%= text %></div></div></div>
+    <div class="panel-body stack">
+      <% if (url) { %>
+        <div class="row-sm"><code class="code-box grow truncate" dir="ltr" data-copy-source><%= url %></code><button class="btn btn-secondary btn-sm" type="button" data-copy><%- icon('copy', 'icon-sm') %><%= t('common.copy') %></button></div>
+        <div class="row-sm wrap small muted"><span><%= f.last_used_at ? t('integrations.feed_last_used', { at: fmt.date(f.last_used_at, { dateStyle: 'medium', timeStyle: 'short' }) }) : t('integrations.feed_never_used') %></span></div>
+        <div class="row-sm wrap"><a class="btn btn-ghost btn-sm" href="https://calendar.google.com/calendar/r?cid=<%= encodeURIComponent(url.replace(/^https?:/, 'webcal:')) %>" target="_blank" rel="noopener"><%= t('integrations.add_google') %></a>
+          <a class="btn btn-ghost btn-sm" href="<%= url.replace(/^https?:/, 'webcal:') %>"><%= t('integrations.add_apple') %></a></div>
+      <% } %>
+      <form method="post" action="/app/settings/calendar/<%= kind %>" class="row-sm"<% if (url) { %> data-confirm="<%= t('integrations.feed_confirm_regen') %>"<% } %>><input type="hidden" name="_csrf" value="<%= csrfToken %>">
+        <button class="btn <%= url ? 'btn-secondary' : 'btn-dark' %> btn-sm" type="submit"><%= url ? t('integrations.feed_regenerate') : t('integrations.feed_create') %></button>
+      </form>
+      <% if (url) { %><form method="post" action="/app/settings/calendar/<%= kind %>"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><input type="hidden" name="action" value="revoke"><button class="btn btn-danger-ghost btn-sm" type="submit"><%= t('integrations.feed_revoke') %></button></form><% } %>
+    </div>
+  </section>
+<% }; %>
+<div class="page-head"><div><h1><%= t('nav.settings') %></h1><p><%= t('integrations.calendar_sub') %></p></div></div>
+<%- include('../../partials/settings-nav') %>
+<div class="alert alert-info mb-6"><%- icon('info') %><div class="small"><%= t('integrations.feed_private') %></div></div>
+<div class="grid grid-2">
+  <% row('personal', t('integrations.feed_personal'), t('integrations.feed_personal_text')); %>
+  <% if (canCompany) { row('company_leave', t('integrations.feed_company_leave'), t('integrations.feed_company_leave_text')); } %>
+</div>

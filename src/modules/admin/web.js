@@ -123,6 +123,82 @@ router.post('/system/restore', form(async (req, res) => {
   res.redirect(`/admin/system?updated=${encodeURIComponent(result.to)}`);
 }, renderSystem));
 
+// ---------- Email (SMTP) ----------
+const mailer = require('../../core/mailer');
+const secrets = require('../../core/secrets');
+const jobs = require('../../core/jobs');
+
+async function smtpSetting() {
+  const row = await knex('platform_settings').where({ key: 'smtp' }).first();
+  return row ? (typeof row.value === 'string' ? JSON.parse(row.value) : row.value) : null;
+}
+const renderEmail = async (req, res, extra = {}) => {
+  const saved = await smtpSetting();
+  const current = mailer.currentConfig();
+  res.page('pages/admin/email', { layout: 'admin', title: req.t('admin.email'), saved, source: current ? current.source : null, envSet: Boolean(process.env.SMTP_HOST), ...extra });
+};
+router.get('/email', wrap((req, res) => renderEmail(req, res)));
+
+function smtpInput(body, saved) {
+  const errors = {};
+  const host = String(body.host || '').trim();
+  const port = Number(body.port || 465);
+  const user = String(body.user || '').trim();
+  const from = String(body.from || '').trim();
+  let password = String(body.password || '');
+  if (!password && saved && saved.password_enc) password = secrets.decrypt(saved.password_enc) || '';
+  if (!/^[a-z0-9.-]{3,190}$/i.test(host)) errors.host = 'Enter the mail server name, e.g. mail.your-domain.com';
+  if (![25, 465, 587, 2525].includes(port)) errors.port = 'Use 465 (SSL) or 587 (STARTTLS).';
+  if (from && !/^[^<>]*<?[^@\s<>]+@[^@\s<>]+>?$/.test(from)) errors.from = 'Use: RemoteWay <no-reply@your-domain.com>';
+  if (Object.keys(errors).length) throw E.validation(errors);
+  return { host, port, user, password, from };
+}
+
+router.post('/email', form(async (req, res) => {
+  if (req.body.action === 'clear') {
+    await knex('platform_settings').where({ key: 'smtp' }).del();
+  } else {
+    const cfg = smtpInput(req.body, await smtpSetting());
+    const value = JSON.stringify({ host: cfg.host, port: cfg.port, user: cfg.user, from: cfg.from, password_enc: cfg.password ? secrets.encrypt(cfg.password) : null });
+    await knex('platform_settings').insert({ key: 'smtp', value }).onConflict('key').merge({ value, updated_at: new Date() });
+  }
+  await mailer.refresh();
+  await require('../../core/audit').record(req.ctx, 'platform.email_updated', { entityType: 'platform' });
+  flash(req, 'success', req.t('common.saved'));
+  res.redirect('/admin/email');
+}, renderEmail));
+
+router.post('/email/test', form(async (req, res) => {
+  const cfg = smtpInput(req.body, await smtpSetting());
+  const to = String(req.body.to || req.user.email).trim();
+  try {
+    await mailer.sendTest(cfg, to);
+    flash(req, 'success', req.t('admin.email_test_ok', { to }));
+  } catch (err) {
+    flash(req, 'error', req.t('admin.email_test_failed', { error: String(err.message).slice(0, 300) }));
+  }
+  res.redirect('/admin/email');
+}, renderEmail));
+
+// ---------- Background jobs ----------
+router.get('/jobs', wrap(async (req, res) => {
+  const [stat, failed, recent] = await Promise.all([
+    jobs.stats(),
+    knex('background_jobs as j').leftJoin('organizations as o', 'o.id', 'j.organization_id').where('j.status', 'dead').orderBy('j.id', 'desc').limit(30).select('j.*', 'o.name as organization_name'),
+    knex('background_jobs as j').leftJoin('organizations as o', 'o.id', 'j.organization_id').orderBy('j.id', 'desc').limit(30).select('j.*', 'o.name as organization_name'),
+  ]);
+  res.page('pages/admin/jobs', { layout: 'admin', title: req.t('admin.jobs'), stat, failed, recent });
+}));
+router.post('/jobs/run', wrap(async (req, res) => {
+  const r = await jobs.runDue({ limit: 100 });
+  flash(req, 'success', req.t('admin.jobs_ran', { done: r.done || 0, retry: r.retry || 0, dead: r.dead || 0 }));
+  res.redirect('/admin/jobs');
+}));
+router.post('/jobs/:id/retry', wrap(async (req, res) => {
+  await knex('background_jobs').where({ id: Number(req.params.id), status: 'dead' }).update({ status: 'pending', run_at: new Date(), attempts: 0, max_attempts: 1, last_error: null });
+  res.redirect('/admin/jobs');
+}));
+
 // ---------- Platform audit log ----------
 router.get('/audit', wrap(async (req, res) => {
   const result = await auditLog.list(null, { page: Number(req.query.page) || 1, action: req.query.action, perPage: 50 });

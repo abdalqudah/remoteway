@@ -1,0 +1,30 @@
+<% var s = saved || {}; %>
+<div class="page-head"><div><h1><%= t('admin.email') %></h1><p><%= t('admin.email_sub') %></p></div></div>
+<div class="alert <%= source ? 'alert-success' : 'alert-warning' %> mb-6"><%- icon(source ? 'circle-check' : 'triangle-alert') %><div>
+  <div class="alert-title"><%= source === 'admin' ? t('admin.email_on_admin') : source === 'env' ? t('admin.email_on_env') : t('admin.email_off') %></div>
+  <div class="small text-2"><%= t('admin.email_used_for') %></div></div></div>
+<div class="grid grid-3">
+  <form class="panel span-2" method="post" action="/admin/email" novalidate>
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+    <div class="panel-head"><div><h2><%= t('admin.smtp') %></h2><div class="panel-sub"><%= t('admin.smtp_sub') %></div></div></div>
+    <div class="panel-body stack">
+      <% if (formError) { %><div class="alert alert-error"><%= Object.values(errors)[0] || formError.message %></div><% } %>
+      <div class="form-grid">
+        <%- include('../../partials/field', { name: 'host', label: t('admin.smtp_host'), value: s.host, placeholder: 'mail.remoteway.net' }) %>
+        <%- include('../../partials/field', { name: 'port', label: t('admin.smtp_port'), type: 'number', value: s.port || 465, help: t('admin.smtp_port_help') }) %>
+        <%- include('../../partials/field', { name: 'user', label: t('admin.smtp_user'), value: s.user, placeholder: 'no-reply@remoteway.net', autocomplete: 'off' }) %>
+        <%- include('../../partials/field', { name: 'password', label: t('admin.smtp_password'), type: 'password', autocomplete: 'new-password', placeholder: s.password_enc ? '••••••••' : '', help: s.password_enc ? t('admin.smtp_password_keep') : null }) %>
+      </div>
+      <%- include('../../partials/field', { name: 'from', label: t('admin.smtp_from'), value: s.from, placeholder: 'RemoteWay <no-reply@remoteway.net>' }) %>
+      <div class="field"><label class="label" for="test-to"><%= t('admin.test_to') %></label><input class="input" id="test-to" name="to" type="email" value="<%= currentUser.email %>"></div>
+    </div>
+    <div class="panel-foot row-sm" style="justify-content:flex-end">
+      <% if (saved) { %><button class="btn btn-danger-ghost btn-sm" type="submit" name="action" value="clear"><%= t('admin.smtp_clear') %></button><% } %>
+      <button class="btn btn-secondary btn-sm" type="submit" formaction="/admin/email/test"><%- icon('send', 'icon-sm') %><%= t('admin.send_test') %></button>
+      <button class="btn btn-dark btn-sm" type="submit"><%= t('common.save') %></button>
+    </div>
+  </form>
+  <section class="panel"><div class="panel-head"><h2><%= t('admin.cpanel_tips') %></h2></div><div class="panel-body small text-2 stack-sm">
+    <p><%= t('admin.cpanel_tip1') %></p><p><%= t('admin.cpanel_tip2') %></p><p><%= t('admin.cpanel_tip3') %></p>
+  </div></section>
+</div>

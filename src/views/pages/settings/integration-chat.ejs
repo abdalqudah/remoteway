@@ -1,0 +1,33 @@
+<%
+  var s = setting || { provider: 'slack', options: { events: ['employee.created', 'leave.approved', 'application.hired', 'payroll.paid', 'course.completed'] }, masked: {}, is_active: true };
+  var prov = old.provider || s.provider;
+  var sel = old.events ? [].concat(old.events) : (s.options.events || []);
+%>
+<div class="page-head"><div><div class="eyebrow"><a href="/app/settings/integrations"><%= t('integrations.title') %></a></div><h1><%= t('integrations.chat') %></h1><p><%= t('integrations.chat_sub') %></p></div></div>
+<% if (formError) { %><div class="alert alert-error mb-4"><%= Object.values(errors)[0] || formError.message %></div><% } %>
+<div class="grid grid-3">
+  <div class="span-2 stack-lg">
+    <form class="panel" method="post" action="/app/settings/integrations/chat" novalidate>
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+      <div class="panel-body stack">
+        <div class="field"><span class="label"><%= t('integrations.provider') %></span>
+          <div class="row-sm wrap"><% Object.keys(providers).forEach(function (k) { %><label class="check provider-choice"><input type="radio" name="provider" value="<%= k %>"<%= prov === k ? ' checked' : '' %>><strong><%= providers[k].name %></strong></label><% }) %></div></div>
+        <%- include('../../partials/field', { name: 'url', label: t('integrations.chat_url'), type: 'password', autocomplete: 'new-password', placeholder: setting && setting.masked.url ? setting.masked.url + ' (' + t('integrations.saved') + ')' : 'https://hooks.slack.com/services/…', attrs: 'dir="ltr"', help: t('integrations.chat_url_help') }) %>
+        <%- include('../../partials/event-picker', { groups: groups, selected: sel, name: 'events' }) %>
+        <label class="check"><input type="checkbox" name="is_active"<%= s.is_active ? ' checked' : '' %>><%= t('integrations.enabled') %></label>
+      </div>
+      <div class="panel-foot row-sm" style="justify-content:flex-end"><% if (setting) { %><button class="btn btn-danger-ghost btn-sm" type="submit" name="action" value="remove" formnovalidate><%= t('integrations.disconnect') %></button><% } %><button class="btn btn-dark btn-sm" type="submit"><%= t('common.save') %></button></div>
+    </form>
+    <%- include('../../partials/integration-log', { logs: logs }) %>
+  </div>
+  <div class="stack-lg">
+    <form class="panel" method="post" action="/app/settings/integrations/chat/test"><input type="hidden" name="_csrf" value="<%= csrfToken %>">
+      <div class="panel-head"><h2><%= t('integrations.test_chat') %></h2></div>
+      <div class="panel-body small text-2"><%= t('integrations.test_chat_text') %></div>
+      <div class="panel-foot"><button class="btn btn-secondary btn-sm" type="submit"<%= setting ? '' : ' disabled' %>><%- icon('send', 'icon-sm') %><%= t('integrations.send_test') %></button></div></form>
+    <section class="panel"><div class="panel-body small text-2 stack-sm">
+      <p><strong>Slack:</strong> <%= t('integrations.slack_help') %> <a class="link" href="<%= providers.slack.docs %>" target="_blank" rel="noopener">docs</a></p>
+      <p><strong>Google Chat:</strong> <%= t('integrations.gchat_help') %> <a class="link" href="<%= providers.google_chat.docs %>" target="_blank" rel="noopener">docs</a></p>
+    </div></section>
+  </div>
+</div>

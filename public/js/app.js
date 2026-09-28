@@ -327,6 +327,17 @@
   });
   $$('[data-autoopen]').forEach(function (b) { b.click(); });
 
+  /* ---------- SMS provider switch: show that provider's credential fields ---------- */
+  $$('[data-provider-radio]').forEach(function (radio) {
+    radio.addEventListener('change', function () {
+      $$('[data-provider-fields]').forEach(function (box) {
+        var on = box.getAttribute('data-provider-fields') === radio.value;
+        box.hidden = !on;
+        $$('input[data-name]', box).forEach(function (i) { i.name = on ? i.getAttribute('data-name') : ''; });
+      });
+    });
+  });
+
   // Keep csrf available for fetch-based features.
   window.RemoteWay = { csrf: csrf };
 })();

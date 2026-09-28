@@ -9,11 +9,19 @@
 | Runtime | Node.js ≥ 20 (Express 4, server-rendered EJS, no build step) |
 | Database | MySQL 8 / MariaDB ≥ 10.3 (all data, including sessions, lives in the database) |
 | Hosting | Any cPanel host with **Setup Node.js App** (e.g. Orange Host), or any VPS |
-| Status | **Phases 1–6** (SaaS Core, Workforce, Talent, Payroll, Performance, Learning) complete and tested (see `docs/ARCHITECTURE.md`) |
+| Status | **Phases 1–7** (SaaS Core, Workforce, Talent, Payroll, Performance, Learning, Integrations) complete and tested (see `docs/ARCHITECTURE.md`) |
 
 ---
 
-## What works today (Phases 1–6)
+## What works today (Phases 1–7)
+
+**Phase 7 — Integrations:**
+- **Integration hub** (Settings → Integrations) with honest status for every connector. PayWay shows "awaiting API docs" until the provider documentation is available.
+- **Outbound webhooks:** choose events (employees, leave, attendance, recruitment, payroll, performance, learning…), HMAC-SHA256 signed payloads (`RemoteWay-Signature: t=…,v1=…`), automatic retries (1m → 24h), delivery log with redeliver, test ping, secret rotation, auto-disable after 15 consecutive failures. Private/internal addresses are blocked.
+- **SMS** through Saudi providers (Taqnyat, Unifonic, Msegat) for selected notifications; **team chat** (Slack, Google Chat incoming webhooks). Credentials are encrypted (AES-256-GCM) in the database.
+- **Calendar feeds (ICS):** personal and company leave/interview/task feeds for Google Calendar, Outlook and Apple Calendar, with revocable private links.
+- **Super Admin:** SMTP email settings from the browser (encrypted, test send) and a **background jobs** monitor (run now, retry failed).
+- Background work runs inside the app every 15 seconds. Optional cPanel cron for extra reliability: `*/5 * * * * cd ~/remoteway && node scripts/run-jobs.js`.
 
 **Phase 6 — Learning:**
 - **Courses** with ordered lessons: reading (safe formatting), YouTube/Vimeo video played inside the app, documents (private storage), external links and quizzes (single choice, pass mark, best score kept, retries).
@@ -105,7 +113,7 @@ Demo logins (password `Demo@12345`, override with `DEMO_PASSWORD`):
    |---|---|
    | `NODE_ENV` | `production` |
    | `APP_URL` | `https://your-domain.com` |
-   | `SESSION_SECRET` | a long random string (≥ 32 characters) |
+   | `SESSION_SECRET` | a long random string (≥ 32 characters). Also encrypts stored integration credentials unless `APP_KEY` is set — do not change it later, or re-enter those credentials |
    | `AUTO_MIGRATE` | `true` (creates/updates tables on every start) |
    | `DB_HOST` | `localhost` |
    | `DB_NAME` / `DB_USER` / `DB_PASSWORD` | from step 1 |

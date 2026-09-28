@@ -1,6 +1,6 @@
 {
   "name": "remoteway",
-  "version": "0.6.0",
+  "version": "0.7.0",
   "description": "RemoteWay — Workforce Management & Remote Employment SaaS",
   "main": "app.js",
   "scripts": {
@@ -9,6 +9,7 @@
     "migrate": "node scripts/migrate.js",
     "migrate:fresh": "node scripts/migrate.js --fresh",
     "seed:demo": "node scripts/seed-demo.js",
+    "jobs": "node scripts/run-jobs.js",
     "test": "node --test --test-concurrency=1 tests/*.test.js",
     "build:icons": "node scripts/build-icons.js",
     "build": "node scripts/build.js"

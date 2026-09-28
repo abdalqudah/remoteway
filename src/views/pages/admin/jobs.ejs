@@ -1,0 +1,25 @@
+<% var by = stat.by || {}; var row = function (j) { %>
+  <tr><td class="mono small">#<%= j.id %></td><td><strong class="small"><%= j.type %></strong><div class="tiny muted"><%= j.organization_name || t('admin.platform') %></div></td>
+    <td><span class="st st-<%= j.status === 'done' ? 'approved' : j.status === 'dead' ? 'rejected' : j.status === 'running' ? 'in_progress' : 'pending' %>"><%= j.status %></span></td>
+    <td class="num"><%= j.attempts %>/<%= j.max_attempts %></td>
+    <td class="small nowrap"><%= fmt.date(j.status === 'pending' ? j.run_at : (j.finished_at || j.updated_at), { dateStyle: 'short', timeStyle: 'short' }) %></td>
+    <td class="small muted" style="max-width:340px"><%= j.last_error || '' %></td>
+    <td class="text-end"><% if (j.status === 'dead') { %><form method="post" action="/admin/jobs/<%= j.id %>/retry"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><button class="btn btn-ghost btn-sm" type="submit"><%= t('admin.retry') %></button></form><% } %></td></tr>
+<% }; %>
+<div class="page-head">
+  <div><h1><%= t('admin.jobs') %></h1><p><%= t('admin.jobs_sub') %></p></div>
+  <div class="page-actions"><form method="post" action="/admin/jobs/run"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><button class="btn btn-dark" type="submit"><%- icon('zap') %><%= t('admin.run_now') %></button></form></div>
+</div>
+<div class="kpis mb-6">
+  <div class="kpi"><div class="kpi-label"><%= t('admin.jobs_pending') %></div><div class="kpi-value"><%= fmt.number(by.pending || 0) %></div><div class="kpi-meta"><%= stat.oldestPending ? t('admin.oldest', { date: fmt.date(stat.oldestPending, { dateStyle: 'short', timeStyle: 'short' }) }) : '' %></div></div>
+  <div class="kpi"><div class="kpi-label"><%= t('admin.jobs_done') %></div><div class="kpi-value"><%= fmt.number(by.done || 0) %></div></div>
+  <div class="kpi"><div class="kpi-label"><%= t('admin.jobs_dead') %></div><div class="kpi-value" style="<%= by.dead ? 'color:var(--danger)' : '' %>"><%= fmt.number(by.dead || 0) %></div></div>
+</div>
+<div class="alert alert-info mb-6"><%- icon('info') %><div class="small"><%= t('admin.jobs_cron') %> <code dir="ltr">*/5 * * * * cd ~/remoteway && node scripts/run-jobs.js</code></div></div>
+<% if (failed.length) { %>
+<section class="panel mb-6"><div class="panel-head"><h2><%= t('admin.jobs_failed') %></h2></div>
+  <div class="table-wrap"><table class="table"><tbody><% failed.forEach(row) %></tbody></table></div></section>
+<% } %>
+<section class="panel"><div class="panel-head"><h2><%= t('admin.jobs_recent') %></h2></div>
+  <% if (!recent.length) { %><div class="empty" style="padding:28px"><p><%= t('admin.jobs_none') %></p></div><% } else { %>
+  <div class="table-wrap"><table class="table"><tbody><% recent.forEach(row) %></tbody></table></div><% } %></section>

@@ -3,24 +3,47 @@
 const knex = require('../db/knex');
 const config = require('../config');
 const { translator } = require('./i18n');
+const secrets = require('./secrets');
 
+// SMTP settings come from Super Admin → Email (stored encrypted in the database) and fall back to .env.
 let transport;
-function getTransport() {
-  if (transport !== undefined) return transport;
-  if (!process.env.SMTP_HOST) {
-    transport = null;
-    return transport;
+let transportKey = null;
+let dbSettings = null;
+let loadedAt = 0;
+
+/** Reloads SMTP settings from the database (called on start, after saving, and at most once a minute). */
+async function refresh() {
+  try {
+    const row = await knex('platform_settings').where({ key: 'smtp' }).first();
+    const value = row ? (typeof row.value === 'string' ? JSON.parse(row.value) : row.value) : null;
+    dbSettings = value && value.host ? { ...value, password: value.password_enc ? secrets.decrypt(value.password_enc) : null } : null;
+  } catch {
+    dbSettings = null; // table not there yet (before migrations)
   }
+  loadedAt = Date.now();
+  return dbSettings;
+}
+
+function currentConfig() {
+  if (Date.now() - loadedAt > 60_000) { loadedAt = Date.now(); refresh().catch(() => {}); }
+  if (dbSettings && dbSettings.host) return { source: 'admin', ...dbSettings };
+  if (process.env.SMTP_HOST) {
+    return { source: 'env', host: process.env.SMTP_HOST, port: Number(process.env.SMTP_PORT || 465), user: process.env.SMTP_USER, password: process.env.SMTP_PASSWORD, from: process.env.MAIL_FROM };
+  }
+  return null;
+}
+
+function getTransport() {
+  const cfg = currentConfig();
+  const k = cfg ? JSON.stringify([cfg.host, cfg.port, cfg.user, cfg.password]) : null;
+  if (k === transportKey && transport !== undefined) return transport;
+  transportKey = k;
+  if (!cfg) { transport = null; return transport; }
   try {
     // eslint-disable-next-line global-require
     const nodemailer = require('nodemailer');
-    const port = Number(process.env.SMTP_PORT || 465);
-    transport = nodemailer.createTransport({
-      host: process.env.SMTP_HOST,
-      port,
-      secure: port === 465,
-      auth: process.env.SMTP_USER ? { user: process.env.SMTP_USER, pass: process.env.SMTP_PASSWORD } : undefined,
-    });
+    const port = Number(cfg.port || 465);
+    transport = nodemailer.createTransport({ host: cfg.host, port, secure: port === 465, auth: cfg.user ? { user: cfg.user, pass: cfg.password } : undefined });
   } catch (e) {
     console.error('[mail] nodemailer unavailable:', e.message);
     transport = null;
@@ -29,7 +52,7 @@ function getTransport() {
 }
 
 const enabled = () => Boolean(getTransport()) && !config.isTest;
-const from = () => process.env.MAIL_FROM || `RemoteWay <${process.env.SMTP_USER || 'no-reply@localhost'}>`;
+const from = () => { const cfg = currentConfig() || {}; return cfg.from || `RemoteWay <${cfg.user || 'no-reply@localhost'}>`; };
 
 function escapeHtml(s) {
   return String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -61,6 +84,28 @@ async function sendInvitation({ email, link, organizationName, roleName, locale 
   });
 }
 
+/** One notification email (used by the job queue, so failures are retried). */
+async function sendNotificationEmail(userId, type, data, link) {
+  const u = await knex('users').where({ id: userId, status: 'active' }).first('email', 'locale');
+  if (!u) return false;
+  const t = translator(u.locale);
+  const text = t(`notif.${type}`, data);
+  return send({
+    to: u.email,
+    subject: `RemoteWay — ${text}`,
+    html: layout({ locale: u.locale, title: text, body: t('mail.notification_body'), cta: t('mail.open'), href: link ? `${config.appUrl}${link}` : config.appUrl }),
+  });
+}
+
+/** Sends a test message with the given (unsaved) settings; throws with the SMTP error on failure. */
+async function sendTest(settings, to) {
+  // eslint-disable-next-line global-require
+  const nodemailer = require('nodemailer');
+  const port = Number(settings.port || 465);
+  const t = nodemailer.createTransport({ host: settings.host, port, secure: port === 465, auth: settings.user ? { user: settings.user, pass: settings.password } : undefined, connectionTimeout: 15_000 });
+  await t.sendMail({ from: settings.from || `RemoteWay <${settings.user}>`, to, subject: 'RemoteWay — test email', html: layout({ locale: 'en', title: 'Email is working', body: 'This is a test message from RemoteWay. Your SMTP settings are correct.' }) });
+}
+
 async function sendNotificationEmails(organizationId, userIds, type, data, link) {
   const users = await knex('users').whereIn('id', userIds).where({ status: 'active' }).select('email', 'locale');
   for (const u of users) {
@@ -74,4 +119,4 @@ async function sendNotificationEmails(organizationId, userIds, type, data, link)
   }
 }
 
-module.exports = { enabled, send, sendInvitation, sendNotificationEmails };
+module.exports = { enabled, send, sendInvitation, sendNotificationEmails, sendNotificationEmail, sendTest, refresh, currentConfig };

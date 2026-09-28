@@ -1,0 +1,9 @@
+<section class="panel">
+  <div class="panel-head"><div><h2><%= t('integrations.recent_sends') %></h2><div class="panel-sub"><%= t('integrations.recent_sends_sub') %></div></div></div>
+  <% if (!logs.length) { %><div class="empty" style="padding:24px"><p><%= t('integrations.no_sends') %></p></div><% } else { %>
+  <ul class="action-list"><% logs.forEach(function (l) { %>
+    <li><div style="display:flex;gap:12px;align-items:center;padding:10px 20px"><span class="st st-<%= l.status === 'sent' ? 'approved' : 'rejected' %>"><%= t('integrations.log_' + l.status) %></span>
+      <span class="grow small"><strong dir="ltr"><%= l.target || '—' %></strong> · <%= l.summary %><% if (l.error) { %><span class="muted tiny" style="display:block" dir="ltr"><%= l.error %></span><% } %></span>
+      <span class="tiny muted nowrap"><%= fmt.date(l.created_at, { dateStyle: 'short', timeStyle: 'short' }) %></span></div></li>
+  <% }) %></ul><% } %>
+</section>

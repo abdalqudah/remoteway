@@ -2,6 +2,7 @@
 // translated when displayed, so each user reads them in their own language.
 const knex = require('../../db/knex');
 const mailer = require('../../core/mailer');
+const jobs = require('../../core/jobs');
 
 async function notify(organizationId, userIds, type, data = {}, link = null, trx = knex) {
   const ids = [...new Set((userIds || []).filter(Boolean).map(Number))];
@@ -9,10 +10,13 @@ async function notify(organizationId, userIds, type, data = {}, link = null, trx
   await trx('notifications').insert(ids.map((userId) => ({
     organization_id: organizationId, user_id: userId, type, data: JSON.stringify(data), link,
   })));
+  // Email and SMS copies go through the job queue (retried, logged) in the same transaction,
+  // so a mail or SMS problem never breaks the action that triggered it.
   if (mailer.enabled()) {
-    // Fire-and-forget: email problems must never break the action that triggered them.
-    setImmediate(() => mailer.sendNotificationEmails(organizationId, ids, type, data, link).catch((e) => console.error('[mail]', e.message)));
+    for (const userId of ids) await jobs.enqueue(trx, { organizationId, type: 'email.notification', payload: { userId, type, data, link }, maxAttempts: 5 });
   }
+  // eslint-disable-next-line global-require
+  await require('../integrations/messaging.service').queueSmsForNotification(organizationId, ids, type, data, trx);
 }
 
 /** Users in the organization holding a permission (active members only). */

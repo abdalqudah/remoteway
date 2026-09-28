@@ -2,6 +2,8 @@
   <% if (can('organization.manage')) { %><a href="/app/settings/company" class="<%= section === 'company' ? 'active' : '' %>"><%= t('settings.company') %></a><% } %>
   <% if (can('users.view')) { %><a href="/app/settings/users" class="<%= section === 'users' ? 'active' : '' %>"><%= t('settings.users') %></a><% } %>
   <% if (can('roles.manage')) { %><a href="/app/settings/roles" class="<%= section === 'roles' ? 'active' : '' %>"><%= t('settings.roles') %></a><% } %>
+  <% if (can('integrations.manage')) { %><a href="/app/settings/integrations" class="<%= section === 'integrations' ? 'active' : '' %>"><%= t('integrations.title') %></a><% } %>
+  <% if (hasFeature('integrations')) { %><a href="/app/settings/calendar" class="<%= section === 'calendar' ? 'active' : '' %>"><%= t('integrations.calendar') %></a><% } %>
   <% if (can('api.manage')) { %><a href="/app/settings/api" class="<%= section === 'api' ? 'active' : '' %>"><%= t('settings.api') %></a><% } %>
   <% if (can('audit.view')) { %><a href="/app/settings/audit" class="<%= section === 'audit' ? 'active' : '' %>"><%= t('settings.audit') %></a><% } %>
   <a href="/app/settings/account" class="<%= section === 'account' ? 'active' : '' %>"><%= t('settings.account') %></a>

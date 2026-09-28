@@ -1,0 +1,16 @@
+<%
+  // Params: groups, selected (array), name
+  var sel = selected || [];
+  var all = sel.indexOf('*') !== -1;
+%>
+<div class="field"><span class="label"><%= t('integrations.events') %><span class="req">*</span></span>
+  <label class="check mb-2"><input type="checkbox" name="<%= name %>" value="*"<%= all ? ' checked' : '' %>><strong><%= t('integrations.all_events') %></strong></label>
+  <div class="event-groups">
+    <% groups.forEach(function (g) { %>
+      <fieldset class="event-group"><legend><%= t('integrations.group_' + g[0]) %></legend>
+        <% g[1].forEach(function (ev) { %><label class="check small"><input type="checkbox" name="<%= name %>" value="<%= ev %>"<%= all || sel.indexOf(ev) !== -1 ? ' checked' : '' %>><span><%= t('audit.' + ev) %> <code class="tiny muted" dir="ltr"><%= ev %></code></span></label><% }) %>
+      </fieldset>
+    <% }) %>
+  </div>
+  <% if (errors.events) { %><span class="field-error"><%= errors.events %></span><% } %>
+</div>

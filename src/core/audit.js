@@ -39,6 +39,9 @@ async function record(ctx, action, { entityType, entityId, oldValues, newValues 
     ip: ctx.ip ? String(ctx.ip).slice(0, 64) : null,
     user_agent: ctx.userAgent ? String(ctx.userAgent).slice(0, 255) : null,
   });
+  // Outbound integrations (webhooks, chat) for public events — queued in the same transaction.
+  // eslint-disable-next-line global-require
+  await require('../modules/integrations/events').dispatch(ctx, action, { entityType, entityId, newValues: newValues ? JSON.parse(scrub(newValues)) : null }, trx);
 }
 
 module.exports = { record, diff };

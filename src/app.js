@@ -7,6 +7,7 @@ const compression = require('compression');
 const { ConnectSessionKnexStore } = require('connect-session-knex');
 
 const config = require('./config');
+require('./modules/integrations/handlers'); // job types (webhooks, emails, SMS, chat)
 const knex = require('./db/knex');
 const { loadUser } = require('./middleware/context');
 const web = require('./middleware/web');

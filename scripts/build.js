@@ -15,11 +15,11 @@ fs.mkdirSync(dist);
 
 const copy = (rel) => fs.cpSync(path.join(root, rel), path.join(dist, rel), { recursive: true });
 ['app.js', 'knexfile.js', 'package-lock.json', '.env.example', 'README.md', 'src', 'public', 'docs',
-  'scripts/migrate.js', 'scripts/seed-demo.js', 'scripts/doctor.js'].filter((f) => fs.existsSync(path.join(root, f))).forEach(copy);
+  'scripts/migrate.js', 'scripts/seed-demo.js', 'scripts/doctor.js', 'scripts/run-jobs.js'].filter((f) => fs.existsSync(path.join(root, f))).forEach(copy);
 
 const pkg = JSON.parse(fs.readFileSync(path.join(root, 'package.json'), 'utf8'));
 delete pkg.devDependencies;
-pkg.scripts = Object.fromEntries(['start', 'migrate', 'seed:demo', 'doctor'].filter((k) => pkg.scripts[k]).map((k) => [k, pkg.scripts[k]]));
+pkg.scripts = Object.fromEntries(['start', 'migrate', 'seed:demo', 'doctor', 'jobs'].filter((k) => pkg.scripts[k]).map((k) => [k, pkg.scripts[k]]));
 fs.writeFileSync(path.join(dist, 'package.json'), `${JSON.stringify(pkg, null, 2)}\n`);
 
 let commit = null;

@@ -129,7 +129,7 @@ All of them carry `organization_id` and a composite index that starts with it.
 | 9 | Payroll, Payslips, Allowances/Deductions (Country Policy Engine: Saudi GOSI) | 4 | **Built** |
 | 10 | Performance (Goals/OKRs, check-ins, review cycles, competencies, feedback) | 5 | **Built** |
 | 11 | Learning (Courses, lessons & quizzes, Paths, Assignments, Certificates) | 6 | **Built** |
-| 12 | Integration hub: PayWay, Email, SMS, Accounting, Webhooks | 7 | Planned |
+| 12 | Integration hub: Webhooks, SMS, Chat, Calendar feeds, Email (SMTP), background jobs; PayWay awaiting API docs; Accounting later | 7 | **Built** |
 | 13 | AI layer | 8 | Planned |
 | 14 | SSO, custom workflows, enterprise reporting, client success portal | 9 | Planned |
 
@@ -208,7 +208,7 @@ Auth is `Authorization: Bearer rw_…` (Settings → API; requires the `api` fea
 | Learning (`learning`) | available |  | ✓ | ✓ | ✓ |
 | Projects (`projects`) | available |  | ✓ | ✓ | ✓ |
 | Advanced Reports (`advanced_reports`) | coming_soon |  | ✓ | ✓ | ✓ |
-| Integrations (`integrations`) | coming_soon |  | ✓ | ✓ | ✓ |
+| Integrations (`integrations`) | available |  | ✓ | ✓ | ✓ |
 | Advanced Analytics (`analytics`) | coming_soon |  |  | ✓ | ✓ |
 | Compliance (`compliance`) | coming_soon |  | ✓ | ✓ | ✓ |
 | API Access (`api`) | available |  |  | ✓ | ✓ |
@@ -276,7 +276,7 @@ Payroll / Employees ─► domain events (payroll.approved, employee.updated)
 | **4 — Payroll** | Compensation & bank details, payroll runs (draft → review → approved → paid, four-eyes), payslips, Saudi GOSI via the Country Policy Engine, proration, unpaid leave, adjustments, register/bank/GOSI exports | ✅ Done — 23 more tests (13 pure calculation tests + 10 integration: GOSI, proration, unpaid leave, workflow & locking, four-eyes, payslip visibility, isolation, exports) |
 | **5 — Performance** | Goals/OKRs with key results and check-ins, alignment, review cycles (self + manager, weighted scores, release on close, acknowledgement), competencies, feedback | ✅ Done — 10 more tests (OKR maths, scoring, goal permissions & visibility, cycle workflow, hidden manager assessment, feedback privacy) |
 | **6 — Learning** | Courses (text, video, file, link, quiz), catalog, assignments, paths, progress, certificates with public verification and expiry, reports | ✅ Done — 12 more tests (safe content, embeds, publishing rules, access to lessons/files, assignment scope, quiz scoring, certificates & verification, retake, paths) |
-| 7 — Integrations | Integration hub, Email/SMS providers, outbound webhooks (signed, retried), PayWay adapter (once docs are available) | |
+| **7 — Integrations** | Integration hub, database job queue (retries, cron script), encrypted credentials, SSRF-safe HTTP, signed outbound webhooks, SMS (Taqnyat/Unifonic/Msegat), Slack/Google Chat, ICS calendar feeds, SMTP & jobs in Super Admin; PayWay adapter once docs are available | ✅ Done — 15 more tests (encryption, SSRF blocking, signatures, phone normalisation, ICS, webhook outbox/retry/auto-disable, SMS formats, chat, calendar feeds, queue) — 136 total |
 | 8 — AI | AI service layer and features as in J | |
 | 9 — Enterprise | SSO (SAML/OIDC), custom workflows, enterprise reporting, client success portal | |
 

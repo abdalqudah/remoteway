@@ -100,7 +100,7 @@ const FEATURES = [
   ['learning', 'Learning', 'learning', 'available'],
   ['projects', 'Projects', 'remote_work', 'available'],
   ['advanced_reports', 'Advanced Reports', 'analytics', 'coming_soon'],
-  ['integrations', 'Integrations', 'integrations', 'coming_soon'],
+  ['integrations', 'Integrations', 'integrations', 'available'],
   ['analytics', 'Advanced Analytics', 'analytics', 'coming_soon'],
   ['compliance', 'Compliance', 'compliance', 'coming_soon'],
   ['api', 'API Access', 'integrations', 'available'],

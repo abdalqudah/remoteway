@@ -12,6 +12,7 @@ router.use('/', require('../modules/site/web'));
 router.use('/', require('../modules/auth/web'));
 router.use('/careers', require('../modules/recruitment/careers.web'));
 router.use('/verify', require('../modules/learning/verify.web'));
+router.use('/calendar', require('../modules/integrations/web').feedRouter);
 router.use('/admin', requireAuth, requireSuperAdmin, require('../modules/admin/web'));
 router.use('/app', requireAuth, resolveTenant, require('./app'));
 

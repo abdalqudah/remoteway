@@ -27,6 +27,9 @@ router.use('/employee-onboarding', require('../modules/onboarding/plans.web'));
 router.use('/payroll', require('../modules/payroll/web'));
 router.use('/performance', require('../modules/performance/web'));
 router.use('/learning', require('../modules/learning/web'));
+const integrationsWeb = require('../modules/integrations/web');
+router.use('/settings/integrations', integrationsWeb.router);
+router.use('/settings/calendar', integrationsWeb.calendarRouter);
 router.use('/settings', require('../modules/settings/web'));
 router.use('/billing', require('../modules/billing/web'));
 
