@@ -65,10 +65,14 @@ describe('company portal link', () => {
     assert.equal((await c.get('/app')).status, 302, 'not signed in');
   });
 
-  test('a signed-in member picking an area goes straight there, in that company', async () => {
-    const r = await owner.get('/taawoni?as=admin');
+  test('a signed-in member picking an area goes straight there (form post, not a plain link)', async () => {
+    const page = await owner.get('/taawoni');
+    assert.match(page.text, /action="\/taawoni\/enter"/);
+    const r = await owner.form('/taawoni/enter', { as: 'admin' });
     assert.equal(r.status, 302);
     assert.equal(r.headers.location, '/app/settings/company');
+    const noCsrf = await owner.agent.post('/taawoni/enter').type('form').send({ as: 'admin' });
+    assert.notEqual(noCsrf.headers.location, '/app/settings/company', 'CSRF token required');
   });
 });
 
@@ -158,6 +162,33 @@ describe('QR attendance', () => {
     const c = await os.agent.get(s.headers.location);
     const r = await os.agent.post(s.headers.location).type('form').send({ _csrf: csrfOf(c.text), action: 'in' });
     assert.equal(r.status, 403);
+  });
+
+  test('a new screen link cancels open scans; off-network scans are marked for managers', async () => {
+    const e3 = await h.addMember(co.organizationId, 'employee');
+    await linkedEmployee(co.organizationId, e3);
+    const s = await h.login(e3.email, e3.password);
+    // Scan while the screen is seen from another network (off-network, but allowed: same_network is off)
+    await h.knex('attendance_kiosks').where({ id: kioskId }).update({ last_ip: '203.0.113.9' });
+    const k0 = await h.knex('attendance_kiosks').where({ id: kioskId }).first();
+    const sec0 = require('../src/core/secrets').decrypt(k0.secret_enc);
+    const st = kioskSvc.stepOf();
+    const first = await s.agent.get(`/q/${k0.public_id}/${st}.${kioskSvc.codeFor(sec0, k0.public_id, st)}`);
+    const c1 = await s.agent.get(first.headers.location);
+    // The screen link is regenerated before the person confirms: the scan no longer counts
+    await owner.form(`/app/attendance/qr/${kioskId}/regenerate`, {});
+    const late = await s.agent.post(first.headers.location).type('form').send({ _csrf: csrfOf(c1.text), action: 'in' });
+    assert.equal(late.status, 404);
+    // A fresh scan works and is flagged as off-network
+    const k1 = await h.knex('attendance_kiosks').where({ id: kioskId }).first();
+    const sec1 = require('../src/core/secrets').decrypt(k1.secret_enc);
+    const again = await s.agent.get(`/q/${k1.public_id}/${st}.${kioskSvc.codeFor(sec1, k1.public_id, kioskSvc.stepOf())}`.replace(`/${st}.`, `/${kioskSvc.stepOf()}.`));
+    const c2 = await s.agent.get(again.headers.location);
+    await s.agent.post(again.headers.location).type('form').send({ _csrf: csrfOf(c2.text), action: 'in' });
+    const row = await h.knex('attendance as a').join('employees as e', 'e.id', 'a.employee_id').where('e.user_id', e3.userId).first('a.*');
+    assert.equal(row.clock_in_method, 'qr');
+    assert.equal(Boolean(row.qr_off_network), true);
+    assert.match((await owner.get('/app/attendance')).text, /qr-tag off/);
   });
 
   test('same-network screens refuse phones on another network', async () => {

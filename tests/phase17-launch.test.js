@@ -376,7 +376,7 @@ describe('security review fixes', () => {
     if (saved !== undefined) process.env.INTEGRATIONS_ALLOW_PRIVATE = saved;
   });
 
-  test('five wrong 2FA codes lock the second step; ten wrong passwords pause the account', async () => {
+  test('five wrong 2FA codes lock the second step; wrong passwords slow down but never lock out', async () => {
     const co = await h.createCompany();
     const s = await h.login(co.email, co.password);
     await s.form('/security/2fa/start', {});
@@ -387,10 +387,14 @@ describe('security review fixes', () => {
     const locked = await agent.post('/login/2fa').type('form').send({ _csrf: csrf, code: nextCode(sec, 1) });
     assert.equal(locked.status, 429);
 
+    // Wrong passwords never lock the real owner out, and unknown addresses answer the same way
     const c2 = await h.createCompany();
-    for (let i = 0; i < 10; i += 1) await startLogin(c2.email, 'wrong-password');
-    const paused = await startLogin(c2.email, c2.password);
-    assert.equal(paused.res.status, 429);
+    for (let i = 0; i < 11; i += 1) await startLogin(c2.email, 'wrong-password');
+    const still = await startLogin(c2.email, 'wrong-password');
+    const unknown = await startLogin('nobody-here@test.local', 'wrong-password');
+    assert.equal(still.res.status, unknown.res.status);
+    const right = await startLogin(c2.email, c2.password);
+    assert.equal(right.res.status, 302, 'the right password still works');
   });
 
   test('the Back link on /security only accepts in-app paths', async () => {
@@ -499,6 +503,18 @@ describe('password reset links without email', () => {
     const form = await a.get(`/reset/${link}`);
     assert.equal((await a.post(`/reset/${link}`).type('form').send({ _csrf: csrfOf(form.text), password: 'Fresh#2026x', password_confirm: 'Fresh#2026x' })).status, 302);
     await h.login(member.email, 'Fresh#2026x');
+    // Someone who also uses the account elsewhere: email only, never shown to the company admin
+    const shared = await h.addMember(co.organizationId, 'employee');
+    const elsewhere = await h.createCompany();
+    await h.knex('memberships').insert({ organization_id: elsewhere.organizationId, user_id: shared.userId });
+    config.isTest = false;
+    try {
+      assert.equal((await owner.form(`/app/settings/users/${shared.userId}/reset-link`, {})).status, 409, 'no email set up: refused');
+    } finally { config.isTest = true; }
+    mailer.testOutbox.length = 0;
+    assert.equal((await owner.form(`/app/settings/users/${shared.userId}/reset-link`, {})).status, 302);
+    assert.ok(mailer.testOutbox.find((m) => m.to === shared.email), 'emailed to the person');
+    assert.ok(!/\/reset\/[a-f0-9]{64}/.test((await owner.get('/app/settings/users')).text), 'link never shown to the admin');
     // Not for the owner, and not across companies
     const other = await h.createCompany();
     assert.equal((await owner.form(`/app/settings/users/${other.userId}/reset-link`, {})).status, 404);

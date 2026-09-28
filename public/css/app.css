@@ -1112,3 +1112,5 @@ form.inline { display: inline; }
 .kiosk-card { border: 1px solid var(--border); border-radius: var(--radius); padding: 12px 14px; }
 .qr-tag { display: inline-block; font-size: 10px; font-weight: 700; padding: 1px 5px; border-radius: 4px; background: var(--success-soft); color: var(--success); vertical-align: middle; }
 .qr-hint { display: inline-flex; align-items: center; gap: 8px; padding: 8px 12px; border-radius: var(--radius); background: var(--surface-sunken); font-size: 13px; font-weight: 600; }
+.qr-tag.off { background: var(--warning-soft); color: var(--warning); }
+button.portal-choice { cursor: pointer; font-family: inherit; text-align: start; }

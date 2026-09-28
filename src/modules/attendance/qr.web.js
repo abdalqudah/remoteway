@@ -52,7 +52,9 @@ scan.get('/:pub/:code', wrap(async (req, res) => {
     return failScan(req, res, e);
   }
   // The scan is valid now; the person has a few minutes to sign in if needed.
-  req.session.qrTicket = { kioskId: k.id, pub: k.public_id, at: Date.now() };
+  // The ticket is tied to the screen's current secret (a "new screen link" cancels open tickets) and
+  // remembers whether the phone was on the screen's network.
+  req.session.qrTicket = { kioskId: k.id, pub: k.public_id, at: Date.now(), sv: kiosks.secretVersion(k), off: Boolean(k.last_ip && String(req.ip) !== k.last_ip) };
   if (!req.user) {
     req.session.returnTo = `/q/${k.public_id}`;
     return req.session.save(() => res.redirect('/login'));
@@ -77,11 +79,11 @@ scan.post('/:pub', wrap(async (req, res) => {
     const t = ticketFor(req, req.params.pub);
     if (!t) throw new AppError('QR_EXPIRED', 'This code has expired. Scan the code currently on the screen.', 410);
     const k = await knex('attendance_kiosks').where({ id: t.kioskId, is_active: true }).first();
-    if (!k) throw new AppError('QR_INVALID', 'This QR code is not valid. Scan the code on the office screen.', 404);
+    if (!k || kiosks.secretVersion(k) !== t.sv) throw new AppError('QR_INVALID', 'This QR code is not valid. Scan the code on the office screen.', 404);
     if (!(await orgs.isMember(req.user.id, k.organization_id))) throw new AppError('QR_NOT_MEMBER', 'Your account does not belong to this company.', 403);
     const action = req.body.action === 'out' ? 'out' : 'in';
     const ctx = { organizationId: k.organization_id, userId: req.user.id, ip: req.ip };
-    const done = await attendance.clock(ctx, action, req.ip, { method: 'qr', kioskId: k.id });
+    const done = await attendance.clock(ctx, action, req.ip, { method: 'qr', kioskId: k.id, offNetwork: t.off });
     delete req.session.qrTicket;
     req.session.organizationId = k.organization_id;
     return res.page('pages/attendance/scan', { layout: 'auth', title: req.t('qr.scan_title'), kiosk: k, org: await orgs.get(k.organization_id), today: await attendance.today(ctx), done, finished: true });

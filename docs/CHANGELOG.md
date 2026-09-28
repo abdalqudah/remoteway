@@ -5,13 +5,14 @@
 The first production release. Everything below ships together; install it from Super Admin → System update.
 
 ### Launch hardening (since 0.16)
-- **Account security:** password reset by email (one-time, 60 min); reset links created by company admins or the platform team when email is not set up (24 h, audited); change password from *Account security*; two-step verification (authenticator app + recovery codes), optionally required for the platform team; per-account lockout after repeated wrong passwords or codes; other devices signed out after a password change.
+- **Account security:** password reset by email (one-time, 60 min); reset links created by company admins or the platform team when email is not set up (24 h, audited); change password from *Account security*; two-step verification (authenticator app + recovery codes), optionally required for the platform team; sign-in slowed after repeated wrong passwords and a 15-minute pause after 5 wrong codes; other devices signed out after a password change.
 - **Email verification:** new accounts confirm their address (48 h link); unconfirmed accounts cannot invite people or apply to jobs, and must confirm after 7 days. Only active once email sending is configured.
 - **Backups:** pure-Node database backups (no shell needed), daily schedule, retention, download, upload, restore with a safety copy.
 - **Error log** in Super Admin (secrets hidden, 90-day retention).
 - **Privacy (PDPL):** editable Arabic/English privacy policy and terms, essential-cookies notice, personal data export, account deletion (anonymisation), `robots.txt` and `sitemap.xml`.
 - **Launch readiness page:** live checks with fix links; one-click removal of the demo data (owner only, safety backup first).
 - **Security review fixes:** SSO can no longer link or sign in accounts outside the company or the platform team, and SSO sessions only reach their company; SSRF guard covers IPv6 literals; the public careers form never overwrites an existing candidate; marketplace applications only link a company's candidate record when safe; department managers cannot edit other departments' goals; Arabic pages keep right-to-left layout everywhere.
+- **Second security review (1.0.0):** a company admin can only see a reset link for accounts that live entirely inside the company (otherwise it is emailed to the person); wrong passwords slow sign-in down but can no longer lock the real owner out or reveal which emails exist; QR screens default to “same network only”, off-network scans are flagged, and a new screen link cancels open scans; choosing an area on a company page switches company only through a form post; X-Forwarded-For is trusted only from the local web server by default (`TRUST_PROXY`).
 
 ### New in 1.0.0
 - **Company link:** every company chooses `remoteway.net/<name>`; the page shows its name and logo and asks who is signing in (employee, manager, HR, payroll, recruitment, admin).

@@ -16,7 +16,12 @@ const { notFound, errorHandler } = require('./middleware/errors');
 function createApp() {
   const app = express();
   app.disable('x-powered-by');
-  if (config.trustProxy) app.set('trust proxy', 1); // cPanel / Passenger sits behind Apache or LiteSpeed
+  // cPanel / Passenger sits behind Apache or LiteSpeed on the same machine: trust X-Forwarded-For only
+  // from that local hop (loopback or Passenger's socket), so a client reaching Node directly cannot fake
+  // its IP (rate limits, QR same-network check). TRUST_PROXY=any trusts one hop of any address
+  // (e.g. a load balancer on another machine); TRUST_PROXY=false turns it off.
+  if (process.env.TRUST_PROXY === 'any') app.set('trust proxy', 1);
+  else if (config.trustProxy) app.set('trust proxy', (addr, i) => i === 0 && (!addr || addr === '::1' || /^(::ffff:)?127\./.test(addr)));
   app.set('view engine', 'ejs');
   app.set('views', path.join(__dirname, 'views'));
 

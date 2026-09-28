@@ -63,10 +63,22 @@ async function adminResetLink(ctx, userId, { organizationId = null } = {}) {
     const org = await knex('organizations').where({ id: organizationId }).first('owner_user_id');
     if (org.owner_user_id === userId) throw E.conflict('RESET_OWNER', 'The company owner resets their password from the sign-in page.');
   }
+  // A password belongs to the whole account. A company admin may only see the link for an account that
+  // lives entirely inside their company; for anyone else (member of another company, owner elsewhere,
+  // personal career profile) the link goes to the person's own email and is never shown.
+  let emailOnly = false;
+  if (organizationId) {
+    const elsewhere = await knex('memberships').where({ user_id: userId }).whereNot({ organization_id: organizationId }).first('id');
+    const owns = await knex('organizations').where({ owner_user_id: userId }).first('id');
+    const profile = await knex('talent_profiles').where({ user_id: userId }).first('id');
+    emailOnly = Boolean(elsewhere || owns || profile);
+    if (emailOnly && !canEmail()) throw E.conflict('RESET_EMAIL_ONLY', 'This person uses their account outside your company, so the reset link can only be sent to their own email — and email is not set up yet. Ask them to contact RemoteWay support.');
+  }
   const link = await issueResetLink(user.id, { ip: ctx.ip, minutes: 24 * 60 });
   const emailed = canEmail() ? await emailResetLink(user, link, { minutes: 24 * 60 }) : false;
-  await audit.record({ ...ctx, organizationId: organizationId || ctx.organizationId }, 'auth.password_reset_link_created', { entityType: 'user', entityId: user.id, newValues: { emailed } });
-  return { link, emailed, email: user.email };
+  if (emailOnly && !emailed) throw E.conflict('RESET_EMAIL_FAILED', 'The reset email could not be sent. Try again later.');
+  await audit.record({ ...ctx, organizationId: organizationId || ctx.organizationId }, 'auth.password_reset_link_created', { entityType: 'user', entityId: user.id, newValues: { emailed, emailOnly } });
+  return { link: emailOnly ? null : link, emailed, email: user.email };
 }
 
 async function findReset(token) {

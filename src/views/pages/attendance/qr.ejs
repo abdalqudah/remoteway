@@ -46,7 +46,7 @@
       <div class="panel-body stack">
         <%- include('../../partials/field', { name: 'name', label: t('qr.screen_name'), required: true, placeholder: t('qr.screen_name_ph') }) %>
         <%- include('../../partials/field', { name: 'location_id', label: t('fields.location'), type: 'select', placeholder: t('qr.no_location'), options: locations.map(function (l) { return { value: l.id, label: l.name }; }) }) %>
-        <label class="check"><input type="checkbox" name="same_network" value="1"<%= o.same_network ? ' checked' : '' %>> <span><%= t('qr.same_network') %></span></label>
+        <label class="check"><input type="checkbox" name="same_network" value="1"<%= o.name === undefined || o.same_network ? ' checked' : '' %>> <span><%= t('qr.same_network') %></span></label>
         <p class="small muted" style="margin:0"><%= t('qr.same_network_help') %></p>
       </div>
       <div class="panel-foot"><button class="btn btn-dark" type="submit"><%- icon('plus') %><%= t('qr.add') %></button></div>

@@ -61,7 +61,7 @@ async function today(ctx) {
  * @param opts.method 'web' (the button) or 'qr' (scanned at a display screen)
  * When the company requires QR, clocking in and out only works by scanning; breaks stay on the button.
  */
-async function clock(ctx, action, ip, { method = 'web', kioskId = null } = {}) {
+async function clock(ctx, action, ip, { method = 'web', kioskId = null, offNetwork = false } = {}) {
   await ent.assertFeature(ctx.organizationId, 'attendance');
   await ent.assertCanWrite(ctx.organizationId);
   if (method === 'web' && ['in', 'out'].includes(action) && (await orgs.getSettings(ctx.organizationId)).attendance_qr_required) {
@@ -77,7 +77,7 @@ async function clock(ctx, action, ip, { method = 'web', kioskId = null } = {}) {
       if (row?.clock_in) throw new AppError('ALREADY_CLOCKED_IN', 'You have already clocked in today.', 409);
       const nowMin = minutesNowIn(c.tz);
       const late = c.workingDays.includes(dayKey(date)) ? Math.max(0, nowMin - (c.start + c.grace)) : 0;
-      const how = { clock_in_method: method, ...(kioskId ? { kiosk_id: kioskId } : {}) };
+      const how = { clock_in_method: method, ...(kioskId ? { kiosk_id: kioskId } : {}), ...(offNetwork ? { qr_off_network: true } : {}) };
       if (row) await trx('attendance').where({ id: row.id }).update({ clock_in: now, late_minutes: late, ip, source: 'web', ...how });
       else await trx('attendance').insert({ organization_id: ctx.organizationId, employee_id: emp.id, work_date: date, clock_in: now, late_minutes: late, ip, source: 'web', ...how });
       return 'in';
@@ -97,7 +97,7 @@ async function clock(ctx, action, ip, { method = 'web', kioskId = null } = {}) {
       return 'break_end';
     }
     if (action === 'out') {
-      const update = { clock_out: now, break_started_at: null, break_minutes: breakMinutes, clock_out_method: method, ...(kioskId ? { kiosk_id: kioskId } : {}) };
+      const update = { clock_out: now, break_started_at: null, break_minutes: breakMinutes, clock_out_method: method, ...(kioskId ? { kiosk_id: kioskId } : {}), ...(offNetwork ? { qr_off_network: true } : {}) };
       Object.assign(update, computeMinutes({ ...row, ...update }, c));
       await trx('attendance').where({ id: row.id }).update(update);
       return 'out';

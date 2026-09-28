@@ -110,4 +110,7 @@ async function checkScan(publicId, raw, ip, now = Date.now()) {
   return k;
 }
 
-module.exports = { STEP_MS, stepOf, codeFor, list, create, get, update, regenerate, remove, displayUrl, byDisplayToken, currentQr, checkScan };
+/** Changes whenever the screen's code secret is regenerated. */
+const secretVersion = (k) => sha256(String(k.secret_enc)).slice(0, 16);
+
+module.exports = { secretVersion, STEP_MS, stepOf, codeFor, list, create, get, update, regenerate, remove, displayUrl, byDisplayToken, currentQr, checkScan };

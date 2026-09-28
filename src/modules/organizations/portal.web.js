@@ -14,20 +14,26 @@ async function renderPortal(req, res, org, extra = {}) {
   const sso = await knex('sso_connections').where({ organization_id: org.id, enabled: true }).first('organization_id').catch(() => null);
   const full = await orgs.get(org.id);
   const brandInfo = await require('../branding/branding.service').forOrg(org.id, full.name); // eslint-disable-line global-require
-  res.page('pages/auth/portal', { layout: 'auth', title: full.name, org: full, orgLogo: brandInfo.logoUrl, entries, as, sso: Boolean(sso), ...extra });
+  res.page('pages/auth/portal', { layout: 'auth', title: full.name, org: full, orgLogo: brandInfo.logoUrl, entries, as, sso: Boolean(sso), member: false, ...extra });
 }
 
 router.get('/:slug', wrap(async (req, res, next) => {
   const org = await portal.bySlug(req.params.slug);
   if (!org) return next();
-  // Already signed in and a member: the choice opens the area directly.
-  if (req.user && req.query.as && await orgs.isMember(req.user.id, org.id)) {
-    req.session.organizationId = org.id;
-    const e = portal.entry(req.query.as);
-    const perms = await rbac.getUserPermissions(org.id, req.user.id);
-    return res.redirect(!e.permission || perms.has(e.permission) ? e.path : '/app');
-  }
-  return renderPortal(req, res, org);
+  const member = Boolean(req.user && await orgs.isMember(req.user.id, org.id));
+  return renderPortal(req, res, org, { member });
+}));
+
+// Already signed in and a member: choosing an area switches to this company (a form post, so another
+// site cannot switch someone's company with a link).
+router.post('/:slug/enter', wrap(async (req, res, next) => {
+  const org = await portal.bySlug(req.params.slug);
+  if (!org) return next();
+  if (!req.user || !(await orgs.isMember(req.user.id, org.id))) return res.redirect(`/${org.slug}`);
+  req.session.organizationId = org.id;
+  const e = portal.entry(req.body.as);
+  const perms = await rbac.getUserPermissions(org.id, req.user.id);
+  return res.redirect(!e.permission || perms.has(e.permission) ? e.path : '/app');
 }));
 
 module.exports = { router, renderPortal };

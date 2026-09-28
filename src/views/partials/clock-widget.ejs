@@ -9,8 +9,8 @@
     <span class="st st-<%= state === 'out' ? 'not_yet' : state === 'done' ? 'done' : state === 'break' ? 'late' : 'present' %>"><%= t('attendance.state_' + state) %></span></div>
   <div class="panel-body clock-card">
     <div class="clock-steps grow">
-      <span><%= t('attendance.clock_in') %><strong><%= tf(r && r.clock_in) %><% if (r && r.clock_in_method === 'qr') { %> <span class="qr-tag" title="QR">QR</span><% } %></strong></span>
-      <span><%= t('attendance.clock_out') %><strong><%= tf(r && r.clock_out) %><% if (r && r.clock_out_method === 'qr') { %> <span class="qr-tag" title="QR">QR</span><% } %></strong></span>
+      <span><%= t('attendance.clock_in') %><strong><%= tf(r && r.clock_in) %><% if (r && r.clock_in_method === 'qr') { %> <span class="qr-tag<%= r.qr_off_network ? ' off' : '' %>" title="<%= r.qr_off_network ? t('qr.off_network') : 'QR' %>">QR</span><% } %></strong></span>
+      <span><%= t('attendance.clock_out') %><strong><%= tf(r && r.clock_out) %><% if (r && r.clock_out_method === 'qr') { %> <span class="qr-tag<%= r.qr_off_network ? ' off' : '' %>" title="<%= r.qr_off_network ? t('qr.off_network') : 'QR' %>">QR</span><% } %></strong></span>
       <span><%= t('attendance.break') %><strong><%= r ? fmt.number(r.break_minutes) + ' ' + t('attendance.min') : '—' %></strong></span>
       <% if (r && r.late_minutes > 0) { %><span><%= t('attendance.late') %><strong class="overdue"><%= fmt.number(r.late_minutes) %> <%= t('attendance.min') %></strong></span><% } %>
       <% if (r && r.clock_out) { %><span><%= t('attendance.worked') %><strong><%= Math.floor(r.worked_minutes / 60) %>:<%= String(r.worked_minutes % 60).padStart(2, '0') %></strong></span><% } %>

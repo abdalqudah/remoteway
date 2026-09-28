@@ -17,18 +17,28 @@ async function createUser(trx, { name, email, password, locale }) {
   return id;
 }
 
+// Failed sign-ins per email address in the last 15 minutes (kept in memory; bounded).
+const failures = {
+  map: new Map(),
+  recent(key) { const now = Date.now(); const list = (this.map.get(key) || []).filter((t) => now - t < 15 * 60_000); if (list.length) this.map.set(key, list); else this.map.delete(key); return list.length; },
+  add(key) { if (this.map.size > 50_000) this.map.clear(); this.map.set(key, [...(this.map.get(key) || []), Date.now()].slice(-50)); },
+  clear(key) { this.map.delete(key); },
+};
+
 async function authenticate({ email, password }, ctx = {}) {
-  const user = await knex('users').where({ email: String(email).toLowerCase().trim() }).first();
-  if (user) {
-    // Per account (the route also limits per IP): 10 wrong passwords in 15 minutes pause sign-in for this account.
-    const [{ n }] = await knex('audit_logs').where({ user_id: user.id, action: 'auth.login_failed' }).where('created_at', '>=', new Date(Date.now() - 15 * 60_000)).count({ n: '*' });
-    if (Number(n) >= 10) throw new AppError('TOO_MANY_ATTEMPTS', 'Too many failed sign-in attempts. Wait 15 minutes or reset your password.', 429);
-  }
+  const mail = String(email).toLowerCase().trim();
+  const user = await knex('users').where({ email: mail }).first();
+  // Per address (on top of the per-IP limit): after 10 wrong passwords in 15 minutes every further
+  // attempt is slowed down. The right password still works (nobody can lock someone else out), and
+  // unknown addresses are slowed exactly the same way (no hint that an account exists).
+  if (failures.recent(mail) >= 10) await new Promise((r) => setTimeout(r, config.isTest ? 5 : 2000));
   const ok = await bcrypt.compare(String(password), user ? user.password_hash : DUMMY_HASH);
   if (!user || !ok) {
+    failures.add(mail);
     await audit.record({ ...ctx, userId: user?.id }, 'auth.login_failed', { entityType: 'user', entityId: user?.id, newValues: { email } });
     throw E.invalidCredentials();
   }
+  failures.clear(mail);
   if (user.status !== 'active') throw new AppError('ACCOUNT_DISABLED', 'This account is disabled.', 403);
   await require('../sso/sso.service').assertPasswordAllowed(user); // eslint-disable-line global-require
   await knex('users').where({ id: user.id }).update({ last_login_at: new Date() });

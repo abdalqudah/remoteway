@@ -2,7 +2,14 @@
   <% if (orgLogo) { %><img class="portal-logo" src="<%= orgLogo %>" alt="<%= org.name %>"><% } else { %><span class="portal-mark"><%= initials(org.name) %></span><% } %>
   <div><h1><%= org.name %></h1><p class="text-2 small"><%= t('portal.lead') %></p></div>
 </div>
-<% if (!as) { %>
+<% if (member) { %>
+  <p class="mt-6" style="font-weight:600"><%= t('portal.who') %></p>
+  <div class="portal-choices mt-2">
+    <% entries.forEach(function (e) { %>
+      <form method="post" action="/<%= org.slug %>/enter"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><input type="hidden" name="as" value="<%= e.key %>"><button class="portal-choice" type="submit" style="width:100%"><%- icon(e.icon) %><span><%= t('portal.as_' + e.key) %></span></button></form>
+    <% }) %>
+  </div>
+<% } else if (!as) { %>
   <p class="mt-6" style="font-weight:600"><%= t('portal.who') %></p>
   <div class="portal-choices mt-2">
     <% entries.forEach(function (e) { %>
