@@ -955,3 +955,6 @@ fieldset.field > legend { padding: 0; margin-bottom: 6px; }
 .swatch { width: 40px; height: 40px; border-radius: 10px; border: 1px solid var(--border); flex: none; }
 .sidebar-brand .brand-logo { height: 32px; }
 .print-page .page-actions, .print-page form, .print-page dialog, .print-page .an-tabs, .print-page .ai-panel { display: none !important; }
+tr.row-link { cursor: pointer; } tr.row-link:hover td { background: var(--surface-2); }
+.price-card li.plus-head { color: var(--text); padding-top: 2px; } .price-card li.plus-head .icon { color: var(--text-3); }
+.compare summary { cursor: pointer; list-style: none; display: flex; align-items: center; justify-content: space-between; } .compare summary::-webkit-details-marker { display: none; } .compare[open] summary .icon { transform: rotate(180deg); }

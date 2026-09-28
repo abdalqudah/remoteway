@@ -23,7 +23,7 @@ async function overview() {
 
 async function listOrganizations({ q } = {}) {
   const query = knex('organizations as o')
-    .join('users as u', 'u.id', 'o.owner_user_id')
+    .leftJoin('users as u', 'u.id', 'o.owner_user_id')
     .leftJoin('subscriptions as s', 's.organization_id', 'o.id')
     .leftJoin('plans as p', 'p.id', 's.plan_id')
     .select('o.id', 'o.name', 'o.slug', 'o.country_code', 'o.status', 'o.created_at', 'u.email as owner_email', 's.status as sub_status', 's.trial_ends_at', 'p.name as plan_name',
@@ -34,7 +34,7 @@ async function listOrganizations({ q } = {}) {
 }
 
 async function getOrganization(id) {
-  const org = await knex('organizations as o').join('users as u', 'u.id', 'o.owner_user_id').where('o.id', id)
+  const org = await knex('organizations as o').leftJoin('users as u', 'u.id', 'o.owner_user_id').where('o.id', id)
     .select('o.*', 'u.name as owner_name', 'u.email as owner_email').first();
   if (!org) throw E.notFound('Organization');
   org.entitlements = await ent.getEntitlements(id);
@@ -60,8 +60,13 @@ async function setOrganizationStatus(ctx, id, status) {
 async function updateSubscription(ctx, organizationId, {
   plan_id: planId, status, trial_ends_at: trialEndsAt, custom_limits: customLimits, billing_cycle: cycle, current_period_end: periodEnd,
 }) {
-  const sub = await knex('subscriptions').where({ organization_id: organizationId }).first();
-  if (!sub) throw E.notFound('Subscription');
+  let sub = await knex('subscriptions').where({ organization_id: organizationId }).first();
+  if (!sub) {
+    // A company left without a subscription (e.g. an interrupted sign-up): the platform creates one here.
+    if (!planId || !(await knex('organizations').where({ id: organizationId }).first('id'))) throw E.notFound('Subscription');
+    await knex('subscriptions').insert({ organization_id: organizationId, plan_id: planId, status: status || 'active', billing_cycle: cycle || 'monthly', started_at: new Date() });
+    sub = await knex('subscriptions').where({ organization_id: organizationId }).first();
+  }
   const patch = {};
   if (planId) {
     if (!(await knex('plans').where({ id: planId }).first('id'))) throw E.validation({ plan_id: 'Choose a valid plan.' });

@@ -26,12 +26,14 @@
     <div class="section-head"><h2><%= t('site.modules_title') %></h2><p><%= t('site.modules_lead') %></p></div>
     <div class="module-grid">
       <% [
-        ['users', 'workforce', true], ['briefcase', 'recruitment', false], ['wallet', 'payroll', false],
-        ['target', 'performance', false], ['graduation-cap', 'learning', false], ['calendar-check', 'attendance', false],
-        ['layers', 'subscription', true], ['shield-check', 'rbac', true], ['sparkles', 'ai', false]
-      ].forEach(function (m) { %>
+        ['users', 'workforce', 'employees'], ['calendar-check', 'attendance', 'attendance'], ['file-text', 'documents', 'documents'],
+        ['briefcase', 'recruitment', 'recruitment'], ['user-round-plus', 'onboarding', 'onboarding'], ['wallet', 'payroll', 'payroll'],
+        ['target', 'performance', 'performance'], ['graduation-cap', 'learning', 'learning'], ['chart-column', 'analytics', 'analytics'],
+        ['shield-check', 'compliance', 'compliance'], ['zap', 'automation', 'automation'], ['sparkles', 'ai', 'ai_recruitment'],
+        ['key-round', 'sso', 'sso'], ['user-cog', 'rbac', null], ['badge-check', 'white_label', 'white_label']
+      ].forEach(function (m) { var live = !m[2] || availability[m[2]] === 'available'; %>
       <div class="module">
-        <div class="row between"><span class="icon-wrap"><%- icon(m[0]) %></span><span class="badge <%= m[2] ? 'badge-success' : '' %>"><%= m[2] ? t('site.available_now') : t('common.soon') %></span></div>
+        <div class="row between"><span class="icon-wrap"><%- icon(m[0]) %></span><span class="badge <%= live ? 'badge-success' : '' %>"><%= live ? t('site.available_now') : t('common.soon') %></span></div>
         <h3><%= t('site.mod_' + m[1] + '_title') %></h3>
         <p><%= t('site.mod_' + m[1] + '_text') %></p>
       </div>
@@ -44,8 +46,8 @@
   <div class="container grid grid-2" style="align-items:center;gap:48px">
     <div class="section-head" style="margin:0"><h2><%= t('site.integrations_title') %></h2><p><%= t('site.integrations_lead') %></p></div>
     <div class="stack-sm">
-      <% [['credit-card','payway'],['mail','email'],['zap','sms'],['receipt','accounting'],['plug','api']].forEach(function (i) { %>
-      <div class="integration"><span class="logo-box"><%- icon(i[0]) %></span><div class="grow"><strong><%= t('site.int_' + i[1]) %></strong><div class="muted small"><%= t('site.int_' + i[1] + '_text') %></div></div><span class="badge"><%= i[1] === 'api' ? t('site.available_now') : t('common.soon') %></span></div>
+      <% [['mail','email',1],['phone','sms',1],['message-square','chat',1],['calendar-days','calendar',1],['send','webhooks',1],['plug','api',1],['credit-card','payments',1],['wallet','payway',0]].forEach(function (i) { %>
+      <div class="integration"><span class="logo-box"><%- icon(i[0]) %></span><div class="grow"><strong><%= t('site.int_' + i[1]) %></strong><div class="muted small"><%= t('site.int_' + i[1] + '_text') %></div></div><span class="badge <%= i[2] ? 'badge-success' : '' %>"><%= i[2] ? t('site.available_now') : t('common.soon') %></span></div>
       <% }) %>
     </div>
   </div>
@@ -72,7 +74,7 @@
 <section class="section faq" id="faq">
   <div class="container" style="max-width:820px">
     <div class="section-head"><h2><%= t('site.faq_title') %></h2></div>
-    <% [1,2,3,4,5].forEach(function (i) { %>
+    <% [1,2,3,4,5,6].forEach(function (i) { %>
       <details><summary><%= t('site.faq_q' + i) %><%- icon('plus', 'icon-sm') %></summary><p><%= t('site.faq_a' + i) %></p></details>
     <% }) %>
   </div>

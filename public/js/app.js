@@ -495,6 +495,14 @@
     src.addEventListener('change', sync); sync();
   });
 
+  // Table rows that open a record: a click anywhere on the row follows its link (links, buttons and forms inside keep working).
+  document.addEventListener('click', function (e) {
+    var row = e.target.closest('tr[data-href]');
+    if (!row || e.target.closest('a, button, input, select, textarea, label, form')) return;
+    if (window.getSelection && String(window.getSelection())) return;
+    if (e.ctrlKey || e.metaKey) window.open(row.getAttribute('data-href'), '_blank'); else window.location.href = row.getAttribute('data-href');
+  });
+
   // Keep csrf available for fetch-based features.
   window.RemoteWay = { csrf: csrf };
 })();

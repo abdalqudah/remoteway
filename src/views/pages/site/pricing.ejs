@@ -3,5 +3,14 @@
     <div class="section-head"><h2><%= t('site.pricing_title') %></h2><p><%= t('site.pricing_lead') %></p></div>
     <%- include('../../partials/pricing-cards') %>
     <p class="muted small mt-4"><%= t('site.pricing_note') %></p>
+    <details class="panel mt-6 compare">
+      <summary class="panel-head"><h3><%= t('site.compare_all') %></h3><%- icon('chevron-down', 'icon-sm') %></summary>
+      <div class="table-wrap"><table class="table matrix">
+        <thead><tr><th><%= t('site.feature') %></th><% plans.forEach(function (p) { %><th class="text-center"><%= p.name %></th><% }) %></tr></thead>
+        <tbody><% var seen = {}; var all = []; plans.forEach(function (p) { p.features.forEach(function (f) { if (!seen[f.key]) { seen[f.key] = 1; all.push(f); } }); });
+          all.forEach(function (f) { %><tr><td><%= t('features.' + f.key) %><% if (f.availability !== 'available') { %> <span class="muted tiny">(<%= f.availability === 'integration_required' ? t('common.setup_required') : t('common.soon') %>)</span><% } %></td>
+          <% plans.forEach(function (p) { var has = p.features.some(function (x) { return x.key === f.key; }); %><td class="text-center"><%- has ? '<span class="yes">' + icon('check', 'icon-sm') + '</span>' : '<span class="muted">—</span>' %></td><% }) %></tr><% }); %></tbody>
+      </table></div>
+    </details>
   </div>
 </section>

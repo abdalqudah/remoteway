@@ -1,6 +1,6 @@
 {
   "name": "remoteway",
-  "version": "0.14.0",
+  "version": "0.14.1",
   "description": "RemoteWay — Workforce Management & Remote Employment SaaS",
   "main": "app.js",
   "scripts": {

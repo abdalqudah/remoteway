@@ -1,9 +1,10 @@
-<% var canEdit = adminCan('organizations', true); var e = org.entitlements; var sub = e.subscription; var custom = sub && sub.custom_limits ? (typeof sub.custom_limits === 'string' ? JSON.parse(sub.custom_limits) : sub.custom_limits) : {}; %>
+<% var canEdit = adminCan('organizations', true); var e = org.entitlements; var sub = e.subscription || { status: 'past_due', billing_cycle: 'monthly' }; var noSub = !e.subscription; var custom = sub && sub.custom_limits ? (typeof sub.custom_limits === 'string' ? JSON.parse(sub.custom_limits) : sub.custom_limits) : {}; %>
 <div class="page-head">
   <div><div class="eyebrow"><a href="/admin/organizations"><%= t('admin.organizations') %></a><%- icon('chevron-right', 'icon-sm flip-rtl') %>#<%= org.id %></div><h1><%= org.name %></h1><p><%= org.owner_name %> · <%= org.owner_email %></p></div>
   <% if (canEdit) { %><form method="post" action="/admin/organizations/<%= org.id %>/status" data-confirm="<%= org.status === 'active' ? t('admin.confirm_suspend') : t('admin.confirm_activate') %>"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><input type="hidden" name="status" value="<%= org.status === 'active' ? 'suspended' : 'active' %>">
     <button class="btn <%= org.status === 'active' ? 'btn-danger' : 'btn-dark' %>" type="submit"><%= org.status === 'active' ? t('admin.suspend') : t('admin.reactivate') %></button></form><% } %>
 </div>
+<% if (noSub) { %><div class="alert alert-warning mb-6"><%- icon('triangle-alert') %><div class="grow"><div class="alert-title"><%= t('admin.no_subscription') %></div><div class="small text-2"><%= t('admin.no_subscription_text') %></div></div></div><% } %>
 <div class="grid grid-3">
   <section class="panel">
     <div class="panel-head"><h2><%= t('billing.usage') %></h2></div>

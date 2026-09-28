@@ -3,7 +3,7 @@
   <a href="?cycle=yearly#pricing" class="<%= cycle === 'yearly' ? 'active' : '' %>"><%= t('billing.yearly') %></a>
 </div>
 <div class="pricing">
-  <% plans.forEach(function (p) { var custom = p.is_custom || p.price_monthly === null; var price = cycle === 'yearly' ? p.price_yearly : p.price_monthly; %>
+  <% plans.forEach(function (p, pi) { var custom = p.is_custom || p.price_monthly === null; var price = cycle === 'yearly' ? p.price_yearly : p.price_monthly; %>
   <div class="price-card<%= p.key === 'business' ? ' featured' : '' %>">
     <div>
       <div class="row between"><h3 style="font-size:18px"><%= p.name %></h3><% if (p.key === 'business') { %><span class="badge badge-brand"><%= t('site.popular') %></span><% } %></div>
@@ -17,8 +17,13 @@
     <ul>
       <li><%- icon('users') %><strong><%= p.limits.employees === null ? t('billing.unlimited_employees') : t('billing.up_to_employees', { n: fmt.number(p.limits.employees) }) %></strong></li>
       <li><%- icon('user-cog') %><%= p.limits.users === null ? t('billing.unlimited_users') : t('billing.up_to_users', { n: fmt.number(p.limits.users) }) %></li>
-      <% p.features.forEach(function (f) { %>
-        <li class="<%= f.availability === 'available' ? '' : 'soon' %>"><%- icon(f.availability === 'available' ? 'check' : 'clock') %><span><%= t('features.' + f.key) %><% if (f.availability !== 'available') { %> <span class="tiny">(<%= f.availability === 'integration_required' ? t('common.setup_required') : t('common.soon') %>)</span><% } %></span></li>
+      <% if (pi > 0) { %><li class="plus-head"><%- icon('plus') %><strong><%= t('site.everything_in', { plan: plans[pi - 1].name }) %></strong></li><% } %>
+      <% var prevKeys = pi > 0 ? plans[pi - 1].features.map(function (f) { return f.key; }) : [];
+         var extra = p.features.filter(function (f) { return prevKeys.indexOf(f.key) === -1; });
+         var ai = extra.filter(function (f) { return f.key.indexOf('ai_') === 0; });
+         if (ai.length > 1) extra = extra.filter(function (f) { return f.key.indexOf('ai_') !== 0; }).concat([{ key: '_ai', availability: 'available' }]);
+         extra.forEach(function (f) { var label = f.key === '_ai' ? t('site.ai_suite') : t('features.' + f.key); %>
+        <li class="<%= f.availability === 'available' ? '' : 'soon' %>"><%- icon(f.availability === 'available' ? 'check' : 'clock') %><span><%= label %><% if (f.availability !== 'available') { %> <span class="tiny">(<%= f.availability === 'integration_required' ? t('common.setup_required') : t('common.soon') %>)</span><% } %></span></li>
       <% }) %>
     </ul>
   </div>
