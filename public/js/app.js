@@ -581,6 +581,55 @@
     if (navigator.wakeLock && navigator.wakeLock.request) navigator.wakeLock.request('screen').catch(function () {});
   }
 
+  // In-app QR scanner (attendance): reads the office screen's code with the phone camera.
+  var scanner = $('[data-qr-scanner]');
+  if (scanner) {
+    var video = $('[data-scanner-video]', scanner);
+    var status = $('[data-scanner-status]', scanner);
+    var startBtn = $('[data-scanner-start]', scanner);
+    var canvas = document.createElement('canvas');
+    var c2d = canvas.getContext('2d', { willReadFrequently: true });
+    var stream = null; var busy = false; var pausedUntil = 0;
+    var say = function (key) { status.textContent = scanner.getAttribute('data-msg-' + key); };
+    var stop = function () { if (stream) stream.getTracks().forEach(function (tr) { tr.stop(); }); stream = null; };
+    var tick = function () {
+      if (!stream) return;
+      if (video.readyState === video.HAVE_ENOUGH_DATA && window.jsQR && Date.now() > pausedUntil) {
+        var scale = Math.min(1, 720 / Math.max(video.videoWidth, video.videoHeight));
+        canvas.width = Math.round(video.videoWidth * scale); canvas.height = Math.round(video.videoHeight * scale);
+        c2d.drawImage(video, 0, 0, canvas.width, canvas.height);
+        var img = c2d.getImageData(0, 0, canvas.width, canvas.height);
+        var code = window.jsQR(img.data, img.width, img.height, { inversionAttempts: 'attemptBoth' });
+        if (code && code.data) {
+          var path = null;
+          try { path = new URL(code.data, location.href).pathname; } catch (e) { path = null; }
+          if (path && /^\/q\/[A-Za-z0-9]+\/\d+\.[a-f0-9]+$/.test(path)) {
+            say('found'); stop();
+            location.href = path; // same server as this page, whatever address the code was made for
+            return;
+          }
+          say('wrong'); pausedUntil = Date.now() + 1500;
+        }
+      }
+      requestAnimationFrame(tick);
+    };
+    var start = function () {
+      if (busy || stream) return;
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) { say('unsupported'); return; }
+      busy = true;
+      navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: 'environment' } }, audio: false })
+        .then(function (s) {
+          stream = s; video.srcObject = s; video.setAttribute('playsinline', ''); scanner.classList.add('is-live');
+          return video.play();
+        })
+        .then(function () { busy = false; requestAnimationFrame(tick); })
+        .catch(function (err) { busy = false; stop(); say(err && err.name === 'NotAllowedError' ? 'denied' : 'unsupported'); });
+    };
+    startBtn.addEventListener('click', start);
+    start(); // most phones ask for camera permission straight away
+    window.addEventListener('pagehide', stop);
+  }
+
   // Character counters for search titles and descriptions (data-count = recommended length).
   document.querySelectorAll('[data-count]').forEach(function (el) {
     var limit = Number(el.getAttribute('data-count'));

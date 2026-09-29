@@ -18,8 +18,8 @@
     <% if (state !== 'done') { %>
     <form method="post" action="/app/attendance/clock" class="row-sm">
       <input type="hidden" name="_csrf" value="<%= csrfToken %>">
-      <% if (state === 'out') { %><% if (today.qrRequired) { %><span class="qr-hint"><%- icon('smartphone') %><%= t('qr.scan_to_clock_in') %></span><% } else { %><button class="btn btn-primary btn-lg" name="action" value="in" type="submit"><%- icon('clock') %><%= t('attendance.clock_in') %></button><% } %><% } %>
-      <% if (state === 'in') { %><button class="btn btn-secondary" name="action" value="break_start" type="submit"><%= t('attendance.start_break') %></button><% if (today.qrRequired) { %><span class="qr-hint"><%- icon('smartphone') %><%= t('qr.scan_to_clock_out') %></span><% } else { %><button class="btn btn-dark btn-lg" name="action" value="out" type="submit"><%= t('attendance.clock_out') %></button><% } %><% } %>
+      <% if (state === 'out') { %><% if (today.qrRequired) { %><a class="btn btn-primary btn-lg" href="/app/attendance/scan"><%- icon('smartphone') %><%= t('qr.scan_to_clock_in') %></a><% } else { %><button class="btn btn-primary btn-lg" name="action" value="in" type="submit"><%- icon('clock') %><%= t('attendance.clock_in') %></button><% } %><% } %>
+      <% if (state === 'in') { %><button class="btn btn-secondary" name="action" value="break_start" type="submit"><%= t('attendance.start_break') %></button><% if (today.qrRequired) { %><a class="btn btn-dark btn-lg" href="/app/attendance/scan"><%- icon('smartphone') %><%= t('qr.scan_to_clock_out') %></a><% } else { %><button class="btn btn-dark btn-lg" name="action" value="out" type="submit"><%= t('attendance.clock_out') %></button><% } %><% } %>
       <% if (state === 'break') { %><button class="btn btn-primary btn-lg" name="action" value="break_end" type="submit"><%= t('attendance.end_break') %></button><% } %>
     </form>
     <% } %>

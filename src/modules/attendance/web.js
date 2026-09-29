@@ -25,6 +25,12 @@ router.get('/employees/:id', wrap(async (req, res) => {
   res.page('pages/attendance/timesheet', { title: `${req.t('nav.attendance')} · ${employee.full_name}`, employee, sheet, today: await attendance.today(req.ctx) });
 }));
 
+// Scan the office QR code with the phone camera, inside the app (no separate scanner app needed).
+router.get('/scan', wrap(async (req, res) => {
+  res.set('Permissions-Policy', 'camera=(self)');
+  res.page('pages/attendance/scanner', { title: req.t('qr.scanner_title') });
+}));
+
 router.post('/clock', form(async (req, res) => {
   const done = await attendance.clock(req.ctx, String(req.body.action || ''), req.ip);
   flash(req, 'success', req.t(`attendance.done_${done}`));

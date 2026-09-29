@@ -1,5 +1,12 @@
 # RemoteWay — Changelog
 
+## 1.5.2 — In-app QR scanner
+
+- “Scan the QR code at the office” on the employee's dashboard is now a real button: it opens the phone camera inside RemoteWay (Attendance → Scan), reads the screen's code and records the attendance — no separate scanner app needed. Uses jsQR (Apache-2.0), served from the site itself.
+- Clear messages when camera access is refused or not available, and when the camera sees a different QR code.
+- Phone layout: dashboards no longer run wider than the screen.
+
+
 ## 1.5.1 — QR scanning fixes
 
 - “Same network only” now recognises phones on the same Wi-Fi over IPv6 (each device has its own IPv6 address; the check now compares the /64 network) and remembers the screen's IPv4 and IPv6 networks from the last 30 minutes.

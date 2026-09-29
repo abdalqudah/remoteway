@@ -156,4 +156,21 @@ describe('Phase 22 — employee sign-in accounts with a temporary password', () 
       assert.equal(publicBase({ protocol: 'http', hostname: 'remoteway.net', get: (hd) => ({ host: 'remoteway.net', 'x-forwarded-proto': 'https' }[hd]) }), 'https://remoteway.net');
     } finally { config.isProd = was; if (env !== undefined) process.env.APP_URL = env; }
   });
+
+  test('when QR is required the dashboard button opens the in-app scanner', async () => {
+    await owner.form('/app/attendance/qr/settings', { qr_required: '1' });
+    const u = await h.knex('users').where({ email: 'nour@co.test' }).first();
+    const s = await h.login('nour@co.test', 'Nour#Own2026');
+    const dash = await s.get('/app');
+    assert.match(dash.text, /href="\/app\/attendance\/scan"/, 'a real button, not a hint');
+    const scan = await s.get('/app/attendance/scan');
+    assert.equal(scan.status, 200);
+    assert.match(scan.text, /data-qr-scanner/);
+    assert.match(scan.text, /\/js\/vendor\/jsQR\.js/);
+    assert.match(scan.headers['permissions-policy'] || '', /camera=\(self\)/);
+    const js = await h.request(h.getApp()).get('/js/vendor/jsQR.js');
+    assert.equal(js.status, 200);
+    assert.ok(u);
+    await owner.form('/app/attendance/qr/settings', {});
+  });
 });

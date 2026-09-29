@@ -120,7 +120,7 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .grid-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 .span-2 { grid-column: span 2; }
 @media (max-width: 1100px) { .grid-4 { grid-template-columns: repeat(2, minmax(0, 1fr)); } .grid-3 { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
-@media (max-width: 720px) { .grid-2, .grid-3, .grid-4 { grid-template-columns: 1fr; } .span-2 { grid-column: auto; } }
+@media (max-width: 720px) { .grid-2, .grid-3, .grid-4 { grid-template-columns: minmax(0, 1fr); } .span-2 { grid-column: auto; } }
 .align-start { align-items: start; }
 .seo-page { border: 1px solid var(--border); border-radius: var(--radius); padding: 10px 14px; }
 .seo-page > summary { cursor: pointer; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
@@ -1197,3 +1197,10 @@ button.portal-choice { cursor: pointer; font-family: inherit; text-align: start;
 .media-tile form { padding: 0 6px 8px; }
 .brand-icon { width: 18px; height: 18px; display: inline-block; flex: none; fill: currentColor; }
 .temp-password { font-size: 18px; letter-spacing: .04em; padding: 4px 10px; background: var(--surface-2, #f3f4f6); border-radius: 8px; user-select: all; }
+.scanner-view { position: relative; width: 100%; max-width: 460px; margin-inline: auto; aspect-ratio: 1 / 1; border-radius: 16px; overflow: hidden; background: #0b0f0d; display: grid; place-items: center; }
+.scanner-view video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.scanner-frame { position: absolute; inset: 14%; border: 3px solid rgba(255,255,255,.85); border-radius: 18px; box-shadow: 0 0 0 999px rgba(0,0,0,.35); pointer-events: none; opacity: 0; }
+.scanner.is-live .scanner-frame { opacity: 1; }
+.scanner.is-live .scanner-start { display: none; }
+.scanner-start { position: relative; z-index: 1; }
+.clock-card form .btn { white-space: normal; text-align: center; }

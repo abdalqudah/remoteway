@@ -240,7 +240,8 @@ describe('QR attendance', () => {
     await linkedEmployee(co.organizationId, e2);
     const s = await h.login(e2.email, e2.password);
     const home = await s.get('/app');
-    assert.match(home.text, /qr-hint/);
+    assert.match(home.text, /href="\/app\/attendance\/scan"/);
+    assert.doesNotMatch(home.text, /name="action" value="in"/);
     const r = await s.form('/app/attendance/clock', { action: 'in' });
     assert.equal(r.status, 302);
     assert.equal(await h.knex('attendance').where({ organization_id: co.organizationId }).whereIn('employee_id', h.knex('employees').where({ user_id: e2.userId }).select('id')).first(), undefined);

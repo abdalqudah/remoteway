@@ -1,0 +1,14 @@
+<div class="page-head"><div><h1><%= t('qr.scanner_title') %></h1><p><%= t('qr.scanner_sub') %></p></div></div>
+<section class="panel scanner" data-qr-scanner data-origin="<%= baseUrl %>"
+  data-msg-denied="<%= t('qr.scanner_denied') %>" data-msg-unsupported="<%= t('qr.scanner_unsupported') %>" data-msg-wrong="<%= t('qr.scanner_wrong') %>" data-msg-found="<%= t('qr.scanner_found') %>">
+  <div class="panel-body stack">
+    <div class="scanner-view">
+      <video data-scanner-video playsinline muted></video>
+      <div class="scanner-frame" aria-hidden="true"></div>
+      <button class="btn btn-primary btn-lg scanner-start" type="button" data-scanner-start><%- icon('smartphone') %><%= t('qr.scanner_start') %></button>
+    </div>
+    <p class="small text-2 text-center" data-scanner-status role="status" aria-live="polite"><%= t('qr.scanner_hint') %></p>
+    <div class="alert alert-info"><%- icon('info') %><div class="small"><%= t('qr.scanner_alt') %></div></div>
+  </div>
+</section>
+<script src="/js/vendor/jsQR.js?v=<%= assetV %>" defer></script>
