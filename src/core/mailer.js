@@ -102,8 +102,10 @@ const forgetOrg = (organizationId) => { orgCache.delete(organizationId); orgCach
 
 /** Whether an email for this company would be sent at all (company mailbox, or the platform's when allowed). */
 async function canSendFor(organizationId) {
-  if (await isSandbox(organizationId)) return false;
+  const sb = await sandboxOf(organizationId);
+  if (sb && !sb.emails) return false;
   if (organizationId && await orgMail(organizationId)) return true;
+  if (sb) return platformEnabled(); // test companies may use the platform email even when mailboxes are required
   if (organizationId && await requireCompanyEmail()) return false;
   return platformEnabled();
 }
@@ -144,25 +146,35 @@ const quoteName = (n) => `"${String(n).replace(/["\\\r\n<>]/g, '').slice(0, 80)}
  * Sends one email. With organizationId the company's own mailbox is used when connected; otherwise the
  * platform's (unless the platform requires company mailboxes, then nothing is sent and false is returned).
  */
-async function isSandbox(organizationId) {
-  if (!organizationId) return false;
+/** null for a real company; { emails } for a test company (Super Admin → Test environment). */
+async function sandboxOf(organizationId) {
+  if (!organizationId) return null;
   const k = `sandbox:${organizationId}`;
   const hit = orgCache.get(k);
   if (hit && Date.now() - hit.at < 60_000) return hit.v;
-  const r = await knex('organizations').where({ id: organizationId }).first('is_sandbox').catch(() => null);
-  const v = Boolean(r && r.is_sandbox);
+  const r = await knex('organizations').where({ id: organizationId }).first('is_sandbox', 'sandbox_meta').catch(() => null);
+  let v = null;
+  if (r && r.is_sandbox) {
+    let m = {};
+    try { m = JSON.parse(r.sandbox_meta || '{}'); } catch { m = {}; }
+    v = { emails: m.emails !== false };
+  }
   orgCache.set(k, { at: Date.now(), v });
   return v;
 }
+const GENERATED = /\.sandbox\.remoteway\.local>?$/i; // test accounts' addresses: they do not exist
 
 async function send({ to, subject, html, attachments, fromName, organizationId }) {
-  // Test companies (Super Admin → Test environment) never send real email.
-  if (/\.sandbox\.remoteway\.local>?$/i.test(String(to || '')) || await isSandbox(organizationId)) {
+  // Test companies: generated addresses do not exist (never sent to), emails can be switched off per
+  // test company, and every message is marked [TEST].
+  const sb = await sandboxOf(organizationId);
+  if (GENERATED.test(String(to || '')) || (sb && !sb.emails)) {
     if (config.isTest) testOutbox.push({ to, subject, html, attachments, via: 'sandbox', organizationId });
     return false;
   }
+  if (sb) subject = `[TEST] ${subject}`; // eslint-disable-line no-param-reassign
   const company = organizationId ? await orgMail(organizationId) : null;
-  const blocked = !company && organizationId && await requireCompanyEmail();
+  const blocked = !company && organizationId && !sb && await requireCompanyEmail();
   if (config.isTest) {
     const via = company ? 'company' : blocked ? 'blocked' : 'platform';
     const fromAddr = company ? `${quoteName(company.fromName || fromName || 'RemoteWay')} <${company.fromEmail}>` : (fromName ? fromWithName(fromName) : undefined);

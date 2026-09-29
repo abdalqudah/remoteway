@@ -49,12 +49,26 @@ describe('Phase 25 — test environment', () => {
     const app = await a.get('/app');
     assert.equal(app.status, 200);
     assert.match(app.text, /sandbox-banner/);
-    // No email ever leaves a test company
+    // Emails: sent to real addresses marked [TEST], never to the generated test addresses
+    mailer.testOutbox.length = 0;
+    await mailer.send({ to: 'someone@real.test', subject: 'Leave approved', html: 'x', organizationId: sb.id });
+    await mailer.send({ to: `hr@${meta.domain}`, subject: 'reset', html: 'x' });
+    assert.deepEqual(mailer.testOutbox.map((m) => m.via), ['platform', 'sandbox']);
+    assert.equal(mailer.testOutbox[0].subject, '[TEST] Leave approved');
+    // Even when the platform requires company mailboxes, a test company may use the platform email
+    await h.knex('platform_settings').insert({ key: 'mail_policy', value: JSON.stringify({ require_company_email: true }) }).onConflict('key').merge();
+    mailer.forgetPolicy();
     mailer.testOutbox.length = 0;
     await mailer.send({ to: 'someone@real.test', subject: 'x', html: 'x', organizationId: sb.id });
-    await mailer.send({ to: `hr@${meta.domain}`, subject: 'reset', html: 'x' });
-    assert.deepEqual(mailer.testOutbox.map((m) => m.via), ['sandbox', 'sandbox']);
+    assert.equal(mailer.testOutbox.pop().via, 'platform');
+    // Switched off from the test environment page
+    assert.equal((await root.form(`/admin/sandbox/${sb.id}/emails`, { emails: '0' })).status, 302);
+    await mailer.send({ to: 'someone@real.test', subject: 'x', html: 'x', organizationId: sb.id });
+    assert.equal(mailer.testOutbox.pop().via, 'sandbox');
     assert.equal(await mailer.canSendFor(sb.id), false);
+    await root.form(`/admin/sandbox/${sb.id}/emails`, { emails: '1' });
+    await h.knex('platform_settings').where({ key: 'mail_policy' }).del();
+    mailer.forgetPolicy();
   });
 
   test('team members join with their own accounts; reset keeps them; delete removes everything else', async () => {

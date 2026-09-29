@@ -30,7 +30,7 @@ async function list() {
       .whereNot('u.email', 'like', `%@${m.domain || SANDBOX_SUFFIX}`).select('u.id', 'u.name', 'u.email');
     out.push({
       id: o.id, name: o.name, slug: o.slug, created_at: o.created_at, plan: o.plan_name, people: Number(people), members: Number(members),
-      domain: m.domain, password: m.password_enc ? secrets.decrypt(m.password_enc) : null, accounts: m.accounts || [], note: m.note || '', sample: m.sample !== false, guests,
+      domain: m.domain, password: m.password_enc ? secrets.decrypt(m.password_enc) : null, accounts: m.accounts || [], note: m.note || '', sample: m.sample !== false, emails: m.emails !== false, guests,
     });
   }
   return out;
@@ -62,7 +62,7 @@ async function create(ctx, body) {
     await knex('users').where({ id: r.userId }).update({ email_verified_at: new Date() });
     accounts = [{ role: 'owner', name: 'Test Owner', email: `owner@${domain}` }];
   }
-  const m = { domain, password_enc: secrets.encrypt(password), plan: plan.key, sample, accounts, created_by: ctx.userId, note: String(body.note || '').slice(0, 300) };
+  const m = { domain, password_enc: secrets.encrypt(password), plan: plan.key, sample, accounts, emails: body.emails === undefined ? true : [].concat(body.emails).includes('1'), created_by: ctx.userId, note: String(body.note || '').slice(0, 300) };
   const slug = `test-${tag}`;
   const slugFree = !(await knex('organizations').where({ slug }).whereNot({ id: organizationId }).first('id'));
   await knex('organizations').where({ id: organizationId }).update({ is_sandbox: true, sandbox_meta: JSON.stringify(m), name, ...(slugFree ? { slug } : {}) });
@@ -145,9 +145,19 @@ async function reset(ctx, id, password) {
     roles[g.email] = r ? r.key : 'employee';
   }
   await remove(ctx, id, password);
-  const created = await create(ctx, { name: o.name, plan: m.plan, sample: m.sample === false ? '0' : '1', note: m.note });
+  const created = await create(ctx, { name: o.name, plan: m.plan, sample: m.sample === false ? '0' : '1', note: m.note, emails: m.emails === false ? '0' : '1' });
   for (const [email, role] of Object.entries(roles)) await addMember(ctx, created.organizationId, { email, role }).catch(() => {});
   return created;
 }
 
-module.exports = { SANDBOX_SUFFIX, list, create, addMember, removeMember, remove, reset };
+/** Turns email sending on or off for a test company. */
+async function setEmails(ctx, id, on) {
+  const o = await getSandbox(id);
+  const m = meta(o);
+  m.emails = Boolean(on);
+  await knex('organizations').where({ id: o.id }).update({ sandbox_meta: JSON.stringify(m) });
+  require('../../core/mailer').forgetOrg(o.id); // eslint-disable-line global-require
+  await audit.record(ctx, 'platform.sandbox_emails', { entityType: 'organization', entityId: o.id, newValues: { emails: m.emails } });
+}
+
+module.exports = { setEmails, SANDBOX_SUFFIX, list, create, addMember, removeMember, remove, reset };

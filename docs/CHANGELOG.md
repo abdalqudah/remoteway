@@ -1,5 +1,12 @@
 # RemoteWay — Changelog
 
+## 1.8.1 — Emails from test companies
+
+- Test companies now send emails like real ones (the company mailbox when connected, otherwise the platform email — even when company mailboxes are required), with **[TEST]** at the start of every subject.
+- The generated test addresses (`@….sandbox.remoteway.local`) are never emailed, since they do not exist.
+- “Send emails” can be switched on or off per test company (on by default) from Super Admin → Test environment.
+
+
 ## 1.8.0 — Test environment
 
 - **Super Admin → Test environment:** create test companies on the live platform for the team to try everything — with realistic sample data (20 employees, departments, attendance, leave, payroll, recruitment, performance, learning) or empty like a new customer, on any plan.

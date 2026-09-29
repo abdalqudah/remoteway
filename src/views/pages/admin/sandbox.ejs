@@ -12,6 +12,7 @@
     </div>
     <%- include('../../partials/field', { name: 'note', label: t('sandbox.note'), value: o.note || '', placeholder: t('sandbox.note_ph') }) %>
     <label class="check"><input type="checkbox" name="sample" value="1" checked><span><%= t('sandbox.sample') %></span></label>
+    <label class="check"><input type="hidden" name="emails" value="0"><input type="checkbox" name="emails" value="1" checked><span><%= t('sandbox.emails_label') %></span></label>
     <p class="small muted"><%= t('sandbox.sample_help') %></p>
   </div>
   <div class="panel-foot"><button class="btn btn-dark" type="submit" data-busy><%- icon('plus') %><%= t('sandbox.create') %></button></div>
@@ -32,8 +33,11 @@
 <% list.forEach(function (s) { var fresh = created === s.id; %>
 <section class="panel mb-6<%= fresh ? ' is-highlight' : '' %>" id="sb-<%= s.id %>">
   <div class="panel-head"><div><h2><%= s.name %> <span class="badge badge-warning"><%= t('sandbox.badge') %></span></h2>
-    <div class="panel-sub"><%= s.plan %> · <%= t('sandbox.people', { n: s.people }) %> · <%= fmt.date(s.created_at) %><%= s.note ? ' · ' + s.note : '' %></div></div>
-    <a class="btn btn-secondary btn-sm" href="/admin/organizations/<%= s.id %>"><%= t('admin.manage') %></a></div>
+    <div class="panel-sub"><%= s.plan %> · <%= t('sandbox.people', { n: s.people }) %> · <%= s.emails ? t('sandbox.emails_on') : t('sandbox.emails_off') %> · <%= fmt.date(s.created_at) %><%= s.note ? ' · ' + s.note : '' %></div></div>
+    <div class="row wrap">
+      <form method="post" action="/admin/sandbox/<%= s.id %>/emails"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><input type="hidden" name="emails" value="<%= s.emails ? '0' : '1' %>">
+        <button class="btn btn-secondary btn-sm" type="submit"><%- icon('mail', 'icon-sm') %><%= s.emails ? t('sandbox.emails_turn_off') : t('sandbox.emails_turn_on') %></button></form>
+      <a class="btn btn-secondary btn-sm" href="/admin/organizations/<%= s.id %>"><%= t('admin.manage') %></a></div></div>
   <div class="panel-body stack">
     <div class="grid grid-2">
       <div>

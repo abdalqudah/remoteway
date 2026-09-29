@@ -129,6 +129,7 @@ const sbAct = (fn) => wrap(async (req, res) => {
 });
 router.post('/sandbox/:id/members', sbAct(async (req) => { await sandbox.addMember(req.ctx, req.params.id, req.body); return req.t('sandbox.member_added'); }));
 router.post('/sandbox/:id/members/:user/remove', sbAct(async (req) => { await sandbox.removeMember(req.ctx, req.params.id, req.params.user); return req.t('common.saved'); }));
+router.post('/sandbox/:id/emails', sbAct(async (req) => { await sandbox.setEmails(req.ctx, req.params.id, req.body.emails === '1'); return req.t(req.body.emails === '1' ? 'sandbox.emails_on_done' : 'sandbox.emails_off_done'); }));
 router.post('/sandbox/:id/reset', sbAct(async (req) => { const r = await sandbox.reset(req.ctx, req.params.id, req.body.password); req.session.sandboxCreated = r.organizationId; return req.t('sandbox.reset_done'); }));
 router.post('/sandbox/:id/delete', sbAct(async (req) => { const r = await sandbox.remove(req.ctx, req.params.id, req.body.password); return req.t('sandbox.deleted', { name: r.name, n: r.accounts }); }));
 
