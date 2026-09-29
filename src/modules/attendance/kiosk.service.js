@@ -1,6 +1,7 @@
-// QR attendance. A display screen ("kiosk") at the office shows a QR code that changes every minute.
-// The code is an HMAC of the current minute with the screen's own secret, so it cannot be guessed or
-// reused later: a scan is accepted for the current minute and the one before it (up to two minutes).
+// QR attendance. A display screen ("kiosk") at the office shows a QR code that changes every 10 seconds.
+// The code is an HMAC of the current 10-second step with the screen's own secret, so it cannot be guessed
+// or reused later. Any number of people can scan the same code at the same time; a scan is accepted for
+// the current step and the two before it (up to 30 seconds), so a slow phone camera still gets through.
 // Optionally the phone must be on the same network as the screen (same public IP, e.g. office Wi-Fi),
 // so a photo of the code sent to someone at home does not work.
 const crypto = require('crypto');
@@ -13,7 +14,8 @@ const { sha256 } = require('../../core/tokens');
 const { E, AppError } = require('../../core/errors');
 const ent = require('../billing/entitlements.service');
 
-const STEP_MS = 60_000;
+const STEP_MS = 10_000;
+const GRACE_STEPS = 2; // earlier codes still accepted (slow cameras / networks)
 const stepOf = (now = Date.now()) => Math.floor(now / STEP_MS);
 const base = () => config.appUrl.replace(/\/+$/, '');
 
@@ -87,7 +89,7 @@ async function currentQr(k, ip) {
   const url = `${base()}/q/${k.public_id}/${step}.${codeFor(secret, k.public_id, step)}`;
   await knex('attendance_kiosks').where({ id: k.id }).update({ last_seen_at: new Date(), last_ip: ip ? String(ip).slice(0, 64) : null });
   const svg = await QRCode.toString(url, { type: 'svg', margin: 1, errorCorrectionLevel: 'M' });
-  return { svg, url, expiresIn: Math.ceil(((step + 1) * STEP_MS - Date.now()) / 1000) };
+  return { svg, url, expiresIn: Math.ceil(((step + 1) * STEP_MS - Date.now()) / 1000), stepSeconds: STEP_MS / 1000 };
 }
 
 /**
@@ -99,7 +101,7 @@ async function checkScan(publicId, raw, ip, now = Date.now()) {
   const [s, code] = String(raw || '').split('.');
   const step = Number(s);
   const current = stepOf(now);
-  if (!Number.isInteger(step) || step > current || current - step > 1) throw new AppError('QR_EXPIRED', 'This code has expired. Scan the code currently on the screen.', 410);
+  if (!Number.isInteger(step) || step > current || current - step > GRACE_STEPS) throw new AppError('QR_EXPIRED', 'This code has expired. Scan the code currently on the screen.', 410);
   const expected = codeFor(secrets.decrypt(k.secret_enc), k.public_id, step);
   if (!code || code.length !== expected.length || !crypto.timingSafeEqual(Buffer.from(code), Buffer.from(expected))) {
     throw new AppError('QR_INVALID', 'This QR code is not valid. Scan the code on the office screen.', 404);
@@ -113,4 +115,4 @@ async function checkScan(publicId, raw, ip, now = Date.now()) {
 /** Changes whenever the screen's code secret is regenerated. */
 const secretVersion = (k) => sha256(String(k.secret_enc)).slice(0, 16);
 
-module.exports = { secretVersion, STEP_MS, stepOf, codeFor, list, create, get, update, regenerate, remove, displayUrl, byDisplayToken, currentQr, checkScan };
+module.exports = { secretVersion, STEP_MS, GRACE_STEPS, stepOf, codeFor, list, create, get, update, regenerate, remove, displayUrl, byDisplayToken, currentQr, checkScan };

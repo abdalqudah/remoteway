@@ -1,4 +1,4 @@
-<main class="kiosk" data-kiosk-src="/kiosk/<%= token %>/qr" data-expires="<%= qr.expiresIn %>">
+<main class="kiosk" data-kiosk-src="/kiosk/<%= token %>/qr" data-expires="<%= qr.expiresIn %>" data-step="<%= qr.stepSeconds %>">
   <header class="kiosk-head">
     <% if (orgLogo) { %><img class="kiosk-logo" src="<%= orgLogo %>" alt="<%= org.name %>"><% } else { %><strong class="kiosk-org"><%= org.name %></strong><% } %>
     <div class="kiosk-clock" data-kiosk-clock dir="ltr">--:--</div>

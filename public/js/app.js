@@ -553,12 +553,13 @@
     var bar = $('[data-kiosk-bar]', kiosk);
     var clockEl = $('[data-kiosk-clock]', kiosk);
     var offline = $('[data-kiosk-offline]', kiosk);
-    var left = Number(kiosk.getAttribute('data-expires')) || 60;
+    var left = Number(kiosk.getAttribute('data-expires')) || 10;
+    var stepSec = Number(kiosk.getAttribute('data-step')) || 10;
     var refreshTimer = null;
     var pad = function (n) { return (n < 10 ? '0' : '') + n; };
     var paint = function () {
       if (leftEl) leftEl.textContent = String(Math.max(0, left));
-      if (bar) bar.style.width = Math.max(0, Math.min(100, (left / 60) * 100)) + '%';
+      if (bar) bar.style.width = Math.max(0, Math.min(100, (left / stepSec) * 100)) + '%';
       var d = new Date();
       if (clockEl) clockEl.textContent = pad(d.getHours()) + ':' + pad(d.getMinutes());
     };
@@ -569,13 +570,13 @@
         .then(function (r) { if (!r.ok) throw new Error('bad'); return r.json(); })
         .then(function (j) {
           qrBox.innerHTML = j.data.svg; left = j.data.expiresIn; offline.hidden = true; qrBox.classList.remove('is-changing'); paint();
-          refreshTimer = setTimeout(load, (left + 1) * 1000);
+          refreshTimer = setTimeout(load, left * 1000 + 300);
         })
         .catch(function () { offline.hidden = false; qrBox.classList.remove('is-changing'); refreshTimer = setTimeout(load, 5000); });
     };
     setInterval(function () { left -= 1; paint(); }, 1000);
     paint();
-    refreshTimer = setTimeout(load, (left + 1) * 1000);
+    refreshTimer = setTimeout(load, left * 1000 + 300);
     // Keep the screen awake where the browser allows it.
     if (navigator.wakeLock && navigator.wakeLock.request) navigator.wakeLock.request('screen').catch(function () {});
   }

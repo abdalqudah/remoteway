@@ -3521,7 +3521,7 @@
   "empty": "No screens yet. Add one for each entrance or office.",
   "go_app": "Go to my workspace",
   "how_1": "Add a screen and press “Open screen” on the device at the entrance (full screen, keep it on).",
-  "how_2": "The screen shows a QR code that changes every minute.",
+  "how_2": "The screen shows a QR code that changes every 10 seconds. Several people can scan it at the same time.",
   "how_3": "The employee scans it with the phone camera and signs in once if asked.",
   "how_4": "They confirm clock-in (or clock-out). The record shows “QR” in the attendance sheet.",
   "how_title": "How it works",
@@ -3548,7 +3548,7 @@
   "screens": "Screens",
   "seconds": "seconds",
   "signed_as": "Signed in as {email}",
-  "sub": "Screens at your offices show a code that changes every minute; employees scan it with their phone to clock in and out.",
+  "sub": "Screens at your offices show a code that changes every 10 seconds; employees scan it with their phone to clock in and out.",
   "title": "QR attendance"
  },
  "recruitment": {

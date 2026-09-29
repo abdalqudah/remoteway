@@ -1,5 +1,10 @@
 # RemoteWay — Changelog
 
+## 1.4.1 — QR every 10 seconds
+
+- The attendance QR screen now shows a new code every 10 seconds (was every minute). Any number of employees can scan the same code at the same moment; a scanned code is accepted for up to 30 seconds so slow phone cameras still get through.
+
+
 ## 1.4.0 — Company database copy
 
 - **Settings → Your database** (white-label companies): connect your own MySQL/MariaDB or PostgreSQL database and RemoteWay keeps a copy of your data there — employees, departments and locations, basic salaries, attendance, leave (types, requests, balances), payroll runs and payslips, recruitment (jobs, candidates, applications) and tasks.

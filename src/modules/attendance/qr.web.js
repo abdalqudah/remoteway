@@ -24,7 +24,7 @@ display.get('/:token/qr', wrap(async (req, res) => {
   if (!k) return res.status(404).json({ success: false });
   res.set('Cache-Control', 'no-store');
   const q = await kiosks.currentQr(k, req.ip);
-  return res.json({ success: true, data: { svg: q.svg, expiresIn: q.expiresIn } });
+  return res.json({ success: true, data: { svg: q.svg, expiresIn: q.expiresIn, step: q.stepSeconds } });
 }));
 
 // ---------- Scan ----------

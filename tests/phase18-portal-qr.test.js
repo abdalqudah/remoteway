@@ -147,6 +147,26 @@ describe('QR attendance', () => {
     assert.equal(row.clock_out_method, 'qr');
   });
 
+  test('the code changes every 10 seconds and several people can scan it together', async () => {
+    assert.equal(kioskSvc.STEP_MS, 10_000);
+    const k = await h.knex('attendance_kiosks').where({ id: kioskId }).first();
+    const secret = require('../src/core/secrets').decrypt(k.secret_enc);
+    const now = Date.now();
+    const step = kioskSvc.stepOf(now);
+    const code = `${step}.${kioskSvc.codeFor(secret, k.public_id, step)}`;
+    // Two phones, same code, same moment
+    const [a, b] = await Promise.all([kioskSvc.checkScan(k.public_id, code, null, now), kioskSvc.checkScan(k.public_id, code, null, now)]);
+    assert.equal(a.id, k.id);
+    assert.equal(b.id, k.id);
+    // A slow camera: a code from up to 30 seconds ago still works; older ones do not
+    const at = (st) => `${st}.${kioskSvc.codeFor(secret, k.public_id, st)}`;
+    assert.ok(await kioskSvc.checkScan(k.public_id, at(step - 2), null, now));
+    await assert.rejects(kioskSvc.checkScan(k.public_id, at(step - 3), null, now), /expired/);
+    const shown = await kioskSvc.currentQr(k, null);
+    assert.ok(shown.expiresIn >= 1 && shown.expiresIn <= 10);
+    assert.equal(shown.stepSeconds, 10);
+  });
+
   test('old, forged and other-company codes are refused', async () => {
     const k = await h.knex('attendance_kiosks').where({ id: kioskId }).first();
     const secret = require('../src/core/secrets').decrypt(k.secret_enc);
