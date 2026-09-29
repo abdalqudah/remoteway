@@ -17,7 +17,7 @@ display.get('/:token', wrap(async (req, res, next) => {
   const org = await orgs.get(k.organization_id);
   const brandInfo = await require('../branding/branding.service').forOrg(org.id, org.name); // eslint-disable-line global-require
   res.set('Cache-Control', 'no-store');
-  return res.page('pages/attendance/kiosk-display', { layout: 'kiosk', title: `${org.name} · ${k.name}`, org, kiosk: k, orgLogo: brandInfo.logoUrl, token: req.params.token, qr: await kiosks.currentQr(k, req.ip, res.locals.baseUrl) });
+  return res.page('pages/attendance/kiosk-display', { layout: 'kiosk', title: `${org.name} · ${k.name}`, org, kiosk: k, orgLogo: brandInfo.logoUrl, token: req.params.token, qr: await kiosks.currentQr(k, req.ip, res.locals.baseUrl), phoneCannotReach: /^https?:\/\/(localhost|127\.|0\.0\.0\.0|\[::1\])/i.test(res.locals.baseUrl) });
 }));
 display.get('/:token/qr', wrap(async (req, res) => {
   const k = await kiosks.byDisplayToken(req.params.token);
@@ -40,7 +40,7 @@ const renderScan = async (req, res, extra = {}) => {
 const failScan = (req, res, e) => {
   res.status(e.status || 400);
   const tr = req.t(`errors.${e.code}`);
-  return res.page('pages/attendance/scan', { layout: 'auth', title: req.t('qr.scan_title'), failed: tr !== `errors.${e.code}` ? tr : e.message });
+  return res.page('pages/attendance/scan', { layout: 'auth', title: req.t('qr.scan_title'), failed: tr !== `errors.${e.code}` ? tr : e.message, failedCode: e.code });
 };
 
 scan.get('/:pub/:code', wrap(async (req, res) => {
@@ -54,7 +54,7 @@ scan.get('/:pub/:code', wrap(async (req, res) => {
   // The scan is valid now; the person has a few minutes to sign in if needed.
   // The ticket is tied to the screen's current secret (a "new screen link" cancels open tickets) and
   // remembers whether the phone was on the screen's network.
-  req.session.qrTicket = { kioskId: k.id, pub: k.public_id, at: Date.now(), sv: kiosks.secretVersion(k), off: Boolean(k.last_ip && String(req.ip) !== k.last_ip) };
+  req.session.qrTicket = { kioskId: k.id, pub: k.public_id, at: Date.now(), sv: kiosks.secretVersion(k), off: Boolean(k.last_ip) && !kiosks.sameNetwork(k, req.ip) };
   if (!req.user) {
     req.session.returnTo = `/q/${k.public_id}`;
     return req.session.save(() => res.redirect('/login'));

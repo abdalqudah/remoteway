@@ -82,12 +82,40 @@ async function byDisplayToken(token) {
   return k && k.is_active ? k : null;
 }
 
+// ---------- Same network ----------
+/** "::ffff:1.2.3.4" → "1.2.3.4"; IPv6 → its /64 network (every device on a Wi-Fi gets its own IPv6 address). */
+function networkOf(ip) {
+  const s = String(ip || '').trim().toLowerCase().replace(/^::ffff:(?=\d+\.)/, '');
+  if (!s) return '';
+  if (!s.includes(':')) return s;
+  const [head, tail = ''] = s.split('::');
+  const h = head ? head.split(':') : [];
+  const t = tail ? tail.split(':') : [];
+  const full = s.includes('::') ? [...h, ...Array(Math.max(0, 8 - h.length - t.length)).fill('0'), ...t] : h;
+  return `${full.slice(0, 4).map((x) => parseInt(x || '0', 16).toString(16)).join(':')}::/64`;
+}
+const RECENT_MS = 30 * 60_000;
+function recentNetworks(k, now = Date.now()) {
+  let list = [];
+  try { list = JSON.parse(k.recent_ips || '[]'); } catch { list = []; }
+  const nets = list.filter((x) => x && now - x.at < RECENT_MS).map((x) => x.net);
+  if (k.last_ip) nets.push(networkOf(k.last_ip));
+  return [...new Set(nets.filter(Boolean))];
+}
+/** True when the phone is on one of the networks the screen was seen from in the last 30 minutes. */
+const sameNetwork = (k, ip) => Boolean(ip) && recentNetworks(k).includes(networkOf(ip));
+
 /** Current QR (SVG) for a screen; also records that the screen is online and from which network. */
 async function currentQr(k, ip, b) {
   const step = stepOf();
   const secret = secrets.decrypt(k.secret_enc);
   const url = `${base(b)}/q/${k.public_id}/${step}.${codeFor(secret, k.public_id, step)}`;
-  await knex('attendance_kiosks').where({ id: k.id }).update({ last_seen_at: new Date(), last_ip: ip ? String(ip).slice(0, 64) : null });
+  const now = Date.now();
+  let list = [];
+  try { list = JSON.parse(k.recent_ips || '[]'); } catch { list = []; }
+  const net = networkOf(ip);
+  if (net) list = [{ net, at: now }, ...list.filter((x) => x && x.net !== net && now - x.at < RECENT_MS)].slice(0, 6);
+  await knex('attendance_kiosks').where({ id: k.id }).update({ last_seen_at: new Date(), last_ip: ip ? String(ip).slice(0, 64) : null, recent_ips: JSON.stringify(list) });
   const svg = await QRCode.toString(url, { type: 'svg', margin: 1, errorCorrectionLevel: 'M' });
   return { svg, url, expiresIn: Math.ceil(((step + 1) * STEP_MS - Date.now()) / 1000), stepSeconds: STEP_MS / 1000 };
 }
@@ -106,7 +134,7 @@ async function checkScan(publicId, raw, ip, now = Date.now()) {
   if (!code || code.length !== expected.length || !crypto.timingSafeEqual(Buffer.from(code), Buffer.from(expected))) {
     throw new AppError('QR_INVALID', 'This QR code is not valid. Scan the code on the office screen.', 404);
   }
-  if (k.same_network && (!ip || !k.last_ip || String(ip) !== k.last_ip)) {
+  if (k.same_network && !sameNetwork(k, ip)) {
     throw new AppError('QR_NETWORK', 'Connect your phone to the office network (Wi-Fi) and scan again.', 403);
   }
   return k;
@@ -115,4 +143,4 @@ async function checkScan(publicId, raw, ip, now = Date.now()) {
 /** Changes whenever the screen's code secret is regenerated. */
 const secretVersion = (k) => sha256(String(k.secret_enc)).slice(0, 16);
 
-module.exports = { secretVersion, STEP_MS, GRACE_STEPS, stepOf, codeFor, list, create, get, update, regenerate, remove, displayUrl, byDisplayToken, currentQr, checkScan };
+module.exports = { networkOf, sameNetwork, secretVersion, STEP_MS, GRACE_STEPS, stepOf, codeFor, list, create, get, update, regenerate, remove, displayUrl, byDisplayToken, currentQr, checkScan };

@@ -13,7 +13,10 @@ const isLocalUrl = (u) => /^https?:\/\/(localhost|127\.|0\.0\.0\.0|\[::1\])/i.te
 function publicBase(req) {
   const configured = process.env.APP_URL ? config.appUrl.replace(/\/+$/, '') : '';
   if (configured && !(isLocalUrl(configured) && !/^(localhost|127\.|\[::1\])/i.test(req.hostname || ''))) return configured;
-  return `${req.protocol}://${req.get('host')}`;
+  // In production the site runs behind HTTPS even when the proxy does not say so: links (e.g. inside a
+  // QR code) must not fall back to http, where the secure session cookie would be dropped.
+  const proto = config.isProd || String(req.get('x-forwarded-proto') || '').split(',')[0].trim() === 'https' ? 'https' : req.protocol;
+  return `${proto}://${req.get('host')}`;
 }
 
 function locals(req, res, next) {

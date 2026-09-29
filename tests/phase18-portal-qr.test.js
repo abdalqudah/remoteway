@@ -201,7 +201,7 @@ describe('QR attendance', () => {
     await linkedEmployee(co.organizationId, e3);
     const s = await h.login(e3.email, e3.password);
     // Scan while the screen is seen from another network (off-network, but allowed: same_network is off)
-    await h.knex('attendance_kiosks').where({ id: kioskId }).update({ last_ip: '203.0.113.9' });
+    await h.knex('attendance_kiosks').where({ id: kioskId }).update({ last_ip: '203.0.113.9', recent_ips: null });
     const k0 = await h.knex('attendance_kiosks').where({ id: kioskId }).first();
     const sec0 = require('../src/core/secrets').decrypt(k0.secret_enc);
     const st = kioskSvc.stepOf();
@@ -224,7 +224,7 @@ describe('QR attendance', () => {
   });
 
   test('same-network screens refuse phones on another network', async () => {
-    await h.knex('attendance_kiosks').where({ id: kioskId }).update({ same_network: true, last_ip: '203.0.113.9' });
+    await h.knex('attendance_kiosks').where({ id: kioskId }).update({ same_network: true, last_ip: '203.0.113.9', recent_ips: null });
     const k = await h.knex('attendance_kiosks').where({ id: kioskId }).first();
     const secret = require('../src/core/secrets').decrypt(k.secret_enc);
     const step = kioskSvc.stepOf();

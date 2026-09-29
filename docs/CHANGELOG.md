@@ -1,5 +1,13 @@
 # RemoteWay — Changelog
 
+## 1.5.1 — QR scanning fixes
+
+- “Same network only” now recognises phones on the same Wi-Fi over IPv6 (each device has its own IPv6 address; the check now compares the /64 network) and remembers the screen's IPv4 and IPv6 networks from the last 30 minutes.
+- Links (including the one inside the QR code) always use https in production, so the sign-in session is kept after scanning.
+- The screen warns when it is opened on localhost (phones cannot reach it); the phone explains what to do when it is not on the office Wi-Fi.
+- Tested end to end: a new employee scans while signed out, signs in with the temporary password, chooses their own password and is clocked in.
+
+
 ## 1.5.0 — Employee sign-in with a temporary password
 
 - **Employee page → Sign-in account** (needs “Manage users”): create the employee's account with an email, a role and a temporary password — typed by the admin or generated (easy to read, e.g. `atyc-4823-qDWe`). The details to hand over (sign-in link, email, password) are shown once. No email set-up needed.

@@ -99,4 +99,61 @@ describe('Phase 22 — employee sign-in accounts with a temporary password', () 
     const m = await h.login(mgr.email, mgr.password);
     assert.equal((await m.form(`/app/employees/${empId}/password`, { password: 'Hijack#123' })).status, 403);
   });
+
+  test('QR: a new employee scans signed out, signs in, chooses a password and is clocked in', async () => {
+    const kiosks = require('../src/modules/attendance/kiosk.service');
+    // Network matching: IPv4, IPv4-mapped, IPv6 by /64 (each phone has its own IPv6 address)
+    assert.equal(kiosks.networkOf('::ffff:203.0.113.7'), '203.0.113.7');
+    assert.equal(kiosks.networkOf('2001:db8:abcd:12::1'), kiosks.networkOf('2001:db8:abcd:12:aaaa:bbbb:cccc:dddd'));
+    assert.notEqual(kiosks.networkOf('2001:db8:abcd:12::1'), kiosks.networkOf('2001:db8:abcd:13::1'));
+    const k0 = { last_ip: '2001:db8:abcd:12::50', recent_ips: JSON.stringify([{ net: '198.51.100.4', at: Date.now() }]) };
+    assert.equal(kiosks.sameNetwork(k0, '2001:db8:abcd:12:1:2:3:4'), true, 'same Wi-Fi over IPv6');
+    assert.equal(kiosks.sameNetwork(k0, '::ffff:198.51.100.4'), true, 'same Wi-Fi over IPv4');
+    assert.equal(kiosks.sameNetwork(k0, '203.0.113.99'), false, 'mobile data');
+
+    // Admin creates a screen and a new employee account
+    await owner.form('/app/attendance/qr', { name: 'Entrance', same_network: '1' });
+    const k = await h.knex('attendance_kiosks').where({ organization_id: co.organizationId }).orderBy('id', 'desc').first();
+    const [eid] = await h.knex('employees').insert({ organization_id: co.organizationId, employee_number: 'E-200', first_name: 'Nour', last_name: 'Ali', email: 'nour@co.test', joining_date: '2026-02-01' });
+    const roleId = String((await h.knex('roles').whereNull('organization_id').where({ key: 'employee' }).first()).id);
+    await owner.form(`/app/employees/${eid}/account`, { email: 'nour@co.test', role_id: roleId, password: 'Start#2026', must_change: '1' });
+    // The screen is opened on the site's address (the phone reaches the same server from the same network)
+    const open = await owner.agent.get(`/app/attendance/qr/${k.id}/open`);
+    const screen = await h.request(h.getApp()).get(new URL(open.headers.location).pathname);
+    assert.equal(screen.status, 200);
+    const qrUrl = new URL(decodeURIComponent((await kiosks.currentQr(await h.knex('attendance_kiosks').where({ id: k.id }).first(), '127.0.0.1', 'http://127.0.0.1')).url));
+    // Phone: not signed in
+    const phone = pub();
+    let r = await phone.get(qrUrl.pathname);
+    assert.equal(r.status, 302);
+    assert.equal(r.headers.location, '/login');
+    let page = await phone.get('/login');
+    r = await phone.post('/login').type('form').send({ _csrf: csrfOf(page.text), email: 'nour@co.test', password: 'Start#2026' });
+    r = await phone.get(r.headers.location);
+    assert.equal(r.headers.location, '/security/new-password', 'temporary password first');
+    page = await phone.get('/security/new-password');
+    r = await phone.post('/security/new-password').type('form').send({ _csrf: csrfOf(page.text), new_password: 'Nour#Own2026', new_password_confirm: 'Nour#Own2026' });
+    assert.equal(r.headers.location, `/q/${k.public_id}`, 'back to the scan');
+    page = await phone.get(r.headers.location);
+    assert.equal(page.status, 200);
+    assert.match(page.text, /value="in"/);
+    r = await phone.post(`/q/${k.public_id}`).type('form').send({ _csrf: csrfOf(page.text), action: 'in' });
+    assert.equal(r.status, 200);
+    const row = await h.knex('attendance').where({ organization_id: co.organizationId, employee_id: eid }).first();
+    assert.ok(row && row.clock_in);
+    assert.equal(row.clock_in_method, 'qr');
+  });
+
+  test('links use https in production even behind a proxy that says http', async () => {
+    const { publicBase } = require('../src/middleware/web');
+    const config = require('../src/config');
+    const was = config.isProd; const env = process.env.APP_URL;
+    try {
+      delete process.env.APP_URL;
+      config.isProd = true;
+      assert.equal(publicBase({ protocol: 'http', hostname: 'remoteway.net', get: (hd) => (hd === 'host' ? 'remoteway.net' : undefined) }), 'https://remoteway.net');
+      config.isProd = false;
+      assert.equal(publicBase({ protocol: 'http', hostname: 'remoteway.net', get: (hd) => ({ host: 'remoteway.net', 'x-forwarded-proto': 'https' }[hd]) }), 'https://remoteway.net');
+    } finally { config.isProd = was; if (env !== undefined) process.env.APP_URL = env; }
+  });
 });
