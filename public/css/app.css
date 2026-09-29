@@ -1205,3 +1205,4 @@ button.portal-choice { cursor: pointer; font-family: inherit; text-align: start;
 .scanner-start { position: relative; z-index: 1; }
 .clock-card form .btn { white-space: normal; text-align: center; }
 .dot-warn { display: inline-block; width: 8px; height: 8px; border-radius: 99px; background: var(--warning, #f59e0b); vertical-align: middle; }
+.panel.is-highlight { box-shadow: 0 0 0 2px var(--rw-green, #1acc6c); }

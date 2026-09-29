@@ -22,7 +22,7 @@ const TYPES = ['full_time', 'part_time', 'contract', 'intern', 'freelance'];
 function boardQuery() {
   return knex('jobs as j').join('organizations as o', 'o.id', 'j.organization_id').leftJoin('locations as l', 'l.id', 'j.location_id')
     .leftJoin('organization_branding as b', 'b.organization_id', 'o.id')
-    .where({ 'j.marketplace': true, 'j.status': 'open', 'o.status': 'active' })
+    .where({ 'j.marketplace': true, 'j.status': 'open', 'o.status': 'active', 'o.is_sandbox': false })
     .select('j.id', 'j.organization_id', 'j.title', 'j.slug', 'j.work_mode', 'j.employment_type', 'j.salary_min', 'j.salary_max', 'j.salary_currency', 'j.show_salary',
       'j.experience_years', 'j.skills', 'j.description', 'j.requirements', 'j.published_at', 'j.marketplace_at', 'j.openings',
       'o.name as org_name', 'o.slug as org_slug', 'o.currency as org_currency', 'b.logo_sha', 'l.name as location_name', 'l.city as location_city', 'l.country_code as location_country');

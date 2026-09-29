@@ -29,6 +29,7 @@ const SECTIONS = {
   marketing: ['owner', 'admin', 'sales'], // social links and advertising pixels
   google: ['owner', 'admin'], // sign in with Google
   domains: ['owner', 'admin', 'support'], // white-label custom domains
+  sandbox: ['owner', 'admin'], // test companies for the team
   users: ['owner', 'admin', 'support'], // find accounts, create password reset links
 };
 // Changing things (POST) in these sections needs a narrower role than reading them.

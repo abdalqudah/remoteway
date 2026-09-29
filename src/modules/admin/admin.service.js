@@ -8,10 +8,10 @@ const ent = require('../billing/entitlements.service');
 
 async function overview() {
   const [[{ orgs }], [{ users }], [{ employees }], byStatus, [{ open }], [{ revenue }]] = await Promise.all([
-    knex('organizations').count({ orgs: '*' }),
-    knex('users').count({ users: '*' }),
-    knex('employees').whereNot('status', 'terminated').count({ employees: '*' }),
-    knex('subscriptions').groupBy('status').select('status').count({ n: '*' }),
+    knex('organizations').where({ is_sandbox: false }).count({ orgs: '*' }),
+    knex('users').whereNot('email', 'like', '%.sandbox.remoteway.local').count({ users: '*' }),
+    knex('employees as e').join('organizations as o', 'o.id', 'e.organization_id').where('o.is_sandbox', false).whereNot('e.status', 'terminated').count({ employees: '*' }),
+    knex('subscriptions as s').join('organizations as o', 'o.id', 's.organization_id').where('o.is_sandbox', false).groupBy('s.status').select('s.status').count({ n: '*' }),
     knex('invoices').where({ status: 'issued' }).count({ open: '*' }),
     knex('invoices').where({ status: 'paid' }).where('paid_at', '>=', new Date(Date.now() - 30 * 86_400_000)).sum({ revenue: 'total' }),
   ]);
@@ -26,7 +26,7 @@ async function listOrganizations({ q } = {}) {
     .leftJoin('users as u', 'u.id', 'o.owner_user_id')
     .leftJoin('subscriptions as s', 's.organization_id', 'o.id')
     .leftJoin('plans as p', 'p.id', 's.plan_id')
-    .select('o.id', 'o.name', 'o.slug', 'o.country_code', 'o.status', 'o.created_at', 'u.email as owner_email', 's.status as sub_status', 's.trial_ends_at', 'p.name as plan_name',
+    .select('o.id', 'o.name', 'o.slug', 'o.country_code', 'o.status', 'o.created_at', 'o.is_sandbox', 'u.email as owner_email', 's.status as sub_status', 's.trial_ends_at', 'p.name as plan_name',
       knex('employees').count('*').where('organization_id', knex.ref('o.id')).whereNot('status', 'terminated').as('employee_count'))
     .orderBy('o.id', 'desc').limit(200);
   if (q) query.where((w) => w.where('o.name', 'like', `%${q}%`).orWhere('u.email', 'like', `%${q}%`));

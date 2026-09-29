@@ -313,6 +313,9 @@ async function ownerContact(organizationId, trx) {
  */
 async function track(event, data = {}, trx = knex) {
   try {
+    // Test companies and their generated accounts (Super Admin → Test environment) stay out of the CRM.
+    if (data.userId && await trx('users').where({ id: data.userId }).where('email', 'like', '%.sandbox.remoteway.local').first('id')) return;
+    if (data.organizationId && await trx('organizations').where({ id: data.organizationId, is_sandbox: true }).first('id')) return;
     if (event === 'company_signup') {
       const c = await ownerContact(data.organizationId, trx);
       if (c) { await addActivity(c.id, { type: 'registration', channel: 'platform', subject: 'Registered a company workspace', meta: data }, trx); await advance(c, 'registered', trx); }

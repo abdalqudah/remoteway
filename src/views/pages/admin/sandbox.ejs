@@ -1,0 +1,77 @@
+<% var o = old || {}; %>
+<div class="page-head"><div><h1><%= t('sandbox.title') %></h1><p><%= t('sandbox.sub') %></p></div></div>
+
+<div class="grid grid-3 align-start mb-6">
+<form method="post" action="/admin/sandbox" class="panel span-2" novalidate>
+  <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+  <div class="panel-head"><div><h2><%- icon('flask-conical') %> <%= t('sandbox.new') %></h2><div class="panel-sub"><%= t('sandbox.new_sub') %></div></div></div>
+  <div class="panel-body stack">
+    <div class="grid grid-2">
+      <%- include('../../partials/field', { name: 'name', label: t('sandbox.name'), value: o.name || '', placeholder: t('sandbox.name_ph'), required: true }) %>
+      <%- include('../../partials/field', { name: 'plan', label: t('sandbox.plan'), type: 'select', value: o.plan || 'enterprise', options: plans.map(function (p) { return { value: p.key, label: p.name }; }) }) %>
+    </div>
+    <%- include('../../partials/field', { name: 'note', label: t('sandbox.note'), value: o.note || '', placeholder: t('sandbox.note_ph') }) %>
+    <label class="check"><input type="checkbox" name="sample" value="1" checked><span><%= t('sandbox.sample') %></span></label>
+    <p class="small muted"><%= t('sandbox.sample_help') %></p>
+  </div>
+  <div class="panel-foot"><button class="btn btn-dark" type="submit" data-busy><%- icon('plus') %><%= t('sandbox.create') %></button></div>
+</form>
+<section class="panel">
+  <div class="panel-head"><h2><%- icon('shield-check') %> <%= t('sandbox.safe_title') %></h2></div>
+  <div class="panel-body small">
+    <ul class="steps-list">
+      <li><%= t('sandbox.safe1') %></li><li><%= t('sandbox.safe2') %></li><li><%= t('sandbox.safe3') %></li><li><%= t('sandbox.safe4') %></li><li><%= t('sandbox.safe5') %></li>
+    </ul>
+  </div>
+</section>
+</div>
+
+<% if (!list.length) { %>
+<section class="panel"><div class="empty"><%- icon('flask-conical') %><p><%= t('sandbox.empty') %></p></div></section>
+<% } %>
+<% list.forEach(function (s) { var fresh = created === s.id; %>
+<section class="panel mb-6<%= fresh ? ' is-highlight' : '' %>" id="sb-<%= s.id %>">
+  <div class="panel-head"><div><h2><%= s.name %> <span class="badge badge-warning"><%= t('sandbox.badge') %></span></h2>
+    <div class="panel-sub"><%= s.plan %> · <%= t('sandbox.people', { n: s.people }) %> · <%= fmt.date(s.created_at) %><%= s.note ? ' · ' + s.note : '' %></div></div>
+    <a class="btn btn-secondary btn-sm" href="/admin/organizations/<%= s.id %>"><%= t('admin.manage') %></a></div>
+  <div class="panel-body stack">
+    <div class="grid grid-2">
+      <div>
+        <div class="label"><%= t('sandbox.accounts') %></div>
+        <div class="small text-2 mb-2"><%= t('sandbox.signin_at') %> <span class="mono" dir="ltr"><%= baseUrl %>/<%= s.slug || 'login' %></span></div>
+        <table class="table dns-table"><tbody>
+          <% s.accounts.forEach(function (a) { %><tr><td><%= t('roles.' + a.role) !== 'roles.' + a.role ? t('roles.' + a.role) : a.role %></td><td class="mono" dir="ltr"><%= a.email %></td></tr><% }) %>
+          <tr><td><strong><%= t('fields.password') %></strong></td><td><code class="mono temp-password" dir="ltr"><%= s.password %></code></td></tr>
+        </tbody></table>
+      </div>
+      <div>
+        <div class="label"><%= t('sandbox.team') %></div>
+        <% if (s.guests.length) { %><ul class="stack-sm small mt-2"><% s.guests.forEach(function (g) { %>
+          <li class="row between"><span><%= g.name %> <span class="muted mono" dir="ltr"><%= g.email %></span></span>
+            <form method="post" action="/admin/sandbox/<%= s.id %>/members/<%= g.id %>/remove"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><button class="btn btn-ghost btn-sm" type="submit"><%= t('sandbox.remove_access') %></button></form></li>
+        <% }) %></ul><% } else { %><p class="small muted mt-2"><%= t('sandbox.no_team') %></p><% } %>
+        <form method="post" action="/admin/sandbox/<%= s.id %>/members" class="row wrap mt-2" novalidate>
+          <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+          <input class="input grow" name="email" type="email" dir="ltr" placeholder="name@remoteway.net" aria-label="<%= t('fields.email') %>" style="min-width:180px">
+          <select class="select" name="role" style="width:auto" aria-label="<%= t('sandbox.role') %>">
+            <% ['admin', 'hr_manager', 'finance_manager', 'department_manager', 'employee'].forEach(function (r) { %><option value="<%= r %>"><%= t('roles.' + r) %></option><% }) %>
+          </select>
+          <button class="btn btn-secondary btn-sm" type="submit"><%= t('sandbox.add_member') %></button>
+        </form>
+      </div>
+    </div>
+  </div>
+  <div class="panel-foot row wrap between">
+    <form method="post" action="/admin/sandbox/<%= s.id %>/reset" class="row wrap" data-confirm="<%= t('sandbox.reset_confirm') %>">
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+      <input class="input" type="password" name="password" autocomplete="current-password" placeholder="<%= t('sandbox.your_password') %>" style="max-width:200px" required>
+      <button class="btn btn-secondary" type="submit"><%- icon('refresh-cw') %><%= t('sandbox.reset') %></button>
+    </form>
+    <form method="post" action="/admin/sandbox/<%= s.id %>/delete" class="row wrap" data-confirm="<%= t('sandbox.delete_confirm', { name: s.name }) %>">
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+      <input class="input" type="password" name="password" autocomplete="current-password" placeholder="<%= t('sandbox.your_password') %>" style="max-width:200px" required>
+      <button class="btn btn-danger" type="submit"><%- icon('trash-2') %><%= t('sandbox.delete') %></button>
+    </form>
+  </div>
+</section>
+<% }) %>

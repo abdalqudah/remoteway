@@ -98,10 +98,11 @@ async function orgMail(organizationId) {
   orgCache.set(organizationId, { at: Date.now(), cfg, key, transport: prev && prev.key === key ? prev.transport : null });
   return cfg;
 }
-const forgetOrg = (organizationId) => orgCache.delete(organizationId);
+const forgetOrg = (organizationId) => { orgCache.delete(organizationId); orgCache.delete(`sandbox:${organizationId}`); };
 
 /** Whether an email for this company would be sent at all (company mailbox, or the platform's when allowed). */
 async function canSendFor(organizationId) {
+  if (await isSandbox(organizationId)) return false;
   if (organizationId && await orgMail(organizationId)) return true;
   if (organizationId && await requireCompanyEmail()) return false;
   return platformEnabled();
@@ -143,7 +144,23 @@ const quoteName = (n) => `"${String(n).replace(/["\\\r\n<>]/g, '').slice(0, 80)}
  * Sends one email. With organizationId the company's own mailbox is used when connected; otherwise the
  * platform's (unless the platform requires company mailboxes, then nothing is sent and false is returned).
  */
+async function isSandbox(organizationId) {
+  if (!organizationId) return false;
+  const k = `sandbox:${organizationId}`;
+  const hit = orgCache.get(k);
+  if (hit && Date.now() - hit.at < 60_000) return hit.v;
+  const r = await knex('organizations').where({ id: organizationId }).first('is_sandbox').catch(() => null);
+  const v = Boolean(r && r.is_sandbox);
+  orgCache.set(k, { at: Date.now(), v });
+  return v;
+}
+
 async function send({ to, subject, html, attachments, fromName, organizationId }) {
+  // Test companies (Super Admin → Test environment) never send real email.
+  if (/\.sandbox\.remoteway\.local>?$/i.test(String(to || '')) || await isSandbox(organizationId)) {
+    if (config.isTest) testOutbox.push({ to, subject, html, attachments, via: 'sandbox', organizationId });
+    return false;
+  }
   const company = organizationId ? await orgMail(organizationId) : null;
   const blocked = !company && organizationId && await requireCompanyEmail();
   if (config.isTest) {

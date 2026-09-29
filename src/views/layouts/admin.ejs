@@ -25,6 +25,7 @@
       <% if (_can('seo')) { %><a href="/admin/seo" class="<%= adminSection === 'seo' ? 'active' : '' %>"><%- icon('search') %><%= t('seo.nav') %></a><% } %>
       <% if (_can('marketing')) { %><a href="/admin/marketing" class="<%= adminSection === 'marketing' ? 'active' : '' %>"><%- icon('megaphone') %><%= t('seo.marketing_nav') %></a><% } %>
       <% if (_can('google')) { %><a href="/admin/google" class="<%= adminSection === 'google' ? 'active' : '' %>"><%- icon('log-in') %><%= t('google.admin_nav') %></a><% } %>
+      <% if (_can('sandbox')) { %><a href="/admin/sandbox" class="<%= adminSection === 'sandbox' ? 'active' : '' %>"><%- icon('flask-conical') %><%= t('sandbox.nav') %></a><% } %>
       <% if (_can('domains')) { %><a href="/admin/domains" class="<%= adminSection === 'domains' ? 'active' : '' %>"><%- icon('globe') %><%= t('domains.nav') %></a><% } %>
       <% if (_can('legal')) { %><a href="/admin/legal" class="<%= adminSection === 'legal' ? 'active' : '' %>"><%- icon('scale') %><%= t('admin.legal') %></a><% } %>
       <% if (_can('backups')) { %><a href="/admin/backups" class="<%= adminSection === 'backups' ? 'active' : '' %>"><%- icon('database') %><%= t('admin.backups') %></a><% } %>

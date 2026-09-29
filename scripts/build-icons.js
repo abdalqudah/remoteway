@@ -4,7 +4,7 @@ const fs = require('fs');
 const path = require('path');
 
 const ICONS = [
-  'log-in', 'refresh-cw', 'bot', 'share-2', 'layout-dashboard', 'users', 'user', 'user-plus', 'user-check', 'user-x', 'building-2', 'map-pin',
+  'flask-conical', 'log-in', 'refresh-cw', 'bot', 'share-2', 'layout-dashboard', 'users', 'user', 'user-plus', 'user-check', 'user-x', 'building-2', 'map-pin',
   'briefcase', 'calendar-check', 'calendar-days', 'plane', 'wallet', 'target', 'graduation-cap',
   'list-checks', 'folder-kanban', 'file-text', 'shield-check', 'chart-column', 'life-buoy', 'plug',
   'sparkles', 'credit-card', 'settings', 'search', 'bell', 'log-out', 'chevron-down', 'chevron-right',

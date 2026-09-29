@@ -102,4 +102,34 @@ router.post('/domains/:org/hosting', act(async (req, orgId) => {
 }));
 router.post('/domains/:org/manual', act((req, orgId) => domains.markManual(req.ctx, orgId), 'common.saved'));
 
+// ---------- Test environment (test companies) ----------
+const sandbox = require('./sandbox.service');
+const renderSandbox = async (req, res, extra = {}) => {
+  const created = req.session.sandboxCreated;
+  delete req.session.sandboxCreated;
+  res.page('pages/admin/sandbox', { layout: 'admin', title: req.t('sandbox.title'), list: await sandbox.list(), plans: await require('../../db/knex')('plans').orderBy('sort_order').select('key', 'name'), created, ...extra }); // eslint-disable-line global-require
+};
+router.get('/sandbox', wrap((req, res) => renderSandbox(req, res)));
+router.post('/sandbox', form(async (req, res) => {
+  const r = await sandbox.create(req.ctx, req.body);
+  req.session.sandboxCreated = r.organizationId;
+  flash(req, 'success', req.t('sandbox.created'));
+  res.redirect(`/admin/sandbox#sb-${r.organizationId}`);
+}, renderSandbox));
+const sbAct = (fn) => wrap(async (req, res) => {
+  try {
+    const msg = await fn(req);
+    if (msg) flash(req, 'success', msg);
+  } catch (e) {
+    if (!(e instanceof AppError)) throw e;
+    const tr = req.t(`errors.${e.code}`);
+    flash(req, 'error', e.details ? Object.values(e.details).map((m) => require('../../core/i18n').translateMessage(req.locale, m)).join(' ') : (tr !== `errors.${e.code}` ? tr : e.message)); // eslint-disable-line global-require
+  }
+  res.redirect(`/admin/sandbox#sb-${req.params.id}`);
+});
+router.post('/sandbox/:id/members', sbAct(async (req) => { await sandbox.addMember(req.ctx, req.params.id, req.body); return req.t('sandbox.member_added'); }));
+router.post('/sandbox/:id/members/:user/remove', sbAct(async (req) => { await sandbox.removeMember(req.ctx, req.params.id, req.params.user); return req.t('common.saved'); }));
+router.post('/sandbox/:id/reset', sbAct(async (req) => { const r = await sandbox.reset(req.ctx, req.params.id, req.body.password); req.session.sandboxCreated = r.organizationId; return req.t('sandbox.reset_done'); }));
+router.post('/sandbox/:id/delete', sbAct(async (req) => { const r = await sandbox.remove(req.ctx, req.params.id, req.body.password); return req.t('sandbox.deleted', { name: r.name, n: r.accounts }); }));
+
 module.exports = router;

@@ -1,5 +1,14 @@
 # RemoteWay — Changelog
 
+## 1.8.0 — Test environment
+
+- **Super Admin → Test environment:** create test companies on the live platform for the team to try everything — with realistic sample data (20 employees, departments, attendance, leave, payroll, recruitment, performance, learning) or empty like a new customer, on any plan.
+- Each test company has ready accounts for every role (owner, HR, finance, manager, employee) with one password shown on the page, a link like `/test-xxxx`, and a banner inside the app saying it is a test company. Team members can also be added with their own accounts and a role.
+- Kept apart from real customers: no email is ever sent from or to it, its jobs never reach the public jobs board, it is left out of the overview figures and the CRM, and it is always active (no trial, no invoices). Marked “Test” in the companies list.
+- **Reset with fresh data** (team access kept) and **Delete with all data** — every record, uploaded file and generated account; team members' own accounts stay. Both ask for your password.
+- `npm run seed:demo` now uses the same sample-company builder.
+
+
 ## 1.7.0 — Company email
 
 - **Settings → Email:** each company connects its own mailbox (SMTP — cPanel hosting, Google Workspace, Microsoft 365, Zoho presets). A test message is sent first; the mailbox is used only when it arrives. Password stored encrypted; internal network addresses refused; clear messages for wrong password, blocked port, TLS and sender problems.
