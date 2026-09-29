@@ -1,0 +1,54 @@
+<%
+  var o = old || {}; var posted = o._csrf !== undefined && o.host !== undefined;
+  var c = cfg || {};
+  var v = function (k, d) { return posted ? (o[k] || '') : (c[k] !== undefined && c[k] !== null ? c[k] : (d || '')); };
+%>
+<div class="page-head"><div><h1><%= t('nav.settings') %></h1><p><%= t('orgmail.sub') %></p></div></div>
+<%- include('../../partials/settings-nav') %>
+
+<% if (!cfg || !cfg.enabled) { %>
+<div class="alert <%= required ? 'alert-warning' : 'alert-info' %> mb-6" role="alert"><%- icon('mail') %><div class="grow">
+  <div class="alert-title"><%= required ? t('orgmail.required_title') : t('orgmail.optional_title') %></div>
+  <div class="text-2 small"><%= required ? t('orgmail.required_text') : t('orgmail.optional_text') %></div></div></div>
+<% } %>
+
+<div class="grid grid-2 align-start">
+<form method="post" action="/app/settings/email" class="panel" novalidate autocomplete="off">
+  <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+  <div class="panel-head"><div><h2><%- icon('mail') %> <%= t('orgmail.mailbox') %></h2><div class="panel-sub"><%= t('orgmail.mailbox_sub') %></div></div>
+    <% if (cfg && cfg.enabled) { %><span class="badge badge-success"><%= t('orgmail.status_on') %></span><% } else if (cfg) { %><span class="badge badge-warning"><%= t('orgmail.status_failed') %></span><% } else { %><span class="badge"><%= t('orgmail.status_none') %></span><% } %></div>
+  <div class="panel-body stack">
+    <% if (cfg && cfg.last_error) { %><div class="alert alert-error"><%- icon('circle-alert') %><div class="small"><%= tm(cfg.last_error) %></div></div><% } %>
+    <div><div class="label"><%= t('orgmail.provider') %></div>
+      <div class="row wrap mt-2" data-mail-presets>
+        <% Object.keys(PRESETS).forEach(function (k) { %><button class="btn btn-secondary btn-sm" type="button" data-host="<%= PRESETS[k].host %>" data-port="<%= PRESETS[k].port %>"><%= t('orgmail.preset_' + k) %></button><% }) %>
+      </div></div>
+    <div class="grid grid-2">
+      <%- include('../../partials/field', { name: 'host', label: t('orgmail.host'), value: v('host'), placeholder: 'mail.yourcompany.com', attrs: 'dir="ltr"', required: true }) %>
+      <%- include('../../partials/field', { name: 'port', label: t('orgmail.port'), type: 'select', value: v('port', 465), options: [{ value: 465, label: '465 (SSL)' }, { value: 587, label: '587 (STARTTLS)' }, { value: 25, label: '25' }, { value: 2525, label: '2525' }] }) %>
+      <%- include('../../partials/field', { name: 'username', label: t('orgmail.username'), value: v('username'), placeholder: 'hr@yourcompany.com', attrs: 'dir="ltr" autocomplete="off"' }) %>
+      <%- include('../../partials/field', { name: 'password', label: t('orgmail.password'), type: 'password', attrs: 'dir="ltr" autocomplete="new-password"', help: c.hasPassword ? t('orgmail.password_saved') : t('orgmail.password_help') }) %>
+      <%- include('../../partials/field', { name: 'from_email', label: t('orgmail.from_email'), type: 'email', value: v('from_email'), placeholder: 'hr@yourcompany.com', attrs: 'dir="ltr"', required: true, help: t('orgmail.from_email_help') }) %>
+      <%- include('../../partials/field', { name: 'from_name', label: t('orgmail.from_name'), value: v('from_name', organization.name), help: t('orgmail.from_name_help') }) %>
+    </div>
+  </div>
+  <div class="panel-foot row wrap between">
+    <button class="btn btn-dark" type="submit"><%- icon('send') %><%= t('orgmail.save_test', { email: currentUser.email }) %></button>
+    <% if (cfg) { %><button class="btn btn-danger-ghost" type="submit" form="mail-remove"><%= t('orgmail.remove') %></button><% } %>
+  </div>
+</form>
+<section class="panel">
+  <div class="panel-head"><h2><%- icon('info') %> <%= t('orgmail.how_title') %></h2></div>
+  <div class="panel-body stack-sm small">
+    <ol class="steps-list">
+      <li><%= t('orgmail.how1') %></li>
+      <li><%= t('orgmail.how2') %></li>
+      <li><%= t('orgmail.how3') %></li>
+    </ol>
+    <p class="muted"><%= t('orgmail.google_note') %></p>
+    <p class="muted"><%= t('orgmail.what_uses') %></p>
+    <p class="muted"><%= t('orgmail.account_note') %></p>
+  </div>
+</section>
+</div>
+<% if (cfg) { %><form id="mail-remove" method="post" action="/app/settings/email/remove" data-confirm="<%= t('orgmail.remove_confirm') %>"><input type="hidden" name="_csrf" value="<%= csrfToken %>"></form><% } %>

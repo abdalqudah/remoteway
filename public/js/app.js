@@ -581,6 +581,16 @@
     if (navigator.wakeLock && navigator.wakeLock.request) navigator.wakeLock.request('screen').catch(function () {});
   }
 
+  // Settings → Email: fill server and port from a provider button.
+  document.querySelectorAll('[data-mail-presets] [data-host]').forEach(function (b) {
+    b.addEventListener('click', function () {
+      var h = document.getElementById('f-host'); var p = document.getElementById('f-port');
+      if (h) h.value = b.getAttribute('data-host');
+      if (p) p.value = b.getAttribute('data-port');
+      if (h && /yourcompany/.test(h.value)) { h.focus(); h.select(); }
+    });
+  });
+
   // In-app QR scanner (attendance): reads the office screen's code with the phone camera.
   var scanner = $('[data-qr-scanner]');
   if (scanner) {

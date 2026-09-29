@@ -200,7 +200,7 @@ async function invite(ctx, profileId, { job_id: jobId, message }) {
   if (dup) throw E.conflict('ALREADY_INVITED', 'You already invited this person.');
   const [id] = await knex('talent_invitations').insert({ organization_id: ctx.organizationId, profile_id: p.id, job_id: job ? job.id : null, message: message ? str(message, 2000) : null, created_by: ctx.userId });
   await audit.record(ctx, 'talent.invited', { entityType: 'talent_profile', entityId: p.id, newValues: { job: job ? job.title : null } });
-  if (mailer.enabled()) {
+  if (await mailer.canSendFor(ctx.organizationId)) {
     const org = await knex('organizations').where({ id: ctx.organizationId }).first('name');
     const u = await knex('users').where({ id: p.user_id }).first('email', 'locale');
     const ar = u.locale === 'ar';
@@ -208,6 +208,7 @@ async function invite(ctx, profileId, { job_id: jobId, message }) {
       to: u.email,
       subject: ar ? `دعوة من ${org.name} على RemoteWay` : `${org.name} invited you on RemoteWay`,
       html: mailer.layout({ locale: u.locale, title: ar ? `${org.name} مهتمة بملفك` : `${org.name} is interested in your profile`, body: `${job ? `${job.title}. ` : ''}${message ? str(message, 600) : ''}`, cta: ar ? 'عرض الدعوة' : 'View invitation', href: `${config.appUrl}/me` }),
+      fromName: org.name, organizationId: ctx.organizationId,
     }).catch(() => {});
   }
   return id;

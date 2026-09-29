@@ -70,7 +70,7 @@ const renderUsers = async (req, res, extra = {}) => {
   delete req.session.lastResetLink;
   res.page('pages/settings/users', {
     title: req.t('settings.users'), section: 'users', members: list, invitations, roles: roles.filter((r) => r.key !== 'owner'), usage, inviteLink, resetLink,
-    emailEnabled: mailer.enabled(), ...extra,
+    emailEnabled: await mailer.canSendFor(req.ctx.organizationId), ...extra,
   });
 };
 router.get('/users', can('users.view'), wrap((req, res) => renderUsers(req, res)));
@@ -79,7 +79,7 @@ router.post('/users/invite', can('users.manage'), form(async (req, res) => {
   const { token } = await members.invite(req.ctx, { email: data.email, roleId: data.role_id });
   const link = `${config.appUrl}/invite/${token}`;
   let emailed = false;
-  if (mailer.enabled()) {
+  if (await mailer.canSendFor(req.ctx.organizationId)) {
     const role = await rbac.getRole(req.ctx.organizationId, data.role_id);
     emailed = await mailer.sendInvitation({ email: data.email, link, organizationName: req.organization.name, roleName: role.name, locale: req.locale, organizationId: req.ctx.organizationId })
       .catch((e) => { console.error('[mail] invitation failed:', e.message); return false; });

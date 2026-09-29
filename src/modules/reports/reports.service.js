@@ -296,7 +296,7 @@ async function deliver({ scheduleId }) {
   const author = report && report.created_by ? await ctxFor(s.organization_id, report.created_by) : null;
   if (!report || !author) return finish('Stopped: the report author no longer has access.', { is_active: false });
   if (!(await tiers(s.organization_id)).scheduled) return finish('Stopped: scheduled reports are not included in the plan.', { is_active: false });
-  if (!mailer.enabled() && !config.isTest) return finish('Skipped: email is not configured on the platform.');
+  if (!(await mailer.canSendFor(s.organization_id)) && !config.isTest) return finish('Skipped: email is not set up (connect the company mailbox in Settings → Email).');
   let result;
   try {
     result = await run(author, report.dataset, parse(report.config, {}), { limit: MAX_EXPORT });
@@ -320,7 +320,7 @@ async function deliver({ scheduleId }) {
       to: user.email,
       subject: `${brand ? brand.name : 'RemoteWay'} — ${report.name}`,
       html: mailer.layout({ locale: user.locale, title: report.name, body: t('reports.email_body', { rows: result.rows.length }), cta: t('reports.open'), href: `${base}/app/reports/saved/${report.id}`, brand }),
-      fromName: brand ? brand.senderName : null,
+      fromName: brand ? brand.senderName : null, organizationId: s.organization_id,
       attachments: [{ filename: `${report.name.replace(/[^\p{L}\p{N} _-]/gu, '').trim() || 'report'}.csv`, content: csv.build(table.header, table.rows), contentType: 'text/csv; charset=utf-8' }],
     });
     sent += 1;

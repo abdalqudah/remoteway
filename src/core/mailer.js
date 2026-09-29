@@ -51,7 +51,62 @@ function getTransport() {
   return transport;
 }
 
-const enabled = () => Boolean(getTransport()) && !config.isTest;
+const platformEnabled = () => Boolean(getTransport()) && !config.isTest;
+
+// ---------- Company mailboxes ----------
+// A company that connected its own mailbox (Settings → Email) sends its people's emails from it.
+// When the platform requires it (Super Admin → Email), company emails are not sent from RemoteWay's
+// address until the company connects one; account emails (confirm address, reset password) still are.
+const orgCache = new Map(); // organizationId → { at, cfg, transport, key }
+let policy = { at: 0, require: null };
+
+async function requireCompanyEmail() {
+  if (Date.now() - policy.at < 60_000 && policy.require !== null) return policy.require;
+  let v = null;
+  try {
+    const row = await knex('platform_settings').where({ key: 'mail_policy' }).first();
+    const value = row ? (typeof row.value === 'string' ? JSON.parse(row.value) : row.value) : null;
+    v = value && typeof value.require_company_email === 'boolean' ? value.require_company_email : null;
+  } catch { v = null; }
+  policy = { at: Date.now(), require: v === null ? !config.isTest : v };
+  return policy.require;
+}
+const forgetPolicy = () => { policy = { at: 0, require: null }; };
+
+function transportFor(cfg) {
+  // eslint-disable-next-line global-require
+  const nodemailer = require('nodemailer');
+  const port = Number(cfg.port || 465);
+  return nodemailer.createTransport({
+    host: cfg.host, port, secure: port === 465, requireTLS: port === 587, auth: cfg.user ? { user: cfg.user, pass: cfg.password } : undefined,
+    connectionTimeout: 15_000, greetingTimeout: 15_000, socketTimeout: 30_000,
+  });
+}
+
+/** The company's working mailbox, or null. */
+async function orgMail(organizationId) {
+  if (!organizationId) return null;
+  const hit = orgCache.get(organizationId);
+  if (hit && Date.now() - hit.at < 60_000) return hit.cfg;
+  let cfg = null;
+  try {
+    const r = await knex('organization_mail').where({ organization_id: organizationId, enabled: true }).first();
+    if (r) cfg = { host: r.host, port: r.port, user: r.username, password: r.password_enc ? secrets.decrypt(r.password_enc) : null, fromEmail: r.from_email, fromName: r.from_name };
+  } catch { cfg = null; }
+  const key = cfg ? JSON.stringify([cfg.host, cfg.port, cfg.user, cfg.password]) : null;
+  const prev = orgCache.get(organizationId);
+  orgCache.set(organizationId, { at: Date.now(), cfg, key, transport: prev && prev.key === key ? prev.transport : null });
+  return cfg;
+}
+const forgetOrg = (organizationId) => orgCache.delete(organizationId);
+
+/** Whether an email for this company would be sent at all (company mailbox, or the platform's when allowed). */
+async function canSendFor(organizationId) {
+  if (organizationId && await orgMail(organizationId)) return true;
+  if (organizationId && await requireCompanyEmail()) return false;
+  return platformEnabled();
+}
+const enabled = () => platformEnabled();
 const from = () => { const cfg = currentConfig() || {}; return cfg.from || `RemoteWay <${cfg.user || 'no-reply@localhost'}>`; };
 
 function escapeHtml(s) {
@@ -82,8 +137,34 @@ function fromWithName(fromName) {
   return `"${String(fromName).replace(/["\\\r\n<>]/g, '').slice(0, 80)}" <${addr}>`;
 }
 
-async function send({ to, subject, html, attachments, fromName }) {
-  if (config.isTest) { testOutbox.push({ to, subject, html, attachments, from: fromName ? fromWithName(fromName) : undefined }); return false; }
+const quoteName = (n) => `"${String(n).replace(/["\\\r\n<>]/g, '').slice(0, 80)}"`;
+
+/**
+ * Sends one email. With organizationId the company's own mailbox is used when connected; otherwise the
+ * platform's (unless the platform requires company mailboxes, then nothing is sent and false is returned).
+ */
+async function send({ to, subject, html, attachments, fromName, organizationId }) {
+  const company = organizationId ? await orgMail(organizationId) : null;
+  const blocked = !company && organizationId && await requireCompanyEmail();
+  if (config.isTest) {
+    const via = company ? 'company' : blocked ? 'blocked' : 'platform';
+    const fromAddr = company ? `${quoteName(company.fromName || fromName || 'RemoteWay')} <${company.fromEmail}>` : (fromName ? fromWithName(fromName) : undefined);
+    testOutbox.push({ to, subject, html, attachments, from: fromAddr, via, organizationId });
+    return false;
+  }
+  if (company) {
+    const hit = orgCache.get(organizationId);
+    if (!hit.transport) hit.transport = transportFor(company);
+    try {
+      await hit.transport.sendMail({ from: `${quoteName(company.fromName || fromName || 'RemoteWay')} <${company.fromEmail}>`, to, subject, html, attachments });
+      return true;
+    } catch (e) {
+      // Recorded for the company's settings page; the job queue retries notification emails.
+      await knex('organization_mail').where({ organization_id: organizationId }).update({ last_error: String(e.message).slice(0, 500), last_error_at: new Date() }).catch(() => {});
+      throw e;
+    }
+  }
+  if (blocked) return false;
   const t = getTransport();
   if (!t) return false;
   await t.sendMail({ from: fromWithName(fromName), to, subject, html, attachments });
@@ -98,7 +179,7 @@ async function sendInvitation({ email, link, organizationName, roleName, locale 
     to: email,
     subject: t('mail.invite_subject', { org: organizationName, app: brand ? brand.name : 'RemoteWay' }),
     html: layout({ locale, title: t('mail.invite_subject', { org: organizationName, app: brand ? brand.name : 'RemoteWay' }), body: t('mail.invite_body', { org: organizationName, role: roleName }), cta: t('auth.invite_join'), href, brand }),
-    fromName: brand ? brand.senderName : null,
+    fromName: brand ? brand.senderName : organizationName, organizationId,
   });
 }
 
@@ -114,7 +195,7 @@ async function sendNotificationEmail(userId, type, data, link, organizationId) {
     to: u.email,
     subject: `${brand ? brand.name : 'RemoteWay'} — ${text}`,
     html: layout({ locale: u.locale, title: text, body: t('mail.notification_body', { app: brand ? brand.name : 'RemoteWay' }), cta: t('mail.open', { app: brand ? brand.name : 'RemoteWay' }), href: link ? `${base}${link}` : base, brand }),
-    fromName: brand ? brand.senderName : null,
+    fromName: brand ? brand.senderName : null, organizationId,
   });
 }
 
@@ -123,8 +204,8 @@ async function sendTest(settings, to) {
   // eslint-disable-next-line global-require
   const nodemailer = require('nodemailer');
   const port = Number(settings.port || 465);
-  const t = nodemailer.createTransport({ host: settings.host, port, secure: port === 465, auth: settings.user ? { user: settings.user, pass: settings.password } : undefined, connectionTimeout: 15_000 });
-  await t.sendMail({ from: settings.from || `RemoteWay <${settings.user}>`, to, subject: 'RemoteWay — test email', html: layout({ locale: 'en', title: 'Email is working', body: 'This is a test message from RemoteWay. Your SMTP settings are correct.' }) });
+  const t = nodemailer.createTransport({ host: settings.host, port, secure: port === 465, requireTLS: port === 587, auth: settings.user ? { user: settings.user, pass: settings.password } : undefined, connectionTimeout: 15_000, greetingTimeout: 15_000 });
+  await t.sendMail({ from: settings.from || `RemoteWay <${settings.user}>`, to, subject: settings.subject || 'RemoteWay — test email', html: layout({ locale: settings.locale || 'en', title: settings.title || 'Email is working', body: settings.body || 'This is a test message from RemoteWay. Your SMTP settings are correct.' }) });
 }
 
 async function sendNotificationEmails(organizationId, userIds, type, data, link) {
@@ -136,8 +217,9 @@ async function sendNotificationEmails(organizationId, userIds, type, data, link)
       to: u.email,
       subject: `RemoteWay — ${text}`,
       html: layout({ locale: u.locale, title: text, body: t('mail.notification_body', { app: 'RemoteWay' }), cta: t('mail.open', { app: 'RemoteWay' }), href: link ? `${config.appUrl}${link}` : config.appUrl }),
+      organizationId,
     });
   }
 }
 
-module.exports = { testOutbox, layout, enabled, send, sendInvitation, sendNotificationEmails, sendNotificationEmail, sendTest, refresh, currentConfig };
+module.exports = { canSendFor, orgMail, forgetOrg, requireCompanyEmail, forgetPolicy, testOutbox, layout, enabled, send, sendInvitation, sendNotificationEmails, sendNotificationEmail, sendTest, refresh, currentConfig };

@@ -28,3 +28,12 @@
     <p><%= t('admin.cpanel_tip1') %></p><p><%= t('admin.cpanel_tip2') %></p><p><%= t('admin.cpanel_tip3') %></p>
   </div></section>
 </div>
+<form class="panel mt-6" method="post" action="/admin/email/policy">
+  <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+  <div class="panel-head"><div><h2><%- icon('building-2') %> <%= t('orgmail.policy_title') %></h2><div class="panel-sub"><%= t('orgmail.policy_sub', { connected: connected, companies: companies }) %></div></div></div>
+  <div class="panel-body stack">
+    <label class="check"><input type="checkbox" name="require_company_email" value="1"<%= requireCompany ? ' checked' : '' %>><span><%= t('orgmail.policy_require') %></span></label>
+    <p class="small muted"><%= t('orgmail.policy_help') %></p>
+  </div>
+  <div class="panel-foot"><button class="btn btn-dark" type="submit"><%= t('common.save_changes') %></button></div>
+</form>

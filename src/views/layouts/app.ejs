@@ -14,6 +14,7 @@
     <%- include('../partials/topbar') %>
     <main class="content" id="main">
       <%- include('../partials/verify-banner') %>
+      <% if (typeof mailMissing !== 'undefined' && mailMissing && !fullPath.startsWith('/app/settings/email') && !fullPath.startsWith('/app/onboarding')) { %><div class="banner warning"><%- icon('mail') %><span><%= t('orgmail.banner') %></span><a class="btn btn-dark btn-sm" href="/app/settings/email"><%= t('orgmail.banner_cta') %></a></div><% } %>
       <%- include('../partials/flash') %>
       <%- body %>
     </main>

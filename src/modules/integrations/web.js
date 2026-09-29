@@ -30,7 +30,7 @@ calendarRouter.post('/:kind', wrap(async (req, res) => {
 router.use(can('integrations.manage'));
 router.get('/', wrap(async (req, res) => {
   const [hooks, sms, chat] = await Promise.all([webhooks.list(req.ctx), messaging.view(req.ctx, 'sms'), messaging.view(req.ctx, 'chat')]);
-  res.page('pages/settings/integrations', { title: req.t('integrations.title'), hooks, sms, chat, emailOn: mailer.enabled() || Boolean(mailer.currentConfig()) });
+  res.page('pages/settings/integrations', { title: req.t('integrations.title'), hooks, sms, chat, emailOn: (await mailer.canSendFor(req.ctx.organizationId)) || Boolean(mailer.currentConfig()) });
 }));
 
 // ---------- Webhooks ----------

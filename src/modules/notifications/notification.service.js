@@ -12,7 +12,7 @@ async function notify(organizationId, userIds, type, data = {}, link = null, trx
   })));
   // Email and SMS copies go through the job queue (retried, logged) in the same transaction,
   // so a mail or SMS problem never breaks the action that triggered it.
-  if (mailer.enabled()) {
+  if (await mailer.canSendFor(organizationId)) {
     for (const userId of ids) await jobs.enqueue(trx, { organizationId, type: 'email.notification', payload: { userId, type, data, link, organizationId }, maxAttempts: 5 });
   }
   // eslint-disable-next-line global-require

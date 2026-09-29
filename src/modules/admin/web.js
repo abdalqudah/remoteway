@@ -191,8 +191,22 @@ async function smtpSetting() {
 const renderEmail = async (req, res, extra = {}) => {
   const saved = await smtpSetting();
   const current = mailer.currentConfig();
-  res.page('pages/admin/email', { layout: 'admin', title: req.t('admin.email'), saved, source: current ? current.source : null, envSet: Boolean(process.env.SMTP_HOST), ...extra });
+  const [requireCompany, [{ n: connected }], [{ n: companies }]] = await Promise.all([
+    mailer.requireCompanyEmail(),
+    knex('organization_mail').where({ enabled: true }).count({ n: '*' }),
+    knex('organizations').where({ status: 'active' }).count({ n: '*' }),
+  ]);
+  res.page('pages/admin/email', { layout: 'admin', title: req.t('admin.email'), saved, source: current ? current.source : null, envSet: Boolean(process.env.SMTP_HOST), requireCompany, connected: Number(connected), companies: Number(companies), ...extra });
 };
+// Whether companies must connect their own mailbox before RemoteWay emails their people.
+router.post('/email/policy', wrap(async (req, res) => {
+  const value = JSON.stringify({ require_company_email: req.body.require_company_email === '1' });
+  await knex('platform_settings').insert({ key: 'mail_policy', value }).onConflict('key').merge({ value, updated_at: new Date() });
+  mailer.forgetPolicy();
+  await require('../../core/audit').record(req.ctx, 'platform.mail_policy_updated', { newValues: JSON.parse(value) }); // eslint-disable-line global-require
+  flash(req, 'success', req.t('common.saved'));
+  res.redirect('/admin/email');
+}));
 router.get('/email', wrap((req, res) => renderEmail(req, res)));
 
 function smtpInput(body, saved) {

@@ -26,6 +26,11 @@ router.use(wrap(async (req, res, next) => {
   res.locals.isEmployee = Boolean(me);
   res.locals.hasInterviews = Boolean(interview);
   res.locals.hasOnboardingPlan = Boolean(plan);
+  // Company admins are reminded to connect the company mailbox while the platform requires it.
+  if (req.ctx.permissions.has('organization.manage')) {
+    const mailer = require('../core/mailer'); // eslint-disable-line global-require
+    res.locals.mailMissing = !(await mailer.orgMail(orgId)) && await mailer.requireCompanyEmail();
+  }
   next();
 }));
 
@@ -62,6 +67,7 @@ router.use('/settings/ai', aiWeb.settings);
 router.use('/settings/sso', require('../modules/sso/web').settings);
 router.use('/settings/workflows', require('../modules/workflows/web'));
 router.use('/settings/branding', brandingWeb.settings);
+router.use('/settings/email', require('../modules/organizations/mail.web')); // the company's own mailbox
 router.use('/settings/database', require('../modules/organizations/datasync.web')); // copy of the company's data in its own database
 router.use('/settings', require('../modules/settings/web'));
 router.use('/billing', require('../modules/billing/web'));

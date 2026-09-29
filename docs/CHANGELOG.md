@@ -1,5 +1,12 @@
 # RemoteWay — Changelog
 
+## 1.7.0 — Company email
+
+- **Settings → Email:** each company connects its own mailbox (SMTP — cPanel hosting, Google Workspace, Microsoft 365, Zoho presets). A test message is sent first; the mailbox is used only when it arrives. Password stored encrypted; internal network addresses refused; clear messages for wrong password, blocked port, TLS and sender problems.
+- Company emails — invitations, notifications (leave, tasks, payslips, reviews…), scheduled reports, talent invitations — are sent from the company's address and sender name.
+- **Super Admin → Email → Company mailboxes:** “Companies must connect their own email” (on by default). While a company has not connected one, RemoteWay does not email its people from the platform address; its admins see a reminder banner and a dot on Settings → Email. Account emails (confirm address, reset password) always use the platform email.
+
+
 ## 1.6.0 — Menus that fit the person, owner as employee or not
 
 - **Sidebar:** each item appears only when it applies: “My interviews” only for people who interview candidates; onboarding only for HR or people with an onboarding plan; “My payslips”, performance and learning for employees; locked (not in plan) modules and “coming soon” items only for people who manage the subscription. Empty groups are hidden.

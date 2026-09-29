@@ -8,7 +8,7 @@ jobs.register('webhook.deliver', webhooks.deliver);
 jobs.register('sms.notify', messaging.handleSmsNotify);
 jobs.register('chat.post', messaging.handleChatPost);
 jobs.register('email.notification', async ({ userId, type, data, link, organizationId }) => {
-  if (!mailer.enabled()) return; // email switched off since the job was queued
+  if (!(await mailer.canSendFor(organizationId))) return; // email switched off since the job was queued
   await mailer.sendNotificationEmail(userId, type, data, link, organizationId);
 });
 jobs.register('maintenance.prune', async () => {
