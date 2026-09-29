@@ -1,0 +1,96 @@
+<%
+  var o = old || {}; var posted = o._csrf !== undefined && o.host !== undefined;
+  var c = cfg || {};
+  var v = function (k, d) { return posted ? (o[k] || '') : (c[k] !== undefined && c[k] !== null ? c[k] : (d || '')); };
+  var chosen = posted ? [].concat(o.datasets || []) : (c.datasets || ['employees', 'attendance', 'leave']);
+  var serverIp = process.env.SERVER_IP || '';
+%>
+<div class="page-head"><div><h1><%= t('nav.settings') %></h1><p><%= t('datasync.sub') %></p></div></div>
+<%- include('../../partials/settings-nav') %>
+
+<% if (!hasPlan) { %>
+<div class="alert alert-info"><%- icon('lock') %><div class="grow"><div class="alert-title"><%= t('datasync.plan_title') %></div><div class="text-2"><%= t('datasync.plan_text') %></div>
+  <% if (can('billing.manage')) { %><div class="mt-2"><a class="btn btn-dark btn-sm" href="/app/billing"><%- icon('rocket') %><%= t('billing.upgrade_plan') %></a></div><% } %></div></div>
+<% } else { %>
+
+<% if (cfg) { %>
+<section class="panel mb-6">
+  <div class="panel-head"><div><h2><%- icon('database') %> <%= t('datasync.status') %></h2>
+    <div class="panel-sub"><span dir="ltr" class="mono"><%= c.driver === 'postgres' ? 'PostgreSQL' : 'MySQL' %> · <%= c.host %>:<%= c.port %> / <%= c.database_name %></span></div></div>
+    <% if (c.last_status === 'ok') { %><span class="badge badge-success"><%= t('datasync.last_ok') %></span><% } else if (c.last_status === 'failed') { %><span class="badge badge-danger"><%= t('datasync.last_failed') %></span><% } else if (c.verified_at) { %><span class="badge badge-info"><%= t('datasync.connected') %></span><% } else { %><span class="badge"><%= t('datasync.not_tested') %></span><% } %></div>
+  <div class="panel-body stack">
+    <div class="grid grid-3 small">
+      <div><div class="muted"><%= t('datasync.last_run') %></div><div><%= c.last_run_at ? fmt.date(c.last_run_at, { dateStyle: 'medium', timeStyle: 'short' }) : '—' %></div></div>
+      <div><div class="muted"><%= t('datasync.next_run') %></div><div><%= c.enabled && c.next_run_at ? fmt.date(c.next_run_at, { dateStyle: 'medium', timeStyle: 'short' }) : t('datasync.freq_manual') %></div></div>
+      <div><div class="muted"><%= t('datasync.frequency') %></div><div><%= t('datasync.freq_' + c.frequency) %><%= c.enabled ? '' : ' · ' + t('datasync.paused') %></div></div>
+    </div>
+    <% if (c.last_status === 'failed' && c.last_error) { %><div class="alert alert-error"><%- icon('circle-alert') %><div class="small"><%= tm(c.last_error) %></div></div><% } %>
+    <div class="row wrap">
+      <form method="post" action="/app/settings/database/run"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><button class="btn btn-dark" type="submit"><%- icon('refresh-cw') %><%= t('datasync.run_now') %></button></form>
+      <form method="post" action="/app/settings/database/test"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><button class="btn btn-secondary" type="submit"><%- icon('plug') %><%= t('datasync.test') %></button></form>
+    </div>
+  </div>
+  <% if (runs.length) { %>
+  <div class="table-wrap"><table class="table">
+    <thead><tr><th><%= t('datasync.when') %></th><th><%= t('datasync.trigger') %></th><th><%= t('datasync.result') %></th><th><%= t('datasync.rows') %></th><th><%= t('datasync.duration') %></th></tr></thead>
+    <tbody><% runs.forEach(function (r) { var n = Object.keys(r.counts).reduce(function (a, k) { return a + r.counts[k]; }, 0); %>
+      <tr><td><%= fmt.date(r.started_at, { dateStyle: 'medium', timeStyle: 'short' }) %></td><td><%= t('datasync.trigger_' + r.trigger) %></td>
+        <td><% if (r.status === 'ok') { %><span class="badge badge-success"><%= t('datasync.ok') %></span><% } else if (r.status === 'failed') { %><span class="badge badge-danger" ><%= t('datasync.failed') %></span><div class="small muted"><%= tm(r.error) %></div><% } else { %><span class="badge"><%= t('datasync.running') %></span><% } %></td>
+        <td><%= fmt.number(n) %><% if (n) { %><div class="small muted" dir="ltr"><%= Object.keys(r.counts).map(function (k) { return c.table_prefix + k + ': ' + r.counts[k]; }).join(' · ') %></div><% } %></td>
+        <td><%= r.duration_ms !== null && r.duration_ms !== undefined ? (r.duration_ms / 1000).toFixed(1) + 's' : '—' %></td></tr>
+    <% }) %></tbody>
+  </table></div>
+  <% } %>
+</section>
+<% } %>
+
+<div class="grid grid-2 align-start">
+<form method="post" action="/app/settings/database" class="panel" novalidate autocomplete="off">
+  <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+  <div class="panel-head"><div><h2><%= cfg ? t('datasync.edit') : t('datasync.connect') %></h2><div class="panel-sub"><%= t('datasync.form_sub') %></div></div></div>
+  <div class="panel-body stack">
+    <div class="grid grid-2">
+      <%- include('../../partials/field', { name: 'driver', label: t('datasync.driver'), type: 'select', value: v('driver', 'mysql'), options: [{ value: 'mysql', label: 'MySQL / MariaDB' }, { value: 'postgres', label: 'PostgreSQL' }] }) %>
+      <%- include('../../partials/field', { name: 'host', label: t('datasync.host'), value: v('host'), placeholder: 'db.company.com', attrs: 'dir="ltr" autocomplete="off"', required: true }) %>
+      <%- include('../../partials/field', { name: 'port', label: t('datasync.port'), type: 'number', value: v('port', ''), placeholder: '3306 / 5432', attrs: 'dir="ltr" min="1" max="65535"' }) %>
+      <%- include('../../partials/field', { name: 'database_name', label: t('datasync.database'), value: v('database_name'), attrs: 'dir="ltr" autocomplete="off"', required: true }) %>
+      <%- include('../../partials/field', { name: 'username', label: t('datasync.username'), value: v('username'), attrs: 'dir="ltr" autocomplete="off"', required: true }) %>
+      <%- include('../../partials/field', { name: 'password', label: t('datasync.password'), type: 'password', attrs: 'dir="ltr" autocomplete="new-password"', help: c.hasPassword ? t('datasync.password_saved') : t('datasync.password_help') }) %>
+      <%- include('../../partials/field', { name: 'table_prefix', label: t('datasync.prefix'), value: v('table_prefix', 'rw_'), attrs: 'dir="ltr" maxlength="16"', help: t('datasync.prefix_help') }) %>
+      <%- include('../../partials/field', { name: 'frequency', label: t('datasync.frequency'), type: 'select', value: v('frequency', 'daily'), options: FREQUENCIES.map(function (f) { return { value: f, label: t('datasync.freq_' + f) }; }) }) %>
+    </div>
+    <label class="check"><input type="checkbox" name="ssl" value="1"<%= (posted ? o.ssl === '1' : (cfg ? c.ssl : true)) ? ' checked' : '' %>><span><%= t('datasync.ssl') %></span></label>
+    <label class="check"><input type="checkbox" name="enabled" value="1"<%= (posted ? o.enabled === '1' : (cfg ? c.enabled : true)) ? ' checked' : '' %>><span><%= t('datasync.enabled') %></span></label>
+    <div><div class="label"><%= t('datasync.datasets') %></div>
+      <div class="stack-sm mt-2">
+        <% Object.keys(DATASETS).forEach(function (k) { var ok = allowed.indexOf(k) >= 0; %>
+        <label class="check"><input type="checkbox" name="datasets" value="<%= k %>"<%= chosen.indexOf(k) >= 0 ? ' checked' : '' %><%= ok ? '' : ' disabled' %>>
+          <span><strong><%= t('datasync.ds_' + k) %></strong> <span class="muted small" dir="ltr"><%= Object.keys(DATASETS[k].tables).map(function (n) { return v('table_prefix', 'rw_') + n; }).join(', ') %></span><% if (!ok) { %> <span class="badge"><%= t('datasync.not_available') %></span><% } %></span></label>
+        <% }) %>
+      </div>
+      <% if (errors.datasets) { %><span class="field-error"><%= errors.datasets %></span><% } %>
+    </div>
+  </div>
+  <div class="panel-foot row wrap between">
+    <button class="btn btn-dark" type="submit"><%= t('datasync.save_test') %></button>
+    <% if (cfg) { %><button class="btn btn-danger-ghost" type="submit" form="datasync-remove"><%= t('datasync.remove') %></button><% } %>
+  </div>
+</form>
+
+<section class="panel">
+  <div class="panel-head"><h2><%- icon('info') %> <%= t('datasync.how_title') %></h2></div>
+  <div class="panel-body stack-sm small">
+    <ol class="steps-list">
+      <li><%= t('datasync.how1') %></li>
+      <li><%= t('datasync.how2') %><% if (serverIp) { %> <code class="mono" dir="ltr"><%= serverIp %></code><% } %></li>
+      <li><%= t('datasync.how3') %></li>
+      <li><%= t('datasync.how4') %></li>
+    </ol>
+    <p class="muted"><%= t('datasync.note_oneway') %></p>
+    <p class="muted"><%= t('datasync.note_times') %></p>
+    <p class="muted"><%= t('datasync.note_security') %></p>
+  </div>
+</section>
+</div>
+<% if (cfg) { %><form id="datasync-remove" method="post" data-confirm="<%= t('datasync.remove_confirm') %>" action="/app/settings/database/remove"><input type="hidden" name="_csrf" value="<%= csrfToken %>"></form><% } %>
+<% } %>

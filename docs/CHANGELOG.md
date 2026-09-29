@@ -1,5 +1,13 @@
 # RemoteWay — Changelog
 
+## 1.4.0 — Company database copy
+
+- **Settings → Your database** (white-label companies): connect your own MySQL/MariaDB or PostgreSQL database and RemoteWay keeps a copy of your data there — employees, departments and locations, basic salaries, attendance, leave (types, requests, balances), payroll runs and payslips, recruitment (jobs, candidates, applications) and tasks.
+- Tables are created with a prefix (`rw_employees`, `rw_attendance`, …) and refreshed every hour, every day or on demand; each table is replaced inside a transaction, deletions follow, new columns are added automatically, and `rw_sync_info` shows the last copy. Other tables in your database are never touched. The copy is one-way.
+- "Save and test" checks the connection and that tables can be created; clear messages for wrong password, missing database, firewall and SSL problems; a log of the last 50 copies.
+- Security: password stored encrypted; SSL on by default; addresses inside RemoteWay's own network are refused; payroll and salary data can only be chosen by someone allowed to see it; one copy at a time per company.
+
+
 ## 1.3.0 — Search, marketing, Google sign-in, custom domains
 
 - **Search & AI visibility** (Super Admin → Search & AI visibility): site name, description and keywords (AR/EN); title, description and "hide from search engines" per public page; share image from the media library; canonical and Arabic/English alternate links (hreflang) on every public page; Google/Bing/Yandex verification; a quick health check.

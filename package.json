@@ -1,6 +1,6 @@
 {
   "name": "remoteway",
-  "version": "1.3.0",
+  "version": "1.4.0",
   "description": "RemoteWay — Workforce Management & Remote Employment SaaS",
   "main": "app.js",
   "scripts": {
@@ -39,6 +39,7 @@
     "multer": "^2.4.0",
     "mysql2": "^3.24.4",
     "nodemailer": "^10.0.12",
+    "pg": "^8.23.0",
     "qrcode": "^1.5.4",
     "zod": "^4.6.5"
   },

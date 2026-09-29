@@ -46,6 +46,7 @@ router.use('/settings/ai', aiWeb.settings);
 router.use('/settings/sso', require('../modules/sso/web').settings);
 router.use('/settings/workflows', require('../modules/workflows/web'));
 router.use('/settings/branding', brandingWeb.settings);
+router.use('/settings/database', require('../modules/organizations/datasync.web')); // copy of the company's data in its own database
 router.use('/settings', require('../modules/settings/web'));
 router.use('/billing', require('../modules/billing/web'));
 

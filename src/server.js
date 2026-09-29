@@ -139,6 +139,9 @@ async function start() {
   setInterval(() => require('./modules/admin/errors.service').prune(90).catch(() => {}), 24 * 3600_000).unref();
   process.on('unhandledRejection', (err) => { console.error('[unhandled]', err); require('./modules/admin/errors.service').record(err, { method: 'BG', originalUrl: '(background)' }); });
   require('./modules/site/seo.service').refreshCsp().catch(() => {}); // pixel hosts for the script policy
+  // Copies of company data to their own databases (Settings → Your database), checked every 5 minutes.
+  const syncTick = () => require('./modules/organizations/datasync.service').runDue().catch((e) => console.error('[datasync]', e.message));
+  setInterval(syncTick, 5 * 60_000).unref();
   // Phusion Passenger / LiteSpeed (cPanel "Setup Node.js App") passes a socket path via PORT; listen() accepts both.
   const server = app.listen(PORT, () => console.log(`[remoteway] listening on ${PORT} (${config.env})`));
   const shutdown = () => server.close(() => knex.destroy().then(() => process.exit(0)));
