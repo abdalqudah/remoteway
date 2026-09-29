@@ -6,6 +6,16 @@ const fmt = require('../core/format');
 const config = require('../config');
 const ASSET_V = require('../../package.json').version;
 
+
+// The site's public address. APP_URL wins when it is a real address; when it is missing or still
+// "localhost" (a common set-up slip on cPanel), links use the address the browser actually opened.
+const isLocalUrl = (u) => /^https?:\/\/(localhost|127\.|0\.0\.0\.0|\[::1\])/i.test(u || '');
+function publicBase(req) {
+  const configured = process.env.APP_URL ? config.appUrl.replace(/\/+$/, '') : '';
+  if (configured && !(isLocalUrl(configured) && !/^(localhost|127\.|\[::1\])/i.test(req.hostname || ''))) return configured;
+  return `${req.protocol}://${req.get('host')}`;
+}
+
 function locals(req, res, next) {
   const locale = resolveLocale(req);
   if (req.query.lang && config.locales.includes(req.query.lang)) {
@@ -54,7 +64,7 @@ function locals(req, res, next) {
     escapeHtml: (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]),
     cookiesOk: req.cookies?.rw_cookies_ok === '1',
     consent: ['yes', 'no'].includes(req.cookies?.rw_consent) ? req.cookies.rw_consent : '', // advertising pixels
-    baseUrl: process.env.APP_URL ? config.appUrl.replace(/\/+$/, '') : `${req.protocol}://${req.get('host')}`,
+    baseUrl: publicBase(req),
     icon: (name, cls = '') => `<svg class="icon ${cls}" aria-hidden="true"><use href="/icons.svg?v=${ASSET_V}#i-${name}"></use></svg>`,
     brandIcon: (name, cls = '') => `<svg class="brand-icon ${cls}" aria-hidden="true"><use href="/icons.svg?v=${ASSET_V}#b-${String(name).replace(/[^a-z]/g, '')}"></use></svg>`,
     roleName: (r) => {
@@ -117,4 +127,5 @@ function verifyCsrfAfterUpload(req, res, next) {
   return tokenValid(req, req.body?._csrf || req.get('x-csrf-token')) ? next() : next(E.csrf());
 }
 
-module.exports = { locals, flash, csrf, verifyCsrfAfterUpload };
+module.exports = {
+  publicBase, isLocalUrl, locals, flash, csrf, verifyCsrfAfterUpload };

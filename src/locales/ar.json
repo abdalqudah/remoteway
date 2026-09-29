@@ -68,6 +68,8 @@
   "ai_test": "اختبار الاتصال",
   "ai_test_failed": "فشل الاتصال: {error}",
   "ai_test_ok": "تم الاتصال. ردّ المزوّد خلال {ms} ملّي ثانية.",
+  "app_url_text": "قيمته الآن «{current}». روابط الإيميلات واستعادة كلمة المرور والدخول بجوجل وSSO تعتمد عليه. من cPanel ← Setup Node.js App ← Environment variables اجعل APP_URL = {suggested} ثم احفظ وأعد تشغيل التطبيق.",
+  "app_url_title": "عنوان الموقع (APP_URL) غير مضبوط",
   "audit": "سجل التدقيق",
   "audit_sub": "سجل تدقيق على مستوى المنصة.",
   "back_to_app": "العودة لمساحة العمل",

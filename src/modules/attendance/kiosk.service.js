@@ -17,7 +17,7 @@ const ent = require('../billing/entitlements.service');
 const STEP_MS = 10_000;
 const GRACE_STEPS = 2; // earlier codes still accepted (slow cameras / networks)
 const stepOf = (now = Date.now()) => Math.floor(now / STEP_MS);
-const base = () => config.appUrl.replace(/\/+$/, '');
+const base = (b) => (b || config.appUrl).replace(/\/+$/, ''); // b: the address the screen was opened on
 
 function codeFor(secret, publicId, step) {
   return crypto.createHmac('sha256', secret).update(`${publicId}:${step}`).digest('hex').slice(0, 12);
@@ -74,7 +74,7 @@ async function remove(ctx, id) {
   await audit.record(ctx, 'attendance.kiosk_deleted', { entityType: 'attendance_kiosk', entityId: id });
 }
 
-const displayUrl = (k) => `${base()}/kiosk/${secrets.decrypt(k.display_token_enc)}`;
+const displayUrl = (k, b) => `${base(b)}/kiosk/${secrets.decrypt(k.display_token_enc)}`;
 
 /** The screen, from its secret display link. */
 async function byDisplayToken(token) {
@@ -83,10 +83,10 @@ async function byDisplayToken(token) {
 }
 
 /** Current QR (SVG) for a screen; also records that the screen is online and from which network. */
-async function currentQr(k, ip) {
+async function currentQr(k, ip, b) {
   const step = stepOf();
   const secret = secrets.decrypt(k.secret_enc);
-  const url = `${base()}/q/${k.public_id}/${step}.${codeFor(secret, k.public_id, step)}`;
+  const url = `${base(b)}/q/${k.public_id}/${step}.${codeFor(secret, k.public_id, step)}`;
   await knex('attendance_kiosks').where({ id: k.id }).update({ last_seen_at: new Date(), last_ip: ip ? String(ip).slice(0, 64) : null });
   const svg = await QRCode.toString(url, { type: 'svg', margin: 1, errorCorrectionLevel: 'M' });
   return { svg, url, expiresIn: Math.ceil(((step + 1) * STEP_MS - Date.now()) / 1000), stepSeconds: STEP_MS / 1000 };

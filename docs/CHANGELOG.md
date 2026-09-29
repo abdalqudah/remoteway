@@ -1,5 +1,11 @@
 # RemoteWay — Changelog
 
+## 1.4.2 — QR screen address fix
+
+- The QR screen link and the code inside the QR now use the address the site was opened on (e.g. remoteway.net) when APP_URL is missing or still set to localhost — before, “Open screen” could go to localhost:3000 and phones could not open the scanned link.
+- Super Admin shows a warning with the exact value to set when APP_URL is missing or points to localhost (emails, password resets and Google/SSO sign-in need it).
+
+
 ## 1.4.1 — QR every 10 seconds
 
 - The attendance QR screen now shows a new code every 10 seconds (was every minute). Any number of employees can scan the same code at the same moment; a scanned code is accepted for up to 30 seconds so slow phone cameras still get through.

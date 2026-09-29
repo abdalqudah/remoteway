@@ -147,6 +147,18 @@ describe('QR attendance', () => {
     assert.equal(row.clock_out_method, 'qr');
   });
 
+  test('screen link and QR use the address the site was opened on, not localhost', async () => {
+    const open = await owner.agent.get(`/app/attendance/qr/${kioskId}/open`).set('Host', 'hr.example-co.test');
+    assert.equal(open.status, 302);
+    assert.match(open.headers.location, /^http:\/\/hr\.example-co\.test\/kiosk\/[a-f0-9]{48}$/);
+    const token = open.headers.location.split('/kiosk/')[1];
+    const q = await h.request(h.getApp()).get(`/kiosk/${token}/qr`).set('Host', 'hr.example-co.test');
+    const k = await h.knex('attendance_kiosks').where({ id: kioskId }).first();
+    const shown = await require('../src/modules/attendance/kiosk.service').currentQr(k, null, 'https://remoteway.net');
+    assert.match(shown.url, /^https:\/\/remoteway\.net\/q\//);
+    assert.equal(q.status, 200);
+  });
+
   test('the code changes every 10 seconds and several people can scan it together', async () => {
     assert.equal(kioskSvc.STEP_MS, 10_000);
     const k = await h.knex('attendance_kiosks').where({ id: kioskId }).first();

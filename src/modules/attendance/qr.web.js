@@ -17,13 +17,13 @@ display.get('/:token', wrap(async (req, res, next) => {
   const org = await orgs.get(k.organization_id);
   const brandInfo = await require('../branding/branding.service').forOrg(org.id, org.name); // eslint-disable-line global-require
   res.set('Cache-Control', 'no-store');
-  return res.page('pages/attendance/kiosk-display', { layout: 'kiosk', title: `${org.name} · ${k.name}`, org, kiosk: k, orgLogo: brandInfo.logoUrl, token: req.params.token, qr: await kiosks.currentQr(k, req.ip) });
+  return res.page('pages/attendance/kiosk-display', { layout: 'kiosk', title: `${org.name} · ${k.name}`, org, kiosk: k, orgLogo: brandInfo.logoUrl, token: req.params.token, qr: await kiosks.currentQr(k, req.ip, res.locals.baseUrl) });
 }));
 display.get('/:token/qr', wrap(async (req, res) => {
   const k = await kiosks.byDisplayToken(req.params.token);
   if (!k) return res.status(404).json({ success: false });
   res.set('Cache-Control', 'no-store');
-  const q = await kiosks.currentQr(k, req.ip);
+  const q = await kiosks.currentQr(k, req.ip, res.locals.baseUrl);
   return res.json({ success: true, data: { svg: q.svg, expiresIn: q.expiresIn, step: q.stepSeconds } });
 }));
 

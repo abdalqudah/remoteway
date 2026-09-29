@@ -68,6 +68,8 @@
   "ai_test": "Test connection",
   "ai_test_failed": "Connection failed: {error}",
   "ai_test_ok": "Connected. The provider answered in {ms} ms.",
+  "app_url_text": "It is now “{current}”. Links in emails, password resets and Google/SSO sign-in use it. In cPanel → Setup Node.js App → Environment variables set APP_URL = {suggested}, save and restart the app.",
+  "app_url_title": "The site address (APP_URL) is not set",
   "audit": "Audit log",
   "audit_sub": "Platform-wide audit trail.",
   "back_to_app": "Back to workspace",

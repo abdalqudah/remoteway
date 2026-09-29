@@ -24,6 +24,10 @@ router.use((req, res, next) => {
   res.locals.adminSection = section;
   res.locals.adminCan = (s, write = false) => access.can(req.user, s, write);
   res.locals.platformRole = access.roleOf(req.user);
+  // Links in emails, password resets and sign-in providers need the real site address (APP_URL).
+  const { isLocalUrl } = require('../../middleware/web'); // eslint-disable-line global-require
+  const cfgUrl = require('../../config').appUrl; // eslint-disable-line global-require
+  if ((!process.env.APP_URL || isLocalUrl(cfgUrl)) && !/^(localhost|127\.|\[::1\])/i.test(req.hostname || '')) res.locals.appUrlWarning = { current: process.env.APP_URL || '', suggested: `https://${req.hostname}` };
   // Each platform role opens only its sections; changing things may need a narrower role.
   if (!access.can(req.user, section, !['GET', 'HEAD'].includes(req.method))) return next(E.forbidden(`platform.${section}`));
   return next();

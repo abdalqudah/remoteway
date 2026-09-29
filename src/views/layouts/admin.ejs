@@ -45,7 +45,8 @@
         <form method="post" action="/logout"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><button class="btn btn-ghost btn-sm" type="submit"><%- icon('log-out') %><%= t('auth.logout') %></button></form>
       </div>
     </header>
-    <main class="content"><%- include('../partials/flash') %><%- body %></main>
+    <main class="content"><%- include('../partials/flash') %><% if (typeof appUrlWarning !== 'undefined' && appUrlWarning) { %><div class="alert alert-warning mb-6" role="alert"><%- icon('triangle-alert') %><div class="grow small"><div class="alert-title"><%= t('admin.app_url_title') %></div><div><%= t('admin.app_url_text', { current: appUrlWarning.current || '—', suggested: appUrlWarning.suggested }) %></div></div></div><% } %>
+<%- body %></main>
   </div>
 </div>
 <script src="/js/app.js?v=<%= assetV %>" defer></script>

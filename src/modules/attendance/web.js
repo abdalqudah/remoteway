@@ -62,7 +62,7 @@ router.post('/qr/settings', can('attendance.manage'), wrap(async (req, res) => {
   flash(req, 'success', req.t('common.saved'));
   res.redirect('/app/attendance/qr');
 }));
-router.get('/qr/:id/open', can('attendance.manage'), wrap(async (req, res) => res.redirect(kiosks.displayUrl(await kiosks.get(req.ctx, Number(req.params.id))))));
+router.get('/qr/:id/open', can('attendance.manage'), wrap(async (req, res) => res.redirect(kiosks.displayUrl(await kiosks.get(req.ctx, Number(req.params.id)), res.locals.baseUrl))));
 router.post('/qr/:id', can('attendance.manage'), wrap(async (req, res) => {
   await kiosks.update(req.ctx, Number(req.params.id), { same_network: req.body.same_network === '1', is_active: req.body.is_active === '1' });
   flash(req, 'success', req.t('common.saved'));
