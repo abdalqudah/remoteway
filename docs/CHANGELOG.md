@@ -1,5 +1,10 @@
 # RemoteWay — Changelog
 
+## 1.9.1 — Works on MySQL 5.7 and older MariaDB
+
+- Fixed the SQL error `near 'RECURSIVE team AS (…'` on servers running MySQL 5.7 or MariaDB before 10.2 (common on shared hosting): a manager's reporting line (team view, leave approvals, attendance) is now worked out in the app from one simple query instead of `WITH RECURSIVE`.
+- A test now stops SQL that these versions do not support from coming back.
+
 ## 1.9.0 — Flexible SMTP (any mail server)
 
 - **One SMTP form for the platform (Super Admin → Email) and for each company (Settings → Email).** Provider presets only fill suggested values — Custom SMTP, Gmail / Google Workspace, Google SMTP Relay, Microsoft 365, Outlook.com, Hosting / cPanel — and every field stays editable, so any SMTP server works.

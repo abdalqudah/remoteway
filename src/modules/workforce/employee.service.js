@@ -63,28 +63,34 @@ async function applyScope(ctx, query) {
     return;
   }
   if (ctx.permissions.has('team.view')) {
-    query.whereIn('e.id', knex.raw(
-      `(WITH RECURSIVE team AS (
-          SELECT id FROM employees WHERE id = ? AND organization_id = ?
-          UNION ALL
-          SELECT c.id FROM employees c JOIN team t ON c.manager_id = t.id WHERE c.organization_id = ?
-        ) SELECT id FROM team)`, [self, ctx.organizationId, ctx.organizationId],
-    ));
+    query.whereIn('e.id', [self, ...(await reportIds(ctx.organizationId, self))]);
     return;
   }
   query.where('e.id', self);
 }
 
-/** Ids of the manager's whole reporting line (direct + indirect), excluding the manager. */
+/**
+ * Ids of the manager's whole reporting line (direct + indirect), excluding the manager.
+ * Walked in Node from one query (no WITH RECURSIVE: MySQL 5.7 and MariaDB < 10.2 do not support it).
+ */
 async function reportIds(organizationId, managerEmployeeId) {
-  const [rows] = await knex.raw(
-    `WITH RECURSIVE team AS (
-       SELECT id FROM employees WHERE manager_id = ? AND organization_id = ?
-       UNION ALL
-       SELECT c.id FROM employees c JOIN team t ON c.manager_id = t.id WHERE c.organization_id = ?
-     ) SELECT id FROM team`, [managerEmployeeId, organizationId, organizationId],
-  );
-  return rows.map((r) => r.id);
+  const rows = await knex('employees').where({ organization_id: organizationId }).whereNotNull('manager_id').select('id', 'manager_id');
+  const children = new Map();
+  for (const r of rows) {
+    if (!children.has(r.manager_id)) children.set(r.manager_id, []);
+    children.get(r.manager_id).push(r.id);
+  }
+  const root = Number(managerEmployeeId);
+  const seen = new Set([root]); // also stops a loop in bad data (A manages B manages A)
+  const out = [];
+  const queue = [root];
+  while (queue.length) {
+    for (const id of children.get(queue.shift()) || []) {
+      if (seen.has(id)) continue;
+      seen.add(id); out.push(id); queue.push(id);
+    }
+  }
+  return out;
 }
 
 /**
