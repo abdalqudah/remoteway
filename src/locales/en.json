@@ -727,6 +727,8 @@
    "imported": "imported employees from CSV",
    "password_set": "Set a temporary password for an employee",
    "reactivated": "reactivated an employee",
+   "self_linked": "Linked themselves to an employee record",
+   "self_unlinked": "Stopped being an employee (record kept)",
    "terminated": "ended employment",
    "updated": "updated an employee"
   },
@@ -1705,8 +1707,8 @@
   "my_profile": "My profile",
   "my_tasks": "My tasks",
   "my_team": "My team",
-  "my_work": "My hiring & onboarding",
-  "my_work_sub": "Interviews and onboarding tasks assigned to you.",
+  "my_work": "Waiting for you",
+  "my_work_sub": "Training, reviews, policies, onboarding tasks and interviews assigned to you.",
   "new_this_month": "joined this month",
   "no_data": "No data yet.",
   "no_reports": "No one reports to you yet.",
@@ -4004,6 +4006,19 @@
   "pages": "Pages",
   "placeholder": "Search…",
   "placeholder_long": "Search employees, departments or pages…"
+ },
+ "selfemp": {
+  "explain": "Right now you only see what you manage. If you also work here, RemoteWay links you to an employee record (the one with your email, or a new one).",
+  "linked": "You are linked to the employee record {name} ({number}).",
+  "no": "Not an employee",
+  "not_employee": "Done: you are no longer treated as an employee. The record {number} stays in Employees; delete it there if it is not needed.",
+  "now_employee": "Done: you are now also an employee of this company.",
+  "start": "Yes, I work here as an employee",
+  "stop": "I am not an employee here",
+  "stop_confirm": "Stop treating you as an employee? Clock-in, your leave, payslips and reviews disappear from your account. The employee record stays in the employees list for HR history.",
+  "sub": "Employees get clock-in, their own leave, payslips, reviews and training. Owners and managers who are not employees only see what they manage.",
+  "title": "Do you also work here as an employee?",
+  "yes": "Employee"
  },
  "seo": {
   "aeo": "Structured data (AEO)",

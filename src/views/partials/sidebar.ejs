@@ -1,7 +1,6 @@
 <%
   var p = fullPath.split('?')[0];
   var isActive = function (href, exact) { return exact ? p === href : p.indexOf(href) === 0; };
-  var groups = [['workforce', 'nav.group_workforce'], ['talent', 'nav.group_talent'], ['finance', 'nav.group_finance'], ['insights', 'nav.group_insights']];
 %>
 <div class="sidebar-brand"><a href="/app" aria-label="RemoteWay"><%- include('logo') %></a></div>
 <details class="dropdown org-switch">
@@ -21,37 +20,60 @@
     <a href="/organizations/new"><%- icon('plus', 'icon-sm') %><%= t('nav.new_organization') %></a>
   </div>
 </details>
+<%
+  // Each link is shown when it applies to this person: a manager's permission, being an employee here
+  // (linked employee record), having interviews or an onboarding plan. Modules outside the plan are shown
+  // (locked) only to people who can change the plan.
+  var canPlan = can('billing.view');
+  var emp = typeof isEmployee !== 'undefined' && isEmployee;
+  var item = function (key, href, ic, label, relevant, extraActive) {
+    if (!relevant) return null;
+    var on = hasFeature(key);
+    if (!on && !canPlan) return null;
+    return { href: href, icon: ic, label: label, locked: !on, active: isActive(href) || Boolean(extraActive) };
+  };
+  var workforce = [
+    item('attendance', '/app/attendance', 'calendar-check', t('nav.attendance'), can('attendance.view') || can('attendance.manage') || emp),
+    item('leave', '/app/leave', 'plane', t('nav.leave'), can('leave.view') || can('leave.approve') || emp),
+    item('documents', '/app/documents', 'file-text', t('nav.documents'), can('documents.view') || can('documents.manage') || emp),
+    item('tasks', '/app/tasks', 'list-checks', t('nav.tasks'), true, isActive('/app/projects')),
+  ].filter(Boolean);
+  var talent = [
+    item('recruitment', '/app/recruitment', 'briefcase', t('nav.recruitment'), can('recruitment.view')),
+    can('recruitment.view') ? null : item('recruitment', '/app/recruitment/interviews', 'briefcase', t('recruitment.my_interviews'), typeof hasInterviews !== 'undefined' && hasInterviews && hasFeature('recruitment')),
+    item('talent_marketplace', '/app/talent', 'user-round-plus', t('talent.nav_find'), can('recruitment.view')),
+    item('performance', '/app/performance', 'target', t('nav.performance'), can('performance.view') || can('performance.manage') || emp),
+    item('learning', '/app/learning', 'graduation-cap', t('nav.learning'), can('learning.manage') || emp),
+    item('onboarding', '/app/employee-onboarding', 'user-check', t('nav.onboarding_module'), can('onboarding.manage') || (typeof hasOnboardingPlan !== 'undefined' && hasOnboardingPlan)),
+  ].filter(Boolean);
+  var finance = [
+    item('payroll', '/app/payroll', 'wallet', t('nav.payroll'), can('payroll.view')),
+    item('payroll', '/app/payroll/my', 'receipt', t('payroll.my_payslips'), emp && hasFeature('payroll')),
+  ].filter(Boolean);
+  if (finance[0] && finance[0].href === '/app/payroll') finance[0].active = isActive('/app/payroll') && !isActive('/app/payroll/my');
+  var insights = [
+    can('automation.manage') ? item('automation', '/app/automation', 'zap', t('automation.title'), true) : null,
+    can('compliance.view') ? item('compliance', '/app/compliance', 'shield-check', t('compliance.title'), true) : null,
+    can('reports.view') ? item('analytics', '/app/analytics', 'chart-column', t('analytics.title'), true) : null,
+    can('reports.view') ? { href: '/app/reports', icon: 'file-text', label: t('reports.title'), active: isActive('/app/reports') } : null,
+    can('reports.view') ? { href: '/app/insights', icon: 'sparkles', label: t('ai.insights'), active: isActive('/app/insights'), locked: !(typeof aiStatus !== 'undefined' && aiStatus && aiStatus.areas.analytics.usable) } : null,
+  ].filter(Boolean);
+  var link = function (it) { return '<a href="' + it.href + '" class="' + (it.active ? 'active' : '') + (it.locked ? ' is-soon' : '') + '">' + icon(it.icon) + escapeHtml(it.label) + (it.locked ? '<span class="badge badge-soon">' + icon('lock', 'icon-sm') + '</span>' : '') + '</a>'; };
+  var soon = function (grp) { return canPlan ? MODULES.filter(function (m) { return m.group === grp; }) : []; };
+%>
 <nav class="nav" aria-label="<%= t('nav.main') %>">
   <a href="/app" class="<%= isActive('/app', true) ? 'active' : '' %>"><%- icon('layout-dashboard') %><%= t('nav.dashboard') %></a>
   <div class="nav-group">
     <div class="nav-title"><%= t('nav.group_workforce') %></div>
     <% if (can('employees.view') || can('team.view')) { %><a href="/app/employees" class="<%= isActive('/app/employees') ? 'active' : '' %>"><%- icon('users') %><%= can('employees.view') ? t('nav.employees') : t('nav.my_team') %></a><% } %>
     <% if (can('employees.view')) { %><a href="/app/structure" class="<%= isActive('/app/structure') ? 'active' : '' %>"><%- icon('building-2') %><%= t('nav.structure') %></a><% } %>
-    <% [['attendance', '/app/attendance', 'calendar-check'], ['leave', '/app/leave', 'plane'], ['documents', '/app/documents', 'file-text'], ['tasks', '/app/tasks', 'list-checks']].forEach(function (m) { %>
-      <a href="<%= m[1] %>" class="<%= isActive(m[1]) || (m[0] === 'tasks' && isActive('/app/projects')) ? 'active' : '' %><%= hasFeature(m[0]) ? '' : ' is-soon' %>"><%- icon(m[2]) %><%= t('nav.' + m[0]) %><% if (!hasFeature(m[0])) { %><span class="badge badge-soon"><%- icon('lock', 'icon-sm') %></span><% } %></a>
-    <% }) %>
+    <% workforce.forEach(function (it) { %><%- link(it) %><% }) %>
   </div>
-  <% groups.slice(1).forEach(function (g) { if (g[0] === 'insights' && !can('reports.view') && !can('compliance.view') && !can('automation.manage')) return; %>
+  <% [['talent', 'nav.group_talent', talent], ['finance', 'nav.group_finance', finance], ['insights', 'nav.group_insights', insights]].forEach(function (g) { var extra = soon(g[0]); if (!g[2].length && !extra.length) return; %>
   <div class="nav-group">
     <div class="nav-title"><%= t(g[1]) %></div>
-    <% if (g[0] === 'talent') { %>
-      <% if (can('recruitment.view')) { %><a href="/app/recruitment" class="<%= isActive('/app/recruitment') ? 'active' : '' %><%= hasFeature('recruitment') ? '' : ' is-soon' %>"><%- icon('briefcase') %><%= t('nav.recruitment') %><% if (!hasFeature('recruitment')) { %><span class="badge badge-soon"><%- icon('lock', 'icon-sm') %></span><% } %></a>
-      <% } else if (hasFeature('recruitment')) { %><a href="/app/recruitment/interviews" class="<%= isActive('/app/recruitment') ? 'active' : '' %>"><%- icon('briefcase') %><%= t('recruitment.my_interviews') %></a><% } %>
-      <% if (can('recruitment.view')) { %><a href="/app/talent" class="<%= isActive('/app/talent') ? 'active' : '' %><%= hasFeature('talent_marketplace') ? '' : ' is-soon' %>"><%- icon('user-round-plus') %><%= t('talent.nav_find') %><% if (!hasFeature('talent_marketplace')) { %><span class="badge badge-soon"><%- icon('lock', 'icon-sm') %></span><% } %></a><% } %>
-      <a href="/app/performance" class="<%= isActive('/app/performance') ? 'active' : '' %><%= hasFeature('performance') ? '' : ' is-soon' %>"><%- icon('target') %><%= t('nav.performance') %><% if (!hasFeature('performance')) { %><span class="badge badge-soon"><%- icon('lock', 'icon-sm') %></span><% } %></a>
-      <a href="/app/learning" class="<%= isActive('/app/learning') ? 'active' : '' %><%= hasFeature('learning') ? '' : ' is-soon' %>"><%- icon('graduation-cap') %><%= t('nav.learning') %><% if (!hasFeature('learning')) { %><span class="badge badge-soon"><%- icon('lock', 'icon-sm') %></span><% } %></a>
-      <a href="/app/employee-onboarding" class="<%= isActive('/app/employee-onboarding') ? 'active' : '' %><%= hasFeature('onboarding') ? '' : ' is-soon' %>"><%- icon('user-check') %><%= t('nav.onboarding_module') %><% if (!hasFeature('onboarding')) { %><span class="badge badge-soon"><%- icon('lock', 'icon-sm') %></span><% } %></a>
-    <% } %>
-    <% if (g[0] === 'finance') { %>
-      <% if (can('payroll.view')) { %><a href="/app/payroll" class="<%= isActive('/app/payroll') && !isActive('/app/payroll/my') ? 'active' : '' %><%= hasFeature('payroll') ? '' : ' is-soon' %>"><%- icon('wallet') %><%= t('nav.payroll') %><% if (!hasFeature('payroll')) { %><span class="badge badge-soon"><%- icon('lock', 'icon-sm') %></span><% } %></a><% } %>
-      <% if (hasFeature('payroll')) { %><a href="/app/payroll/my" class="<%= isActive('/app/payroll/my') ? 'active' : '' %>"><%- icon('receipt') %><%= t('payroll.my_payslips') %></a><% } %>
-    <% } %>
-    <% if (g[0] === 'insights' && can('automation.manage')) { %><a href="/app/automation" class="<%= isActive('/app/automation') ? 'active' : '' %><%= hasFeature('automation') ? '' : ' is-soon' %>"><%- icon('zap') %><%= t('automation.title') %><% if (!hasFeature('automation')) { %><span class="badge badge-soon"><%- icon('lock', 'icon-sm') %></span><% } %></a><% } %>
-    <% if (g[0] === 'insights' && can('compliance.view')) { %><a href="/app/compliance" class="<%= isActive('/app/compliance') ? 'active' : '' %><%= hasFeature('compliance') ? '' : ' is-soon' %>"><%- icon('shield-check') %><%= t('compliance.title') %><% if (!hasFeature('compliance')) { %><span class="badge badge-soon"><%- icon('lock', 'icon-sm') %></span><% } %></a><% } %>
-    <% if (g[0] === 'insights' && can('reports.view')) { %><a href="/app/analytics" class="<%= isActive('/app/analytics') ? 'active' : '' %><%= hasFeature('analytics') ? '' : ' is-soon' %>"><%- icon('chart-column') %><%= t('analytics.title') %><% if (!hasFeature('analytics')) { %><span class="badge badge-soon"><%- icon('lock', 'icon-sm') %></span><% } %></a><% } %>
-    <% if (g[0] === 'insights' && can('reports.view')) { %><a href="/app/reports" class="<%= isActive('/app/reports') ? 'active' : '' %>"><%- icon('file-text') %><%= t('reports.title') %></a><% } %>
-    <% if (g[0] === 'insights' && can('reports.view')) { %><a href="/app/insights" class="<%= isActive('/app/insights') ? 'active' : '' %>"><%- icon('sparkles') %><%= t('ai.insights') %><% if (!(typeof aiStatus !== 'undefined' && aiStatus && aiStatus.areas.analytics.usable)) { %><span class="badge badge-soon"><%- icon('lock', 'icon-sm') %></span><% } %></a><% } %>
-    <% MODULES.filter(function (m) { return m.group === g[0]; }).forEach(function (m) { %>
+    <% g[2].forEach(function (it) { %><%- link(it) %><% }) %>
+    <% extra.forEach(function (m) { %>
       <a href="/app/modules/<%= m.key %>" class="is-soon <%= isActive('/app/modules/' + m.key) ? 'active' : '' %>"><%- icon(m.icon) %><%= t('nav.' + m.key) %><span class="badge badge-soon"><%= m.status === 'integration' ? t('common.setup_required') : t('common.soon') %></span></a>
     <% }) %>
   </div>

@@ -20,3 +20,20 @@
     <div class="panel-foot"><button class="btn btn-dark" type="submit"><%= t('settings.update_password') %></button></div>
   </form>
 </div>
+<% if (selfEmployee || canBeEmployee) { %>
+<section class="panel mt-6" id="as-employee">
+  <div class="panel-head"><div><h2><%- icon('user-check') %> <%= t('selfemp.title') %></h2><div class="panel-sub"><%= t('selfemp.sub') %></div></div>
+    <span class="badge <%= selfEmployee ? 'badge-success' : '' %>"><%= selfEmployee ? t('selfemp.yes') : t('selfemp.no') %></span></div>
+  <div class="panel-body stack">
+    <% if (selfEmployee) { %>
+      <p class="text-2"><%= t('selfemp.linked', { name: selfEmployee.first_name + ' ' + selfEmployee.last_name, number: selfEmployee.employee_number }) %></p>
+      <form method="post" action="/app/settings/account/employee" data-confirm="<%= t('selfemp.stop_confirm') %>"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><input type="hidden" name="employee" value="0">
+        <button class="btn btn-secondary" type="submit"><%= t('selfemp.stop') %></button></form>
+    <% } else { %>
+      <p class="text-2"><%= t('selfemp.explain') %></p>
+      <form method="post" action="/app/settings/account/employee"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><input type="hidden" name="employee" value="1">
+        <button class="btn btn-dark" type="submit"><%- icon('user-plus') %><%= t('selfemp.start') %></button></form>
+    <% } %>
+  </div>
+</section>
+<% } %>

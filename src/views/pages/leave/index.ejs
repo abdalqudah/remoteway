@@ -1,7 +1,7 @@
 <%
   var typeName = function (x) { return locale === 'ar' ? (x.type_name_ar || x.name_ar || x.type_name || x.name) : (x.type_name || x.name); };
   var d = function (v) { return v instanceof Date ? v.toISOString().slice(0, 10) : String(v).slice(0, 10); };
-  var tabs = [['mine', t('leave.tab_mine')]];
+  var tabs = self ? [['mine', t('leave.tab_mine')]] : []; // only employees have their own leave
   if (can('leave.approve') || approvals.length) tabs.push(['approvals', t('leave.tab_approvals') + (approvals.length ? ' (' + approvals.length + ')' : '')]);
   if (can('leave.view') || can('employees.view') || can('team.view')) tabs.push(['calendar', t('leave.tab_calendar')]);
   if (can('settings.manage')) tabs.push(['types', t('leave.tab_types')]);

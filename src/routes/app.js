@@ -13,6 +13,22 @@ router.use((req, res, next) => {
   return next();
 });
 
+// What the sidebar shows depends on who this person is here: an employee (linked employee record),
+// an interviewer, someone with an onboarding plan — not only on the plan's features.
+const knexDb = require('../db/knex');
+router.use(wrap(async (req, res, next) => {
+  const orgId = req.ctx.organizationId; const uid = req.ctx.userId;
+  const me = await knexDb('employees').where({ organization_id: orgId, user_id: uid }).whereNot('status', 'terminated').first('id');
+  const [interview, plan] = await Promise.all([
+    knexDb('interviews').where({ organization_id: orgId, interviewer_user_id: uid }).first('id').catch(() => null),
+    me ? knexDb('onboarding_plans').where({ organization_id: orgId, employee_id: me.id }).first('id').catch(() => null) : null,
+  ]);
+  res.locals.isEmployee = Boolean(me);
+  res.locals.hasInterviews = Boolean(interview);
+  res.locals.hasOnboardingPlan = Boolean(plan);
+  next();
+}));
+
 const brandingWeb = require('../modules/branding/web');
 router.use(brandingWeb.appLocals);
 const aiWeb = require('../modules/ai/web');

@@ -101,4 +101,38 @@ async function setPassword(ctx, employeeId, body) {
   return { email: s.user.email, password: plain };
 }
 
-module.exports = { generatePassword, state, assignableRoles, createAccount, setPassword };
+// ---------- "I also work here as an employee" (owners and admins) ----------
+async function selfEmployee(ctx) {
+  return knex('employees').where({ organization_id: ctx.organizationId, user_id: ctx.userId }).first('id', 'first_name', 'last_name', 'employee_number', 'status');
+}
+
+/** Links the signed-in person to an employee record (an existing one with their email, or a new one). */
+async function becomeEmployee(ctx) {
+  if (!ctx.permissions.has('employees.create')) throw E.forbidden('employees.create');
+  if (await selfEmployee(ctx)) return;
+  const user = await knex('users').where({ id: ctx.userId }).first('name', 'email');
+  const existing = await knex('employees').where({ organization_id: ctx.organizationId, email: user.email }).whereNull('user_id').first('id');
+  if (existing) {
+    await knex('employees').where({ id: existing.id }).update({ user_id: ctx.userId, updated_at: new Date() });
+    await audit.record(ctx, 'employee.self_linked', { entityType: 'employee', entityId: existing.id });
+    return;
+  }
+  const parts = String(user.name || '').trim().split(/\s+/);
+  const first = parts.shift() || user.email.split('@')[0];
+  const last = parts.join(' ') || '-';
+  await require('./employee.service').create(ctx, { first_name: first, last_name: last, email: user.email, joining_date: new Date().toISOString().slice(0, 10) }); // eslint-disable-line global-require
+  // create() links the record to the member with this email.
+  await knex('employees').where({ organization_id: ctx.organizationId, email: user.email }).whereNull('user_id').update({ user_id: ctx.userId });
+}
+
+/** The person stops being treated as an employee: personal items (clock-in, my leave, reviews…) disappear.
+ *  The employee record itself is kept for HR history; it can be deleted from Employees. */
+async function stopBeingEmployee(ctx) {
+  const me = await selfEmployee(ctx);
+  if (!me) return null;
+  await knex('employees').where({ id: me.id }).update({ user_id: null, updated_at: new Date() });
+  await audit.record(ctx, 'employee.self_unlinked', { entityType: 'employee', entityId: me.id });
+  return me;
+}
+
+module.exports = { selfEmployee, becomeEmployee, stopBeingEmployee, generatePassword, state, assignableRoles, createAccount, setPassword };

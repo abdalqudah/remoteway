@@ -29,11 +29,13 @@
 
 <div class="grid grid-3">
   <div class="span-2 stack-lg">
+    <% if (typeof isEmployee === 'undefined' || isEmployee || myGoals.length) { %>
     <section class="panel">
       <div class="panel-head"><h2><%= t('performance.my_goals') %></h2><a class="btn btn-ghost btn-sm" href="/app/performance/goals"><%= t('common.view_all') %></a></div>
       <% if (!myGoals.length) { %><div class="empty" style="padding:28px"><span class="empty-icon"><%- icon('target') %></span><p><%= t('performance.no_my_goals') %></p><a class="btn btn-secondary btn-sm mt-2" href="/app/performance/goals/new"><%- icon('plus', 'icon-sm') %><%= t('performance.new_goal') %></a></div><% } else { %>
       <div><% myGoals.forEach(function (g) { %><%- include('../../partials/goal-card', { g: g }) %><% }) %></div><% } %>
     </section>
+    <% } %>
     <% if (cycles.length) { %>
     <section class="panel">
       <div class="panel-head"><h2><%= t('performance.active_cycles') %></h2><a class="btn btn-ghost btn-sm" href="/app/performance/cycles"><%= t('common.view_all') %></a></div>

@@ -165,8 +165,28 @@ router.get('/audit', can('audit.view'), wrap(async (req, res) => {
 }));
 
 // ---------- My account ----------
-const renderAccount = (req, res, extra = {}) => res.page('pages/settings/account', { title: req.t('settings.account'), section: 'account', ...extra });
-router.get('/account', (req, res) => renderAccount(req, res));
+const selfAcc = require('../workforce/account.service');
+const renderAccount = async (req, res, extra = {}) => res.page('pages/settings/account', {
+  title: req.t('settings.account'), section: 'account', selfEmployee: await selfAcc.selfEmployee(req.ctx), canBeEmployee: req.ctx.permissions.has('employees.create'), ...extra,
+});
+// Owners and admins choose whether they also work here as an employee (clock-in, leave, payslips, reviews).
+router.post('/account/employee', wrap(async (req, res) => {
+  try {
+    if (req.body.employee === '1') {
+      await selfAcc.becomeEmployee(req.ctx);
+      flash(req, 'success', req.t('selfemp.now_employee'));
+    } else {
+      const was = await selfAcc.stopBeingEmployee(req.ctx);
+      flash(req, 'success', was ? req.t('selfemp.not_employee', { number: was.employee_number }) : req.t('common.saved'));
+    }
+  } catch (e) {
+    if (!(e instanceof require('../../core/errors').AppError)) throw e; // eslint-disable-line global-require
+    const tr = req.t(`errors.${e.code}`);
+    flash(req, 'error', e.details ? Object.values(e.details).join(' ') : (tr !== `errors.${e.code}` ? tr : e.message));
+  }
+  res.redirect('/app/settings/account');
+}));
+router.get('/account', wrap((req, res) => renderAccount(req, res)));
 router.post('/account/password', form(async (req, res) => {
   const data = validate(z.object({
     current_password: z.string().min(1), new_password: z.string().min(8, 'Password must be at least 8 characters.').max(128),

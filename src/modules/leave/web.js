@@ -10,8 +10,10 @@ router.use(feature('leave'));
 
 const render = async (req, res, extra = {}) => {
   const { ctx } = req;
-  const tab = extra.tab || req.query.tab || 'mine';
   const self = await employees.linkedEmployeeId(ctx);
+  // Someone who is not an employee here (e.g. an owner) has no leave of their own: start on what they manage.
+  const defaultTab = self ? 'mine' : ctx.permissions.has('leave.approve') ? 'approvals' : 'calendar';
+  const tab = extra.tab || req.query.tab || defaultTab;
   const month = /^\d{4}-\d{2}$/.test(req.query.month || '') ? req.query.month : todayIn(req.organization.timezone).slice(0, 7);
   const monthEnd = new Date(Date.UTC(Number(month.slice(0, 4)), Number(month.slice(5, 7)), 0)).toISOString().slice(0, 10);
   const [types, balances, mine, approvals, team, people] = await Promise.all([

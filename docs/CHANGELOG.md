@@ -1,5 +1,13 @@
 # RemoteWay — Changelog
 
+## 1.6.0 — Menus that fit the person, owner as employee or not
+
+- **Sidebar:** each item appears only when it applies: “My interviews” only for people who interview candidates; onboarding only for HR or people with an onboarding plan; “My payslips”, performance and learning for employees; locked (not in plan) modules and “coming soon” items only for people who manage the subscription. Empty groups are hidden.
+- **Settings → My account → “Do you also work here as an employee?”** (owners and admins): “Yes” links you to an employee record (the one with your email, or a new one) so you get clock-in, your own leave, payslips and reviews; “No” removes those from your account and keeps the employee record for HR history.
+- Leave opens on approvals/calendar for people without their own leave; “My goals” is hidden for non-employees.
+- The dashboard card “My recruitment and onboarding” is now “Waiting for you” (training, reviews, policies, onboarding tasks, interviews).
+
+
 ## 1.5.2 — In-app QR scanner
 
 - “Scan the QR code at the office” on the employee's dashboard is now a real button: it opens the phone camera inside RemoteWay (Attendance → Scan), reads the screen's code and records the attendance — no separate scanner app needed. Uses jsQR (Apache-2.0), served from the site itself.
