@@ -1,0 +1,22 @@
+<% if (typeof testResult !== 'undefined' && testResult) { var r = testResult; var e = r.error; %>
+<div class="alert <%= r.ok ? 'alert-success' : 'alert-error' %> mb-6 smtp-result" role="status" id="smtp-result"><%- icon(r.ok ? 'circle-check' : 'circle-alert') %><div class="grow">
+  <% if (r.ok) { %>
+    <div class="alert-title">✓ <%= t('smtp.ok_connection') %></div>
+    <% if (r.action === 'email') { %><div><%= t('smtp.ok_email', { to: r.to }) %></div><% } %>
+    <div class="small text-2 mono" dir="ltr"><%= r.settings.smtpHost %>:<%= r.settings.smtpPort %> · <%= r.settings.security %> · <%= r.settings.authentication === 'none' ? 'no auth' : 'auth' %><%= r.ms ? ' · ' + r.ms + ' ms' : '' %></div>
+  <% } else { %>
+    <div class="alert-title">✗ <%= r.stage === 'send' ? t('smtp.fail_send') : t('smtp.fail_connection') %></div>
+    <div><%= t('smtp.kind_' + e.kind) %></div>
+    <dl class="dl mt-2 small">
+      <% if (e.code) { %><dt><%= t('smtp.error') %></dt><dd><span class="mono" dir="ltr"><%= e.code %></span></dd><% } %>
+      <dt><%= t('smtp.host') %></dt><dd><span class="mono" dir="ltr"><%= r.settings.smtpHost %></span></dd>
+      <dt><%= t('smtp.port') %></dt><dd><span class="mono" dir="ltr"><%= r.settings.smtpPort %> · <%= r.settings.security %></span></dd>
+    </dl>
+    <div class="small mt-2"><strong><%= t('smtp.check') %></strong><ul class="steps-list mt-1"><% (t('smtp.hints_' + e.kind) || '').split('|').forEach(function (h) { if (h) { %><li><%= h %></li><% } }) %></ul></div>
+    <% if (e.detail) { %><details class="mt-2 small"><summary><%= t('smtp.server_said') %></summary><pre class="mono smtp-detail" dir="ltr"><%= e.detail %></pre></details><% } %>
+  <% } %>
+</div></div>
+<% } %>
+<% if (typeof warnings !== 'undefined' && warnings && warnings.length) { %>
+<div class="alert alert-warning mb-6"><%- icon('triangle-alert') %><div class="small"><% warnings.forEach(function (w) { %><div><%= t('smtp.warn_' + w) %></div><% }) %></div></div>
+<% } %>

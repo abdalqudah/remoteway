@@ -1,5 +1,14 @@
 # RemoteWay — Changelog
 
+## 1.9.0 — Flexible SMTP (any mail server)
+
+- **One SMTP form for the platform (Super Admin → Email) and for each company (Settings → Email).** Provider presets only fill suggested values — Custom SMTP, Gmail / Google Workspace, Google SMTP Relay, Microsoft 365, Outlook.com, Hosting / cPanel — and every field stays editable, so any SMTP server works.
+- New fields: **Security** (None / STARTTLS / SSL-TLS), **Authentication** (Username & password, or None / IP authentication / relay), From email, From name and **Reply-To**. With “None” no username or password is sent at all (Google SMTP Relay with an IP allowlist, internal relays).
+- **Test SMTP connection** (connect, TLS, login — sends nothing) and **Send test email** to any address, each showing exactly where it failed with the error type (ENOTFOUND, ECONNREFUSED, ETIMEDOUT, ECONNRESET, EAUTH / 535, 530, 550, TLS, certificate) and what to check. Warnings for common mismatches (587 with SSL, 465 without SSL, password without encryption, From different from the username).
+- **Recent SMTP checks and failures** table on both pages (host, port, security, error code) — passwords are never logged.
+- Passwords stay encrypted and are never returned (`GET /admin/email/settings` and `/app/settings/email/settings` show `********`); saving without retyping the password keeps the stored one.
+- `.env` fallback: `SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURITY`, `SMTP_AUTH`, `SMTP_USERNAME`, `SMTP_PASSWORD`, `SMTP_FROM` (settings saved in the admin take priority). Existing settings keep working unchanged (security is derived from the port as before).
+
 ## 1.8.1 — Emails from test companies
 
 - Test companies now send emails like real ones (the company mailbox when connected, otherwise the platform email — even when company mailboxes are required), with **[TEST]** at the start of every subject.

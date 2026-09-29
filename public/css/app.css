@@ -1206,3 +1206,5 @@ button.portal-choice { cursor: pointer; font-family: inherit; text-align: start;
 .clock-card form .btn { white-space: normal; text-align: center; }
 .dot-warn { display: inline-block; width: 8px; height: 8px; border-radius: 99px; background: var(--warning, #f59e0b); vertical-align: middle; }
 .panel.is-highlight { box-shadow: 0 0 0 2px var(--rw-green, #1acc6c); }
+.smtp-detail { white-space: pre-wrap; word-break: break-word; background: var(--surface-2, #f4f4f5); padding: 8px 10px; border-radius: 8px; margin-top: 6px; font-size: 12px; }
+.smtp-test-row { border-top: 1px dashed var(--border); padding-top: 12px; max-width: 420px; }

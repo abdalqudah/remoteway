@@ -581,6 +581,35 @@
     if (navigator.wakeLock && navigator.wakeLock.request) navigator.wakeLock.request('screen').catch(function () {});
   }
 
+  // SMTP form: a provider is only a preset (host, port, security, authentication) — every field stays editable.
+  document.querySelectorAll('[data-smtp-form]').forEach(function (f) {
+    var presets = {};
+    try { presets = JSON.parse(f.getAttribute('data-presets') || '{}'); } catch (e) { presets = {}; }
+    var el = function (n) { return f.querySelector('[name="' + n + '"]'); };
+    var creds = f.querySelector('[data-smtp-credentials]');
+    var authMode = function () { var r = f.querySelector('[data-smtp-auth]:checked'); return r ? r.value : 'password'; };
+    var syncAuth = function () {
+      var none = authMode() === 'none';
+      if (creds) creds.hidden = none;
+      ['username', 'password'].forEach(function (n) { if (el(n)) el(n).disabled = none; }); // not sent when not used
+    };
+    f.querySelectorAll('[data-smtp-auth]').forEach(function (r) { r.addEventListener('change', syncAuth); });
+    var knownHosts = Object.keys(presets).map(function (k) { return presets[k].host; }).filter(Boolean);
+    var sel = f.querySelector('[data-smtp-provider]');
+    if (sel) sel.addEventListener('change', function () {
+      var p = presets[sel.value]; if (!p) return;
+      var host = el('host');
+      if (p.host) host.value = p.host;
+      else if (knownHosts.indexOf(host.value) >= 0) host.value = ''; // a hosting/custom server: type your own
+      el('port').value = p.port;
+      el('security').value = p.security;
+      var r = f.querySelector('[data-smtp-auth][value="' + p.authentication + '"]'); if (r) r.checked = true;
+      syncAuth();
+      if (!host.value) host.focus();
+    });
+    syncAuth();
+  });
+
   // Settings → Email: fill server and port from a provider button.
   document.querySelectorAll('[data-mail-presets] [data-host]').forEach(function (b) {
     b.addEventListener('click', function () {

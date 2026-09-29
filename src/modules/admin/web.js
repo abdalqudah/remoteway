@@ -184,19 +184,31 @@ const mailer = require('../../core/mailer');
 const secrets = require('../../core/secrets');
 const jobs = require('../../core/jobs');
 
+const smtp = require('../../core/smtp');
+
 async function smtpSetting() {
   const row = await knex('platform_settings').where({ key: 'smtp' }).first();
   return row ? (typeof row.value === 'string' ? JSON.parse(row.value) : row.value) : null;
 }
+/** Saved platform SMTP, normalized (legacy host/port/user/from rows included). Never the password. */
+async function savedSmtp() {
+  const raw = await smtpSetting();
+  if (!raw) return null;
+  return { ...smtp.normalize(raw), password: '', hasPassword: Boolean(raw.password_enc) };
+}
+
 const renderEmail = async (req, res, extra = {}) => {
-  const saved = await smtpSetting();
-  const current = mailer.currentConfig();
-  const [requireCompany, [{ n: connected }], [{ n: companies }]] = await Promise.all([
-    mailer.requireCompanyEmail(),
+  const [saved, requireCompany, [{ n: connected }], [{ n: companies }], events] = await Promise.all([
+    savedSmtp(), mailer.requireCompanyEmail(),
     knex('organization_mail').where({ enabled: true }).count({ n: '*' }),
     knex('organizations').where({ status: 'active' }).count({ n: '*' }),
+    smtp.recentEvents({ scope: 'platform', limit: 10 }),
   ]);
-  res.page('pages/admin/email', { layout: 'admin', title: req.t('admin.email'), saved, source: current ? current.source : null, envSet: Boolean(process.env.SMTP_HOST), requireCompany, connected: Number(connected), companies: Number(companies), ...extra });
+  const current = mailer.currentConfig();
+  res.page('pages/admin/email', {
+    layout: 'admin', title: req.t('admin.email'), saved, source: current ? current.source : null, envSet: Boolean(process.env.SMTP_HOST),
+    requireCompany, connected: Number(connected), companies: Number(companies), events, PRESETS: smtp.PRESETS, ...extra,
+  });
 };
 // Whether companies must connect their own mailbox before RemoteWay emails their people.
 router.post('/email/policy', wrap(async (req, res) => {
@@ -208,46 +220,77 @@ router.post('/email/policy', wrap(async (req, res) => {
   res.redirect('/admin/email');
 }));
 router.get('/email', wrap((req, res) => renderEmail(req, res)));
+// JSON for scripts and the UI: never the password (masked when one is stored).
+router.get('/email/settings', wrap(async (req, res) => {
+  const saved = await savedSmtp();
+  const current = mailer.currentConfig();
+  res.set('Cache-Control', 'no-store').json({
+    success: true,
+    data: { source: current ? current.source : null, settings: saved ? smtp.masked(saved, { hasPassword: saved.hasPassword }) : null, presets: smtp.PRESETS },
+  });
+}));
 
-function smtpInput(body, saved) {
-  const errors = {};
-  const host = String(body.host || '').trim();
-  const port = Number(body.port || 465);
-  const user = String(body.user || '').trim();
-  const from = String(body.from || '').trim();
-  let password = String(body.password || '');
-  if (!password && saved && saved.password_enc) password = secrets.decrypt(saved.password_enc) || '';
-  if (!/^[a-z0-9.-]{3,190}$/i.test(host)) errors.host = 'Enter the mail server name, e.g. mail.your-domain.com';
-  if (![25, 465, 587, 2525].includes(port)) errors.port = 'Use 465 (SSL) or 587 (STARTTLS).';
-  if (from && !/^[^<>]*<?[^@\s<>]+@[^@\s<>]+>?$/.test(from)) errors.from = 'Use: RemoteWay <no-reply@your-domain.com>';
-  if (Object.keys(errors).length) throw E.validation(errors);
-  return { host, port, user, password, from };
+/**
+ * Settings from the form. An empty password keeps the stored one (same username), so saving or testing
+ * without retyping it works; with "None / relay" no username or password is used at all.
+ */
+async function smtpFromForm(body) {
+  const raw = await smtpSetting();
+  const stored = raw ? smtp.normalize({ ...raw, password: raw.password_enc ? secrets.decrypt(raw.password_enc) : '' }) : null;
+  const input = smtp.normalize({
+    provider: body.provider, host: body.host, port: body.port, security: body.security, authentication: body.authentication,
+    username: body.username, password: body.password, fromEmail: body.from_email, fromName: body.from_name, replyTo: body.reply_to,
+  });
+  const keep = !input.password && stored && stored.password && stored.username === input.username;
+  if (keep) input.password = stored.password;
+  const v = smtp.validate(input, { passwordKnown: Boolean(keep) });
+  if (Object.keys(v.errors).length) throw E.validation(v.errors);
+  return { settings: v.settings, warnings: v.warnings };
 }
+const wantsJson = (req) => String(req.get('accept') || '').includes('application/json');
+const testRecipient = (req) => {
+  const to = String(req.body.test_to || req.user.email).trim();
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(to)) throw E.validation({ test_to: 'Enter the email address that should receive the test.' });
+  return to;
+};
 
 router.post('/email', form(async (req, res) => {
   if (req.body.action === 'clear') {
     await knex('platform_settings').where({ key: 'smtp' }).del();
   } else {
-    const cfg = smtpInput(req.body, await smtpSetting());
-    const value = JSON.stringify({ host: cfg.host, port: cfg.port, user: cfg.user, from: cfg.from, password_enc: cfg.password ? secrets.encrypt(cfg.password) : null });
+    const { settings: c, warnings } = await smtpFromForm(req.body);
+    const value = JSON.stringify({
+      provider: c.provider, host: c.host, port: c.port, security: c.security, authentication: c.authentication,
+      user: c.authentication === 'password' ? c.username : '', password_enc: c.authentication === 'password' && c.password ? secrets.encrypt(c.password) : null,
+      from_email: c.fromEmail, from_name: c.fromName, reply_to: c.replyTo,
+      from: c.fromName ? `${c.fromName} <${c.fromEmail}>` : c.fromEmail, // older versions read this
+    });
     await knex('platform_settings').insert({ key: 'smtp', value }).onConflict('key').merge({ value, updated_at: new Date() });
+    if (warnings.length) flash(req, 'warning', warnings.map((w) => req.t(`smtp.warn_${w}`)).join(' '));
   }
   await mailer.refresh();
-  await require('../../core/audit').record(req.ctx, 'platform.email_updated', { entityType: 'platform' });
+  await require('../../core/audit').record(req.ctx, 'platform.email_updated', { entityType: 'platform' }); // eslint-disable-line global-require
   flash(req, 'success', req.t('common.saved'));
   res.redirect('/admin/email');
 }, renderEmail));
 
+// Connection test: connects, starts TLS, logs in — sends nothing.
+router.post('/email/test-connection', form(async (req, res) => {
+  const { settings: c, warnings } = await smtpFromForm(req.body);
+  const r = await smtp.verifyConnection(c);
+  await smtp.logEvent({ scope: 'platform', action: 'test_connection', settings: c, ok: r.ok, error: r.error, ms: r.ms, userId: req.user.id });
+  if (wantsJson(req)) return res.json({ success: r.ok, data: { ok: r.ok, ms: r.ms, error: r.error || null, warnings } });
+  return renderEmail(req, res, { old: req.body, testResult: { action: 'connection', ...r, settings: smtp.masked(c) }, warnings });
+}, renderEmail));
+
+// Test email: validate → connect → send; shows exactly where it failed.
 router.post('/email/test', form(async (req, res) => {
-  const cfg = smtpInput(req.body, await smtpSetting());
-  const to = String(req.body.to || req.user.email).trim();
-  try {
-    await mailer.sendTest(cfg, to);
-    flash(req, 'success', req.t('admin.email_test_ok', { to }));
-  } catch (err) {
-    flash(req, 'error', req.t('admin.email_test_failed', { error: String(err.message).slice(0, 300) }));
-  }
-  res.redirect('/admin/email');
+  const { settings: c, warnings } = await smtpFromForm(req.body);
+  const to = testRecipient(req);
+  const r = await mailer.sendTest(c, to, { locale: req.locale });
+  await smtp.logEvent({ scope: 'platform', action: 'test_email', settings: c, ok: r.ok, error: r.error, userId: req.user.id });
+  if (wantsJson(req)) return res.json({ success: r.ok, data: { ok: r.ok, stage: r.stage, to, error: r.error || null, warnings } });
+  return renderEmail(req, res, { old: req.body, testResult: { action: 'email', to, ...r, settings: smtp.masked(c) }, warnings });
 }, renderEmail));
 
 // ---------- AI provider ----------

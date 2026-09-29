@@ -1,9 +1,11 @@
-// Email via SMTP (cPanel mail works: SMTP_HOST=mail.your-domain.com, port 465, a mailbox user/password).
-// Disabled unless SMTP_HOST is set — the UI then tells admins to share links manually.
+// Email via any SMTP server (see core/smtp.js: presets, security modes, relay without authentication).
+// Platform email: Super Admin → Email (encrypted in platform_settings.smtp), falling back to .env.
+// Disabled when neither is set — the UI then tells admins to share links manually.
 const knex = require('../db/knex');
 const config = require('../config');
 const { translator } = require('./i18n');
 const secrets = require('./secrets');
+const smtp = require('./smtp');
 
 // SMTP settings come from Super Admin → Email (stored encrypted in the database) and fall back to .env.
 let transport;
@@ -16,7 +18,7 @@ async function refresh() {
   try {
     const row = await knex('platform_settings').where({ key: 'smtp' }).first();
     const value = row ? (typeof row.value === 'string' ? JSON.parse(row.value) : row.value) : null;
-    dbSettings = value && value.host ? { ...value, password: value.password_enc ? secrets.decrypt(value.password_enc) : null } : null;
+    dbSettings = value && value.host ? smtp.normalize({ ...value, password: value.password_enc ? secrets.decrypt(value.password_enc) : '' }) : null;
   } catch {
     dbSettings = null; // table not there yet (before migrations)
   }
@@ -24,26 +26,24 @@ async function refresh() {
   return dbSettings;
 }
 
+/** Platform SMTP in use: admin panel settings first, then .env (SMTP_HOST, SMTP_PORT, SMTP_SECURITY, …). */
 function currentConfig() {
   if (Date.now() - loadedAt > 60_000) { loadedAt = Date.now(); refresh().catch(() => {}); }
   if (dbSettings && dbSettings.host) return { source: 'admin', ...dbSettings };
-  if (process.env.SMTP_HOST) {
-    return { source: 'env', host: process.env.SMTP_HOST, port: Number(process.env.SMTP_PORT || 465), user: process.env.SMTP_USER, password: process.env.SMTP_PASSWORD, from: process.env.MAIL_FROM };
-  }
-  return null;
+  const env = smtp.fromEnv();
+  return env ? { source: 'env', ...env } : null;
 }
+
+const settingsKey = (c) => JSON.stringify([c.host, c.port, c.security, c.authentication, c.username, c.password]);
 
 function getTransport() {
   const cfg = currentConfig();
-  const k = cfg ? JSON.stringify([cfg.host, cfg.port, cfg.user, cfg.password]) : null;
+  const k = cfg ? settingsKey(cfg) : null;
   if (k === transportKey && transport !== undefined) return transport;
   transportKey = k;
   if (!cfg) { transport = null; return transport; }
   try {
-    // eslint-disable-next-line global-require
-    const nodemailer = require('nodemailer');
-    const port = Number(cfg.port || 465);
-    transport = nodemailer.createTransport({ host: cfg.host, port, secure: port === 465, auth: cfg.user ? { user: cfg.user, pass: cfg.password } : undefined });
+    transport = smtp.createSmtpTransporter(cfg);
   } catch (e) {
     console.error('[mail] nodemailer unavailable:', e.message);
     transport = null;
@@ -73,13 +73,13 @@ async function requireCompanyEmail() {
 }
 const forgetPolicy = () => { policy = { at: 0, require: null }; };
 
-function transportFor(cfg) {
-  // eslint-disable-next-line global-require
-  const nodemailer = require('nodemailer');
-  const port = Number(cfg.port || 465);
-  return nodemailer.createTransport({
-    host: cfg.host, port, secure: port === 465, requireTLS: port === 587, auth: cfg.user ? { user: cfg.user, pass: cfg.password } : undefined,
-    connectionTimeout: 15_000, greetingTimeout: 15_000, socketTimeout: 30_000,
+const transportFor = (cfg) => smtp.createSmtpTransporter(cfg);
+
+/** Company mailbox row → SMTP settings (rows from before 1.8.2 have no security/auth columns set). */
+function orgRowSettings(r) {
+  return smtp.normalize({
+    provider: r.provider, host: r.host, port: r.port, security: r.security || undefined, authentication: r.auth_mode || undefined,
+    username: r.username, password: r.password_enc ? secrets.decrypt(r.password_enc) : '', fromEmail: r.from_email, fromName: r.from_name, replyTo: r.reply_to,
   });
 }
 
@@ -91,9 +91,9 @@ async function orgMail(organizationId) {
   let cfg = null;
   try {
     const r = await knex('organization_mail').where({ organization_id: organizationId, enabled: true }).first();
-    if (r) cfg = { host: r.host, port: r.port, user: r.username, password: r.password_enc ? secrets.decrypt(r.password_enc) : null, fromEmail: r.from_email, fromName: r.from_name };
+    if (r) cfg = orgRowSettings(r);
   } catch { cfg = null; }
-  const key = cfg ? JSON.stringify([cfg.host, cfg.port, cfg.user, cfg.password]) : null;
+  const key = cfg ? settingsKey(cfg) : null;
   const prev = orgCache.get(organizationId);
   orgCache.set(organizationId, { at: Date.now(), cfg, key, transport: prev && prev.key === key ? prev.transport : null });
   return cfg;
@@ -110,7 +110,11 @@ async function canSendFor(organizationId) {
   return platformEnabled();
 }
 const enabled = () => platformEnabled();
-const from = () => { const cfg = currentConfig() || {}; return cfg.from || `RemoteWay <${cfg.user || 'no-reply@localhost'}>`; };
+const from = () => {
+  const cfg = currentConfig();
+  if (cfg && cfg.fromEmail) return smtp.fromHeader(cfg, 'RemoteWay');
+  return `RemoteWay <${(cfg && cfg.username) || 'no-reply@localhost'}>`;
+};
 
 function escapeHtml(s) {
   return String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -178,25 +182,34 @@ async function send({ to, subject, html, attachments, fromName, organizationId }
   if (config.isTest) {
     const via = company ? 'company' : blocked ? 'blocked' : 'platform';
     const fromAddr = company ? `${quoteName(company.fromName || fromName || 'RemoteWay')} <${company.fromEmail}>` : (fromName ? fromWithName(fromName) : undefined);
-    testOutbox.push({ to, subject, html, attachments, from: fromAddr, via, organizationId });
+    const replyTo = company ? company.replyTo || undefined : ((currentConfig() || {}).replyTo || undefined);
+    testOutbox.push({ to, subject, html, attachments, from: fromAddr, replyTo, via, organizationId });
     return false;
   }
   if (company) {
     const hit = orgCache.get(organizationId);
     if (!hit.transport) hit.transport = transportFor(company);
     try {
-      await hit.transport.sendMail({ from: `${quoteName(company.fromName || fromName || 'RemoteWay')} <${company.fromEmail}>`, to, subject, html, attachments });
+      await hit.transport.sendMail({ from: `${quoteName(company.fromName || fromName || 'RemoteWay')} <${company.fromEmail}>`, replyTo: company.replyTo || undefined, to, subject, html, attachments });
       return true;
     } catch (e) {
-      // Recorded for the company's settings page; the job queue retries notification emails.
-      await knex('organization_mail').where({ organization_id: organizationId }).update({ last_error: String(e.message).slice(0, 500), last_error_at: new Date() }).catch(() => {});
+      // Recorded for the company's settings page and the SMTP log; the job queue retries notification emails.
+      const ex = smtp.explain(e, company);
+      await knex('organization_mail').where({ organization_id: organizationId }).update({ last_error: `${ex.message} ${ex.code ? `(${ex.code})` : ''}`.trim().slice(0, 500), last_error_at: new Date() }).catch(() => {});
+      await smtp.logEvent({ scope: 'company', organizationId, action: 'send', settings: company, ok: false, error: ex });
       throw e;
     }
   }
   if (blocked) return false;
   const t = getTransport();
   if (!t) return false;
-  await t.sendMail({ from: fromWithName(fromName), to, subject, html, attachments });
+  const cfg = currentConfig();
+  try {
+    await t.sendMail({ from: fromWithName(fromName), replyTo: cfg && cfg.replyTo ? cfg.replyTo : undefined, to, subject, html, attachments });
+  } catch (e) {
+    await smtp.logEvent({ scope: 'platform', action: 'send', settings: cfg || {}, ok: false, error: smtp.explain(e, cfg || {}) });
+    throw e;
+  }
   return true;
 }
 
@@ -228,13 +241,16 @@ async function sendNotificationEmail(userId, type, data, link, organizationId) {
   });
 }
 
-/** Sends a test message with the given (unsaved) settings; throws with the SMTP error on failure. */
-async function sendTest(settings, to) {
-  // eslint-disable-next-line global-require
-  const nodemailer = require('nodemailer');
-  const port = Number(settings.port || 465);
-  const t = nodemailer.createTransport({ host: settings.host, port, secure: port === 465, requireTLS: port === 587, auth: settings.user ? { user: settings.user, pass: settings.password } : undefined, connectionTimeout: 15_000, greetingTimeout: 15_000 });
-  await t.sendMail({ from: settings.from || `RemoteWay <${settings.user}>`, to, subject: settings.subject || 'RemoteWay — test email', html: layout({ locale: settings.locale || 'en', title: settings.title || 'Email is working', body: settings.body || 'This is a test message from RemoteWay. Your SMTP settings are correct.' }) });
+/**
+ * Checks the connection and sends a test message with the given (possibly unsaved) settings.
+ * Returns smtp.sendTestEmail's result: { ok, stage: 'connect'|'send'|'sent', error? }.
+ */
+async function sendTest(settings, to, content = {}) {
+  return smtp.sendTestEmail(settings, to, {
+    fallbackName: content.fallbackName || 'RemoteWay',
+    subject: content.subject || 'RemoteWay — test email',
+    html: layout({ locale: content.locale || 'en', title: content.title || 'Email is working', body: content.body || 'This is a test message from RemoteWay. Your SMTP settings are correct.' }),
+  });
 }
 
 async function sendNotificationEmails(organizationId, userIds, type, data, link) {

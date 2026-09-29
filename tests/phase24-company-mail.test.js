@@ -90,8 +90,10 @@ describe('Phase 24 — company email', () => {
   });
 
   test('a failed test leaves the mailbox off; only admins manage it; disconnect', async () => {
-    const r = await owner.form('/app/settings/email', { host: '127.0.0.1', port: '587', from_email: 'hr@taawoni.test' });
-    assert.equal(r.status, 302);
+    const r = await owner.form('/app/settings/email', { host: '127.0.0.1', port: '1', security: 'none', from_email: 'hr@taawoni.test' });
+    assert.equal(r.status, 200, 'the failure is shown on the page with its reason');
+    assert.match(r.text, /smtp-result/);
+    assert.match(r.text, /ECONNREFUSED/);
     const row = await h.knex('organization_mail').where({ organization_id: co.organizationId }).first();
     assert.equal(Boolean(row.enabled), false);
     assert.ok(row.last_error);

@@ -1,0 +1,58 @@
+<%
+  // Shared SMTP form (platform email and company mailboxes).
+  // Locals: base (form URL), cfg (saved normalized settings or null), PRESETS, testTo, showClear, allowSave (default true)
+  var o = old || {}; var posted = o._csrf !== undefined && o.host !== undefined;
+  var c = cfg || {};
+  var val = function (k, d) { return posted ? (o[k] !== undefined ? o[k] : '') : (c[k] !== undefined && c[k] !== null && c[k] !== '' ? c[k] : (d !== undefined ? d : '')); };
+  var provider = val('provider', 'custom'); var auth = posted ? (o.authentication || 'password') : (c.authentication || 'password');
+  var sec = posted ? o.security : (c.security || 'starttls');
+  var providers = ['custom', 'gmail', 'google_relay', 'microsoft365', 'outlook', 'cpanel'];
+%>
+<form method="post" action="<%= base %>" class="panel smtp-form" novalidate autocomplete="off" data-smtp-form data-presets="<%= JSON.stringify(PRESETS) %>">
+  <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+  <div class="panel-head"><div><h2><%- icon('mail') %> <%= t('smtp.server') %></h2><div class="panel-sub"><%= t('smtp.server_sub') %></div></div></div>
+  <div class="panel-body stack">
+    <% if (typeof formError !== 'undefined' && formError && formError.code === 'VALIDATION_FAILED') { %><div class="alert alert-error"><%- icon('circle-alert') %><div class="small"><%= t('smtp.fix_fields') %></div></div><% } %>
+    <div class="grid grid-2">
+      <div class="field"><label class="label" for="f-provider"><%= t('smtp.provider') %></label>
+        <select class="select" id="f-provider" name="provider" data-smtp-provider>
+          <% providers.forEach(function (p) { %><option value="<%= p %>"<%= provider === p ? ' selected' : '' %>><%= t('smtp.p_' + p) %></option><% }) %>
+        </select><span class="help" data-smtp-hint><%= t('smtp.h_' + provider) %></span></div>
+      <div class="field"><div class="label"><%= t('smtp.authentication') %></div>
+        <label class="check mt-2"><input type="radio" name="authentication" value="password"<%= auth !== 'none' ? ' checked' : '' %> data-smtp-auth> <span><%= t('smtp.auth_password') %></span></label>
+        <label class="check mt-2"><input type="radio" name="authentication" value="none"<%= auth === 'none' ? ' checked' : '' %> data-smtp-auth> <span><%= t('smtp.auth_none') %></span></label>
+        <span class="help"><%= t('smtp.auth_help') %></span></div>
+    </div>
+    <div class="grid grid-3">
+      <%- include('field', { name: 'host', label: t('smtp.host'), value: val('host'), placeholder: 'smtp.example.com', attrs: 'dir="ltr" autocomplete="off"', required: true }) %>
+      <%- include('field', { name: 'port', label: t('smtp.port'), type: 'number', value: val('port', 587), attrs: 'dir="ltr" min="1" max="65535"', help: '25 · 465 · 587', required: false }) %>
+      <div class="field"><label class="label" for="f-security"><%= t('smtp.security') %></label>
+        <select class="select" id="f-security" name="security">
+          <% [['none', 'smtp.sec_none'], ['starttls', 'smtp.sec_starttls'], ['ssl', 'smtp.sec_ssl']].forEach(function (x) { %><option value="<%= x[0] %>"<%= sec === x[0] ? ' selected' : '' %>><%= t(x[1]) %></option><% }) %>
+        </select><span class="help"><%= t('smtp.security_help') %></span></div>
+    </div>
+    <div class="grid grid-2" data-smtp-credentials<%= auth === 'none' ? ' hidden' : '' %>>
+      <%- include('field', { name: 'username', label: t('smtp.username'), value: val('username'), placeholder: 'user@example.com', attrs: 'dir="ltr" autocomplete="off"', required: false }) %>
+      <%- include('field', { name: 'password', label: t('smtp.password'), type: 'password', attrs: 'dir="ltr" autocomplete="new-password"', placeholder: c.hasPassword ? '********' : '', help: c.hasPassword ? t('smtp.password_saved') : t('smtp.password_help'), required: false }) %>
+    </div>
+    <div class="grid grid-3">
+      <%- include('field', { name: 'from_email', label: t('smtp.from_email'), type: 'email', value: val('fromEmail', val('from_email')), placeholder: 'no-reply@example.com', attrs: 'dir="ltr"', required: true }) %>
+      <%- include('field', { name: 'from_name', label: t('smtp.from_name'), value: val('fromName', val('from_name')), required: false }) %>
+      <%- include('field', { name: 'reply_to', label: t('smtp.reply_to'), type: 'email', value: val('replyTo', val('reply_to')), placeholder: 'support@example.com', attrs: 'dir="ltr"', help: t('smtp.reply_to_help'), required: false }) %>
+    </div>
+    <p class="small muted"><%= t('smtp.from_note') %></p>
+    <div class="smtp-test-row">
+      <%- include('field', { name: 'test_to', label: t('smtp.test_to'), type: 'email', value: posted && o.test_to ? o.test_to : testTo, attrs: 'dir="ltr"', required: false }) %>
+    </div>
+  </div>
+  <div class="panel-foot row wrap between">
+    <div class="row wrap">
+      <button class="btn btn-secondary" type="submit" formaction="<%= base %>/test-connection"><%- icon('plug') %><%= t('smtp.test_connection') %></button>
+      <button class="btn btn-secondary" type="submit" formaction="<%= base %>/test"><%- icon('send') %><%= t('smtp.send_test') %></button>
+    </div>
+    <div class="row wrap">
+      <% if (typeof showClear !== 'undefined' && showClear) { %><button class="btn btn-danger-ghost" type="submit" name="action" value="clear" formnovalidate><%= t('smtp.clear') %></button><% } %>
+      <button class="btn btn-dark" type="submit"><%= t('smtp.save') %></button>
+    </div>
+  </div>
+</form>

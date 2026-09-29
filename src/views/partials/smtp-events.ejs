@@ -1,0 +1,13 @@
+<% if (typeof events !== 'undefined' && events && events.length) { %>
+<section class="panel mt-6">
+  <div class="panel-head"><div><h2><%- icon('history') %> <%= t('smtp.log_title') %></h2><div class="panel-sub"><%= t('smtp.log_sub') %></div></div></div>
+  <div class="table-wrap"><table class="table">
+    <thead><tr><th><%= t('smtp.log_when') %></th><th><%= t('smtp.log_action') %></th><th><%= t('smtp.host') %></th><th><%= t('smtp.security') %></th><th><%= t('smtp.log_result') %></th></tr></thead>
+    <tbody><% events.forEach(function (ev) { %>
+      <tr><td class="small"><%= fmt.date(ev.created_at, { dateStyle: 'medium', timeStyle: 'short' }) %></td><td class="small"><%= t('smtp.act_' + ev.action) %></td>
+        <td class="mono small" dir="ltr"><%= ev.host %>:<%= ev.port %></td><td class="small" dir="ltr"><%= ev.security %> / <%= ev.auth_mode %></td>
+        <td class="small"><% if (ev.success) { %><span class="badge badge-success">✓</span><% } else { %><span class="badge badge-danger"><%= ev.error_code || ev.error_kind || '✗' %></span><div class="muted"><%= ev.error_kind ? t('smtp.kind_' + ev.error_kind) : '' %></div><% } %></td></tr>
+    <% }) %></tbody>
+  </table></div>
+</section>
+<% } %>
