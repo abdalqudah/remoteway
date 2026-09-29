@@ -6,6 +6,8 @@ const structure = require('./structure.service');
 const orgs = require('../organizations/organization.service');
 const ent = require('../billing/entitlements.service');
 const documents = require('../documents/document.service');
+const { AppError } = require('../../core/errors');
+const { translateMessage } = require('../../core/i18n');
 
 const router = express.Router();
 
@@ -96,7 +98,42 @@ router.get('/employees/:id', canAny('employees.view', 'team.view'), wrap(async (
     extra.training = await learn.forEmployee(req.ctx, employee.id);
     extra.certificates = extra.training ? await learn.certificatesForEmployee(req.ctx, employee.id) : [];
   }
+  if (tab === 'overview' && req.ctx.permissions.has('users.manage')) {
+    extra.account = await accounts.state(req.ctx, employee);
+    if (!extra.account.linked) extra.accountRoles = await accounts.assignableRoles(req.ctx.organizationId);
+    // A password is shown once, right after it was set.
+    const shown = req.session.newPassword;
+    if (shown && shown.employeeId === employee.id && Date.now() - shown.at < 10 * 60_000) extra.newPassword = shown;
+    delete req.session.newPassword;
+    const org = await require('../../db/knex')('organizations').where({ id: req.ctx.organizationId }).first('slug'); // eslint-disable-line global-require
+    extra.signInUrl = `${res.locals.baseUrl}/${org.slug ? `${org.slug}` : 'login'}`;
+  }
   res.page('pages/employees/show', { title: employee.full_name, employee, tab, ...extra });
+}));
+
+// ---------- Sign-in account (temporary password set by an admin) ----------
+const accounts = require('./account.service');
+const accountFail = (req, res, e) => {
+  if (!(e instanceof AppError)) throw e;
+  const msg = e.details ? Object.values(e.details).map((m) => translateMessage(req.locale, m)).join(' ') : (req.t(`errors.${e.code}`) !== `errors.${e.code}` ? req.t(`errors.${e.code}`) : translateMessage(req.locale, e.message));
+  flash(req, 'error', msg);
+  return res.redirect(`/app/employees/${req.params.id}#account`);
+};
+router.post('/employees/:id/account', can('users.manage'), wrap(async (req, res) => {
+  try {
+    const r = await accounts.createAccount(req.ctx, req.params.id, req.body);
+    req.session.newPassword = { employeeId: Number(req.params.id), email: r.email, password: r.password, at: Date.now() };
+    flash(req, 'success', req.t('empacc.created'));
+    return res.redirect(`/app/employees/${req.params.id}#account`);
+  } catch (e) { return accountFail(req, res, e); }
+}));
+router.post('/employees/:id/password', can('users.manage'), wrap(async (req, res) => {
+  try {
+    const r = await accounts.setPassword(req.ctx, req.params.id, req.body);
+    req.session.newPassword = { employeeId: Number(req.params.id), email: r.email, password: r.password, at: Date.now() };
+    flash(req, 'success', req.t('empacc.password_set'));
+    return res.redirect(`/app/employees/${req.params.id}#account`);
+  } catch (e) { return accountFail(req, res, e); }
 }));
 
 const renderEdit = async (req, res, extra = {}) => {

@@ -303,6 +303,22 @@ router.post('/invite/:token', loginLimiter, form(async (req, res) => {
   return res.redirect('/app');
 }, renderInvite));
 
+// ---------- First sign-in with a temporary password: choose your own ----------
+const renderNewPassword = (req, res, extra = {}) => res.page('pages/auth/new-password', { layout: 'auth', title: req.t('empacc.choose_title'), ...extra });
+router.get('/security/new-password', requireAuth, (req, res) => (req.user.must_change_password ? renderNewPassword(req, res) : res.redirect('/app')));
+router.post('/security/new-password', requireAuth, loginLimiter, form(async (req, res) => {
+  if (!req.user.must_change_password) return res.redirect('/app');
+  const d = validate(z.object({ new_password: password(), new_password_confirm: z.string() }), req.body);
+  if (d.new_password !== d.new_password_confirm) throw E.validation({ new_password_confirm: 'The two passwords do not match.' });
+  const user = await authService.findUser(req.user.id);
+  if (await require('bcryptjs').compare(d.new_password, user.password_hash)) throw E.validation({ new_password: 'Choose a new password, not the temporary one.' }); // eslint-disable-line global-require
+  await require('../../db/knex')('users').where({ id: user.id }).update({ password_hash: await authService.hashPassword(d.new_password), password_changed_at: new Date(), must_change_password: false }); // eslint-disable-line global-require
+  await security.endSessions(user.id, req.sessionID);
+  await require('../../core/audit').record({ userId: user.id, ip: req.ip }, 'auth.password_changed', { entityType: 'user', entityId: user.id, newValues: { first_sign_in: true } }); // eslint-disable-line global-require
+  flash(req, 'success', req.t('empacc.chosen'));
+  return finishLogin(req, res, user);
+}, renderNewPassword));
+
 // ---------- Sign in with Google ----------
 const google = require('./google.service');
 router.get('/auth/google', loginLimiter, wrap(async (req, res) => {

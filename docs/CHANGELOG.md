@@ -1,5 +1,13 @@
 # RemoteWay — Changelog
 
+## 1.5.0 — Employee sign-in with a temporary password
+
+- **Employee page → Sign-in account** (needs “Manage users”): create the employee's account with an email, a role and a temporary password — typed by the admin or generated (easy to read, e.g. `atyc-4823-qDWe`). The details to hand over (sign-in link, email, password) are shown once. No email set-up needed.
+- **First sign-in:** the employee must choose their own password before opening anything else (can be turned off per account). The temporary password stops working.
+- **Forgot password:** the admin can set a new temporary password from the same box; the employee is signed out of other devices.
+- Safety: only for accounts that live entirely inside the company (not the owner, not yourself, not someone who also uses the account elsewhere); an email that already has a RemoteWay account must be invited instead.
+
+
 ## 1.4.2 — QR screen address fix
 
 - The QR screen link and the code inside the QR now use the address the site was opened on (e.g. remoteway.net) when APP_URL is missing or still set to localhost — before, “Open screen” could go to localhost:3000 and phones could not open the scanned link.

@@ -38,6 +38,13 @@ router.get('/site-media/:id/:sha', require('./helpers').wrap(async (req, res, ne
   res.set({ 'X-Content-Type-Options': 'nosniff', 'Cache-Control': 'public, max-age=31536000, immutable' });
   return res.sendFile(f.path, { headers: { 'Content-Type': f.mime } });
 }));
+// A temporary password set by a company admin must be replaced before anything else.
+const TEMP_PASSWORD_OK = /^\/(security\/new-password|logout|preferences\/|site-media\/|robots\.txt|favicon)/;
+router.use((req, res, next) => {
+  if (!req.user || !req.user.must_change_password || req.apiToken || TEMP_PASSWORD_OK.test(req.path)) return next();
+  if (req.method === 'GET' && !req.session.returnTo && /^\/(app|me|q)\b/.test(req.path)) req.session.returnTo = req.originalUrl;
+  return res.redirect('/security/new-password');
+});
 router.use('/', require('../modules/site/web'));
 router.use('/', require('../modules/auth/web'));
 router.use('/sso', require('../modules/sso/web').router);

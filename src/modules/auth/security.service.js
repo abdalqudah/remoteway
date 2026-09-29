@@ -102,7 +102,7 @@ async function resetPassword(token, password, confirm, { ip } = {}) {
   if (password !== confirm) throw E.validation({ password_confirm: 'The passwords do not match.' });
   await knex.transaction(async (trx) => {
     // The link arrived by email, so the address is confirmed too.
-    await trx('users').where({ id: r.user_id }).update({ password_hash: await bcrypt.hash(password, config.bcryptRounds), password_changed_at: new Date() });
+    await trx('users').where({ id: r.user_id }).update({ password_hash: await bcrypt.hash(password, config.bcryptRounds), password_changed_at: new Date(), must_change_password: false });
     await trx('users').where({ id: r.user_id }).whereNull('email_verified_at').update({ email_verified_at: new Date() });
     await trx('password_resets').where({ user_id: r.user_id }).whereNull('used_at').update({ used_at: new Date() });
   });

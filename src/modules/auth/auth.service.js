@@ -49,7 +49,7 @@ async function authenticate({ email, password }, ctx = {}) {
 async function changePassword(ctx, { currentPassword, newPassword }) {
   const user = await knex('users').where({ id: ctx.userId }).first();
   if (!(await bcrypt.compare(currentPassword, user.password_hash))) throw E.validation({ current_password: 'Current password is incorrect.' });
-  await knex('users').where({ id: user.id }).update({ password_hash: await hashPassword(newPassword), password_changed_at: new Date() });
+  await knex('users').where({ id: user.id }).update({ password_hash: await hashPassword(newPassword), password_changed_at: new Date(), must_change_password: false });
   // Sign out every other device that used the old password.
   await require('./security.service').endSessions(user.id, ctx.sessionId); // eslint-disable-line global-require
   await audit.record(ctx, 'auth.password_changed', { entityType: 'user', entityId: user.id });

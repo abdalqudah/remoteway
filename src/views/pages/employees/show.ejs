@@ -52,6 +52,54 @@
     </dl></div>
   </section>
 </div>
+<% if (typeof account !== 'undefined' && account) { %>
+<section class="panel mt-6" id="account">
+  <div class="panel-head"><div><h2><%- icon('key-round') %> <%= t('empacc.title') %></h2><div class="panel-sub"><%= t('empacc.sub') %></div></div>
+    <% if (account.linked) { %><span class="badge <%= account.user.must_change_password ? 'badge-warning' : 'badge-success' %>"><%= account.user.must_change_password ? t('empacc.waiting_change') : t('empacc.active') %></span><% } else { %><span class="badge"><%= t('empacc.none') %></span><% } %></div>
+  <div class="panel-body stack">
+    <% if (typeof newPassword !== 'undefined' && newPassword) { %>
+    <div class="alert alert-success" role="status"><%- icon('circle-check') %><div class="grow">
+      <div class="alert-title"><%= t('empacc.handover') %></div>
+      <dl class="dl mt-2">
+        <dt><%= t('empacc.signin_at') %></dt><dd class="mono" dir="ltr"><%= signInUrl %></dd>
+        <dt><%= t('fields.email') %></dt><dd class="mono" dir="ltr"><%= newPassword.email %></dd>
+        <dt><%= t('fields.password') %></dt><dd><code class="mono temp-password" dir="ltr"><%= newPassword.password %></code></dd>
+      </dl>
+      <div class="small text-2 mt-2"><%= t('empacc.shown_once') %></div>
+    </div></div>
+    <% } %>
+    <% if (!account.linked) { %>
+    <form method="post" action="/app/employees/<%= e.id %>/account" class="stack" novalidate autocomplete="off">
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+      <div class="grid grid-2">
+        <%- include('../../partials/field', { name: 'email', label: t('empacc.login_email'), type: 'email', value: e.email || '', attrs: 'dir="ltr" autocomplete="off"', required: true, help: t('empacc.login_email_help') }) %>
+        <%- include('../../partials/field', { name: 'role_id', label: t('empacc.role'), type: 'select', value: (accountRoles.find(function (r) { return r.key === 'employee'; }) || {}).id, options: accountRoles.map(function (r) { return { value: r.id, label: roleName(r) }; }) }) %>
+        <%- include('../../partials/field', { name: 'password', label: t('empacc.temp_password'), type: 'text', attrs: 'dir="ltr" autocomplete="off" minlength="8"', help: t('empacc.temp_password_help') }) %>
+      </div>
+      <label class="check"><input type="checkbox" name="must_change" value="1" checked><span><%= t('empacc.must_change') %></span></label>
+      <div><button class="btn btn-dark" type="submit"><%- icon('user-plus') %><%= t('empacc.create') %></button></div>
+    </form>
+    <% } else { %>
+    <dl class="dl">
+      <dt><%= t('fields.email') %></dt><dd class="mono" dir="ltr"><%= account.user.email %></dd>
+      <dt><%= t('empacc.last_login') %></dt><dd><%= account.user.last_login_at ? fmt.date(account.user.last_login_at, { dateStyle: 'medium', timeStyle: 'short' }) : t('empacc.never') %></dd>
+    </dl>
+    <% if (account.canSetPassword) { %>
+    <form method="post" action="/app/employees/<%= e.id %>/password" class="stack" novalidate autocomplete="off" data-confirm="<%= t('empacc.reset_confirm') %>">
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+      <div class="grid grid-2">
+        <%- include('../../partials/field', { name: 'password', label: t('empacc.new_temp_password'), type: 'text', attrs: 'dir="ltr" autocomplete="off" minlength="8"', help: t('empacc.temp_password_help') }) %>
+      </div>
+      <label class="check"><input type="checkbox" name="must_change" value="1" checked><span><%= t('empacc.must_change') %></span></label>
+      <div><button class="btn btn-secondary" type="submit"><%- icon('key-round') %><%= t('empacc.set_password') %></button></div>
+    </form>
+    <% } else { %>
+    <p class="small muted"><%= t('empacc.blocked_' + account.blocked) %></p>
+    <% } %>
+    <% } %>
+  </div>
+</section>
+<% } %>
 <% } else if (tab === 'employment') { %>
 <section class="panel">
   <div class="panel-head"><h2><%= t('employees.section_employment') %></h2></div>
