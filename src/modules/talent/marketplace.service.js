@@ -7,6 +7,7 @@ const audit = require('../../core/audit');
 const storage = require('../../core/storage');
 const config = require('../../config');
 const mailer = require('../../core/mailer');
+const messages = require('../../core/messages');
 const { E, AppError } = require('../../core/errors');
 const ent = require('../billing/entitlements.service');
 const recruitment = require('../recruitment/recruitment.service');
@@ -203,11 +204,11 @@ async function invite(ctx, profileId, { job_id: jobId, message }) {
   if (await mailer.canSendFor(ctx.organizationId)) {
     const org = await knex('organizations').where({ id: ctx.organizationId }).first('name');
     const u = await knex('users').where({ id: p.user_id }).first('email', 'locale');
-    const ar = u.locale === 'ar';
+    const m = await messages.compose('talent_invite', u.locale, { org: org.name, job: job ? job.title : '', message: message ? str(message, 600) : '', app: 'RemoteWay' });
     await mailer.send({
       to: u.email,
-      subject: ar ? `دعوة من ${org.name} على RemoteWay` : `${org.name} invited you on RemoteWay`,
-      html: mailer.layout({ locale: u.locale, title: ar ? `${org.name} مهتمة بملفك` : `${org.name} is interested in your profile`, body: `${job ? `${job.title}. ` : ''}${message ? str(message, 600) : ''}`, cta: ar ? 'عرض الدعوة' : 'View invitation', href: `${config.appUrl}/me` }),
+      subject: m.subject,
+      html: mailer.layout({ locale: u.locale, title: m.title, body: m.body, cta: m.cta, href: `${config.appUrl}/me` }),
       fromName: org.name, organizationId: ctx.organizationId,
     }).catch(() => {});
   }

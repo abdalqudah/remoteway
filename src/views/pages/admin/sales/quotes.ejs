@@ -1,0 +1,31 @@
+<div class="page-head">
+  <div><h1><%= t('admin.quotes') %></h1><p><%= t('sales.quotes_sub') %></p></div>
+  <div class="page-actions">
+    <% if (['owner', 'admin'].indexOf(platformRole) !== -1) { %><a class="btn btn-secondary" href="/admin/quotes/settings"><%- icon('building-2') %><%= t('sales.settings_title') %></a><% } %>
+    <a class="btn btn-dark" href="/admin/quotes/new"><%- icon('plus') %><%= t('sales.new_quote') %></a>
+  </div>
+</div>
+<% if (!profile.legal_name_ar && !profile.legal_name_en) { %>
+<div class="alert alert-warning mb-6"><%- icon('triangle-alert') %><div class="grow small"><%= t('sales.profile_missing') %> <% if (['owner', 'admin'].indexOf(platformRole) !== -1) { %><a class="link" href="/admin/quotes/settings"><%= t('sales.settings_title') %></a><% } %></div></div>
+<% } %>
+<div class="summary-strip mb-6">
+  <span class="chip"><strong><%= summary.open %></strong> <%= t('sales.sum_open') %> · <span class="num"><%= fmt.money(summary.openTotal, profile.currency) %></span></span>
+  <span class="chip"><strong><%= summary.won %></strong> <%= t('sales.sum_won') %> · <span class="num"><%= fmt.money(summary.wonTotal, profile.currency) %></span></span>
+  <span class="chip"><strong><%= summary.drafts %></strong> <%= t('sales.sum_drafts') %></span>
+</div>
+<nav class="tabs mb-4"><a href="/admin/quotes" class="<%= !state ? 'active' : '' %>"><%= t('common.all') %></a><% STATES.forEach(function (s) { %><a href="/admin/quotes?state=<%= s %>" class="<%= state === s ? 'active' : '' %>"><%= t('sales.state_' + s) %></a><% }) %></nav>
+<section class="panel">
+  <% if (!rows.length) { %><div class="panel-body"><div class="empty"><%- icon('file-signature') %><p><%= t('sales.no_quotes') %></p><a class="btn btn-dark" href="/admin/quotes/new"><%- icon('plus') %><%= t('sales.new_quote') %></a></div></div><% } else { %>
+  <div class="table-wrap"><table class="table">
+    <thead><tr><th><%= t('sales.number') %></th><th><%= t('sales.customer') %></th><th><%= t('sales.date') %></th><th><%= t('sales.valid_until') %></th><th class="text-end"><%= t('billing.total') %></th><th><%= t('fields.status') %></th></tr></thead>
+    <tbody><% rows.forEach(function (q) { %><tr>
+      <td><a class="link mono" href="/admin/quotes/<%= q.id %>" dir="ltr"><%= q.number %></a></td>
+      <td><div style="font-weight:600"><%= q.customer_name %></div><% if (q.customer_company) { %><div class="small muted"><%= q.customer_company %></div><% } %></td>
+      <td class="nowrap"><%= fmt.date(q.issue_date) %></td>
+      <td class="nowrap"><%= fmt.date(q.valid_until) %></td>
+      <td class="text-end num"><%= fmt.money(q.total, q.currency) %></td>
+      <td><%- include('../../../partials/sales/state', { s: q.state }) %></td>
+    </tr><% }) %></tbody>
+  </table></div>
+  <% } %>
+</section>

@@ -8,7 +8,7 @@ const ent = require('../billing/entitlements.service');
 const { E } = require('../../core/errors');
 
 // Top-level paths the platform uses (and some it may use later): a company link can never take them.
-const RESERVED = new Set(`app admin me api login logout signup join jobs talent talent-media careers verify verify-email calendar
+const RESERVED = new Set(`quote invoice file app admin me api login logout signup join jobs talent talent-media careers verify verify-email calendar
   payments webhooks demo pricing privacy terms security forgot reset invite invitations sso org-brand brand css js img fonts
   icons.svg robots.txt sitemap.xml preferences organizations healthz q kiosk help support docs blog about contact status
   www mail ftp remoteway static assets public download uploads files auth account settings dashboard home new`.split(/\s+/).filter(Boolean));

@@ -1,0 +1,26 @@
+<div class="page-head"><div><h1><%= t('admin.files') %></h1><p><%= t('sales.files_sub') %></p></div></div>
+<div class="grid grid-3 align-start">
+<section class="panel span-2">
+  <% if (!files.length) { %><div class="panel-body"><div class="empty"><%- icon('folder') %><p><%= t('sales.no_files') %></p></div></div><% } else { %>
+  <div class="table-wrap"><table class="table">
+    <thead><tr><th><%= t('sales.file') %></th><th class="text-end"><%= t('sales.size') %></th><th class="text-end"><%= t('sales.opens') %></th><th></th></tr></thead>
+    <tbody><% files.forEach(function (f) { %><tr<%= f.active ? '' : ' class="muted"' %>>
+      <td><a class="link" href="/admin/files/<%= f.id %>" style="font-weight:600"><%= f.title %></a><% if (!f.active) { %> <span class="badge"><%= t('sales.inactive') %></span><% } %><div class="small muted" dir="ltr" style="text-align:start"><%= f.filename %></div></td>
+      <td class="text-end num nowrap"><%= (f.size / 1048576).toFixed(1) %> MB</td>
+      <td class="text-end num"><%= f.open_count %></td>
+      <td class="text-end"><a class="btn btn-secondary btn-sm" href="/admin/files/<%= f.id %>#send"><%- icon('send', 'icon-sm') %><%= t('sales.send') %></a></td>
+    </tr><% }) %></tbody>
+  </table></div>
+  <% } %>
+</section>
+<form method="post" action="/admin/files" enctype="multipart/form-data" class="panel" novalidate>
+  <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+  <div class="panel-head"><div><h2><%- icon('upload') %> <%= t('sales.add_file') %></h2><div class="panel-sub"><%= t('sales.add_file_sub') %></div></div></div>
+  <div class="panel-body stack">
+    <div class="field"><label class="label" for="f-file"><%= t('sales.file') %><span class="req">*</span></label><input class="input" id="f-file" name="file" type="file" accept=".pdf,.png,.jpg,.jpeg,.docx,.pptx,.xlsx"><% if (typeof errors !== 'undefined' && errors && errors.file) { %><span class="field-error"><%= errors.file %></span><% } else { %><span class="help"><%= t('sales.file_types') %></span><% } %></div>
+    <%- include('../../../partials/field', { name: 'title', label: t('sales.file_title'), placeholder: t('sales.file_title_ph') }) %>
+    <%- include('../../../partials/field', { name: 'description', label: t('sales.file_desc') }) %>
+  </div>
+  <div class="panel-foot row-end"><button class="btn btn-dark" type="submit" data-busy><%- icon('upload') %><%= t('sales.upload') %></button></div>
+</form>
+</div>

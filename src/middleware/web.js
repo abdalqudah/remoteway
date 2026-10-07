@@ -103,7 +103,7 @@ function flash(req, type, message) {
 // (verifyCsrfAfterUpload). Multipart sent anywhere else is refused so it can never skip the check.
 const MULTIPART_ROUTES = [/^\/app\/documents(\/\d+\/versions)?\/?$/, /^\/app\/employees\/import\/?$/, /^\/api\/v1\/documents\/?$/, /^\/admin\/system\/update\/?$/,
   /^\/app\/recruitment\/candidates(\/\d+)?\/?$/, /^\/careers\/[a-z0-9-]+\/jobs\/[a-z0-9-]+\/apply\/?$/,
-  /^\/app\/learning\/manage\/courses\/\d+\/lessons(\/\d+)?\/?$/, /^\/app\/settings\/branding\/logo\/?$/, /^\/me\/profile\/(photo|cv)\/?$/, /^\/admin\/backups\/import\/?$/, /^\/admin\/site\/media\/?$/];
+  /^\/app\/learning\/manage\/courses\/\d+\/lessons(\/\d+)?\/?$/, /^\/app\/settings\/branding\/logo\/?$/, /^\/me\/profile\/(photo|cv)\/?$/, /^\/admin\/backups\/import\/?$/, /^\/admin\/site\/media\/?$/, /^\/admin\/files\/?$/];
 
 function tokenValid(req, sent) {
   return Boolean(req.session?.csrf && sent && safeEqual(sent, req.session.csrf));

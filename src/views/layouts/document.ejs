@@ -1,0 +1,15 @@
+<!doctype html>
+<html lang="<%= locale %>" dir="<%= dir %>" data-v="<%= assetV %>" data-theme="light">
+<head><%- include('../partials/head') %></head>
+<body class="doc-page">
+<main class="doc-sheet">
+  <div class="doc-actions no-print">
+    <a class="btn btn-ghost btn-sm" href="?lang=<%= locale === 'ar' ? 'en' : 'ar' %>"><%- icon('languages', 'icon-sm') %><%= locale === 'ar' ? 'English' : 'العربية' %></a>
+    <button class="btn btn-secondary btn-sm" type="button" data-print><%- icon('download', 'icon-sm') %><%= t('sales.print_pdf') %></button>
+  </div>
+  <% if (flash && flash.length) { %><div class="no-print mb-4"><%- include('../partials/flash') %></div><% } %>
+  <%- body %>
+</main>
+<script src="/js/app.js?v=<%= assetV %>" defer></script>
+</body>
+</html>

@@ -1,0 +1,45 @@
+<%
+  var o = typeof old !== 'undefined' && old && Object.keys(old).length ? old : p;
+  var f = function (name, label, extra) { extra = extra || {}; return Object.assign({ name: name, label: label, value: o[name] !== undefined ? o[name] : '', old: {}, errors: typeof errors !== 'undefined' ? errors : {} }, extra); };
+%>
+<div class="page-head"><div><div class="eyebrow"><a href="/admin/quotes"><%= t('admin.quotes') %></a><%- icon('chevron-right', 'icon-sm flip-rtl') %></div><h1><%= t('sales.settings_title') %></h1><p><%= t('sales.settings_sub') %></p></div></div>
+<form method="post" action="/admin/quotes/settings" class="stack-lg" novalidate>
+  <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+  <section class="panel">
+    <div class="panel-head"><h2><%- icon('building-2') %> <%= t('sales.company') %></h2></div>
+    <div class="panel-body grid grid-2">
+      <%- include('../../../partials/field', f('legal_name_ar', t('sales.legal_name_ar'), { placeholder: 'شركة …' })) %>
+      <%- include('../../../partials/field', f('legal_name_en', t('sales.legal_name_en'), { attrs: 'dir="ltr"' })) %>
+      <%- include('../../../partials/field', f('vat_number', t('sales.vat_no'), { attrs: 'dir="ltr" inputmode="numeric" maxlength="15"', help: t('sales.vat_help') })) %>
+      <%- include('../../../partials/field', f('cr_number', t('sales.cr_no'), { attrs: 'dir="ltr"' })) %>
+      <%- include('../../../partials/field', f('address_ar', t('sales.address_ar'))) %>
+      <%- include('../../../partials/field', f('address_en', t('sales.address_en'), { attrs: 'dir="ltr"' })) %>
+      <%- include('../../../partials/field', f('phone', t('fields.phone'), { attrs: 'dir="ltr"' })) %>
+      <%- include('../../../partials/field', f('email', t('fields.email'), { type: 'email', attrs: 'dir="ltr"' })) %>
+      <%- include('../../../partials/field', f('website', t('sales.website'), { attrs: 'dir="ltr"' })) %>
+    </div>
+  </section>
+  <section class="panel">
+    <div class="panel-head"><h2><%- icon('banknote') %> <%= t('sales.bank_details') %></h2></div>
+    <div class="panel-body grid grid-3">
+      <%- include('../../../partials/field', f('bank_name', t('sales.bank_name'))) %>
+      <%- include('../../../partials/field', f('account_name', t('sales.account_name'))) %>
+      <%- include('../../../partials/field', f('iban', 'IBAN', { attrs: 'dir="ltr"' })) %>
+    </div>
+  </section>
+  <section class="panel">
+    <div class="panel-head"><h2><%- icon('file-signature') %> <%= t('sales.defaults') %></h2></div>
+    <div class="panel-body stack">
+      <div class="grid grid-3">
+        <%- include('../../../partials/field', f('valid_days', t('sales.valid_days'), { type: 'number', attrs: 'min="1" max="365"' })) %>
+        <%- include('../../../partials/field', f('tax_rate', t('sales.vat_rate'), { attrs: 'dir="ltr" inputmode="decimal"' })) %>
+        <%- include('../../../partials/field', f('currency', t('sales.currency'), { attrs: 'dir="ltr" maxlength="3"' })) %>
+      </div>
+      <div class="grid grid-2">
+        <div class="field"><label class="label" for="f-terms_ar"><%= t('sales.terms_ar') %></label><textarea class="textarea" id="f-terms_ar" name="terms_ar" rows="6" dir="rtl"><%= o.terms_ar || '' %></textarea></div>
+        <div class="field"><label class="label" for="f-terms_en"><%= t('sales.terms_en') %></label><textarea class="textarea" id="f-terms_en" name="terms_en" rows="6" dir="ltr"><%= o.terms_en || '' %></textarea></div>
+      </div>
+    </div>
+    <div class="panel-foot row-end"><button class="btn btn-dark" type="submit"><%- icon('check') %><%= t('common.save') %></button></div>
+  </section>
+</form>

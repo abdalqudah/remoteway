@@ -1,0 +1,36 @@
+<% var _q = q; var _c = _q.currency; %>
+<article class="doc">
+  <header class="doc-head">
+    <%- include('seller', { p: p }) %>
+    <div class="doc-meta">
+      <h1 class="doc-title"><%= t('sales.quotation') %></h1>
+      <div class="mono" dir="ltr"><%= _q.number %></div>
+      <dl class="doc-dl small mt-2">
+        <dt><%= t('sales.date') %></dt><dd><%= fmt.date(_q.issue_date) %></dd>
+        <dt><%= t('sales.valid_until') %></dt><dd><%= fmt.date(_q.valid_until) %></dd>
+      </dl>
+    </div>
+  </header>
+  <section class="doc-to">
+    <div class="label"><%= t('sales.prepared_for') %></div>
+    <div style="font-weight:700"><%= _q.customer_name %></div>
+    <% if (_q.customer_company) { %><div><%= _q.customer_company %></div><% } %>
+    <% if (_q.customer_address) { %><div class="muted small"><%= _q.customer_address %></div><% } %>
+    <% if (_q.customer_vat) { %><div class="muted small"><%= t('sales.vat_no') %> <%= _q.customer_vat %></div><% } %>
+    <% var _cc = [_q.customer_email, _q.customer_phone].filter(Boolean); if (_cc.length) { %><div class="muted small" dir="ltr" style="text-align:start"><%= _cc.join(' · ') %></div><% } %>
+  </section>
+  <div class="table-wrap"><table class="table doc-table">
+    <thead><tr><th style="width:36px">#</th><th><%= t('fields.description') %></th><th class="text-end"><%= t('billing.quantity') %></th><th class="text-end"><%= t('billing.unit_price') %></th><th class="text-end"><%= t('billing.amount') %></th></tr></thead>
+    <tbody><% _q.items.forEach(function (it, n) { %><tr><td class="muted num"><%= n + 1 %></td><td class="doc-desc"><%= it.description %></td><td class="text-end num"><%= fmt.number(Number(it.quantity)) %></td><td class="text-end num"><%= fmt.money(it.unit_price, _c) %></td><td class="text-end num"><%= fmt.money(it.amount, _c) %></td></tr><% }) %></tbody>
+  </table></div>
+  <dl class="dl doc-totals">
+    <dt><%= t('billing.subtotal') %></dt><dd class="num text-end"><%= fmt.money(_q.subtotal, _c) %></dd>
+    <% if (Number(_q.discount) > 0) { %><dt><%= t('sales.discount') %></dt><dd class="num text-end">− <%= fmt.money(_q.discount, _c) %></dd><% } %>
+    <dt><%= t('billing.vat_line', { rate: Number(_q.tax_rate) }) %></dt><dd class="num text-end"><%= fmt.money(_q.tax, _c) %></dd>
+    <dt class="doc-total-label"><%= t('billing.total') %></dt><dd class="num text-end doc-total"><%= fmt.money(_q.total, _c) %></dd>
+  </dl>
+  <% if (_q.notes) { %><section class="doc-block"><div class="label"><%= t('sales.notes') %></div><div class="doc-text"><%= _q.notes %></div></section><% } %>
+  <% if (_q.terms) { %><section class="doc-block"><div class="label"><%= t('sales.terms') %></div><div class="doc-text small"><%= _q.terms %></div></section><% } %>
+  <% if (p.iban) { %><section class="doc-block small"><div class="label"><%= t('sales.bank_details') %></div>
+    <div><%= p.bank_name || '' %><%= p.account_name ? ' · ' + p.account_name : '' %></div><div class="mono" dir="ltr" style="text-align:start"><%= p.iban.replace(/(.{4})/g, '$1 ').trim() %></div></section><% } %>
+</article>

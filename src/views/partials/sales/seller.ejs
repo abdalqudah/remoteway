@@ -1,0 +1,16 @@
+<%
+  var _ar = locale === 'ar';
+  var _name = (_ar ? p.legal_name_ar || p.legal_name_en : p.legal_name_en || p.legal_name_ar) || 'RemoteWay';
+  var _addr = _ar ? p.address_ar || p.address_en : p.address_en || p.address_ar;
+  var _ids = []; if (p.vat_number) _ids.push(t('sales.vat_no') + ' ' + p.vat_number); if (p.cr_number) _ids.push(t('sales.cr_no') + ' ' + p.cr_number);
+  var _contact = [p.phone, p.email, p.website].filter(Boolean);
+%>
+<div class="doc-seller">
+  <span class="invoice-logo"><%- include('../logo', { platform: true }) %></span>
+  <div class="small mt-3">
+    <div style="font-weight:700"><%= _name %></div>
+    <% if (_addr) { %><div class="muted"><%= _addr %></div><% } %>
+    <% if (_ids.length) { %><div class="muted"><%= _ids.join(' · ') %></div><% } %>
+    <% if (_contact.length) { %><div class="muted" dir="ltr" style="text-align:start"><%= _contact.join(' · ') %></div><% } %>
+  </div>
+</div>

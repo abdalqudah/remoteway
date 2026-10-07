@@ -1,0 +1,37 @@
+<%
+  // base: '/admin/quotes/12'; doc, drafts, waLink; contactId (files sent to a CRM contact)
+  var _cid = typeof contactId !== 'undefined' && contactId ? contactId : (doc.contactId || '');
+  var _qs = function (lc) { return '?send_lang=' + lc + (typeof contactId !== 'undefined' && contactId ? '&contact=' + contactId : '') + '#send'; };
+  var _hidden = '<input type="hidden" name="_csrf" value="' + csrfToken + '"><input type="hidden" name="locale" value="' + doc.locale + '">' + (_cid ? '<input type="hidden" name="contact_id" value="' + Number(_cid) + '">' : '');
+%>
+<section class="panel" id="send">
+  <div class="panel-head row between wrap">
+    <div><h2><%- icon('send') %> <%= t('sales.send_title') %></h2><div class="panel-sub"><%= t('sales.send_sub') %></div></div>
+    <div class="row-sm"><span class="small muted"><%= t('sales.message_lang') %></span><% ['ar', 'en'].forEach(function (lc) { %><a class="btn btn-sm <%= doc.locale === lc ? 'btn-dark' : 'btn-ghost' %>" href="<%= _qs(lc) %>"><%= lc === 'ar' ? 'العربية' : 'English' %></a><% }) %></div>
+  </div>
+  <div class="panel-body stack">
+    <div class="field">
+      <span class="label"><%= t('sales.customer_link') %></span>
+      <div class="copy-row"><code class="mono grow truncate" data-copy-source dir="ltr"><%= doc.link %></code><button class="btn btn-secondary btn-sm" type="button" data-copy><%- icon('copy', 'icon-sm') %><%= t('sales.copy') %></button><a class="btn btn-ghost btn-sm" href="<%= doc.link %>" target="_blank" rel="noopener"><%- icon('external-link', 'icon-sm') %><%= t('sales.open') %></a></div>
+    </div>
+
+    <form method="post" action="<%= base %>/whatsapp" target="_blank" class="send-box" novalidate>
+      <%- _hidden %>
+      <div class="send-box-head"><span class="wa-dot"><%- icon('message-circle', 'icon-sm') %></span><strong><%= t('sales.by_whatsapp') %></strong></div>
+      <div class="field"><label class="label" for="wa-phone"><%= t('sales.mobile') %></label><input class="input" id="wa-phone" name="phone" dir="ltr" value="<%= doc.phone || '' %>" placeholder="05xxxxxxxx / +9665xxxxxxxx" autocomplete="off"></div>
+      <div class="field"><label class="label" for="wa-text"><%= t('sales.message') %></label><textarea class="textarea" id="wa-text" name="text" rows="7" dir="<%= doc.locale === 'ar' ? 'rtl' : 'ltr' %>"><%= drafts.whatsapp %></textarea></div>
+      <div class="row between wrap"><span class="small muted"><%= t('sales.wa_help') %></span><button class="btn btn-wa" type="submit"><%- icon('message-circle') %><%= t('sales.open_whatsapp') %></button></div>
+    </form>
+
+    <form method="post" action="<%= base %>/send-email" class="send-box" novalidate>
+      <%- _hidden %>
+      <div class="send-box-head"><span class="mail-dot"><%- icon('mail', 'icon-sm') %></span><strong><%= t('sales.by_email') %></strong></div>
+      <div class="field"><label class="label" for="em-to"><%= t('sales.email_to') %></label><input class="input" id="em-to" name="to" type="email" dir="ltr" value="<%= doc.email || '' %>" placeholder="name@company.com"></div>
+      <div class="field"><label class="label" for="em-subject"><%= t('msgs.f_subject') %></label><input class="input" id="em-subject" name="subject" value="<%= drafts.email.subject %>"></div>
+      <div class="field"><label class="label" for="em-body"><%= t('sales.message') %></label><textarea class="textarea" id="em-body" name="body" rows="7" dir="<%= doc.locale === 'ar' ? 'rtl' : 'ltr' %>"><%= drafts.email.body %></textarea><span class="help"><%= t('sales.email_help', { cta: drafts.email.cta }) %></span></div>
+      <% if (doc.type === 'file') { %><label class="check"><input type="checkbox" name="attach" value="1"<%= doc.file.size <= 10 * 1024 * 1024 ? ' checked' : ' disabled' %>><span><%= t('sales.attach_file') %></span></label><% } %>
+      <div class="row-end"><button class="btn btn-dark" type="submit" data-busy><%- icon('send') %><%= t('sales.send_email') %></button></div>
+    </form>
+    <p class="small muted"><%= t('sales.edit_texts_hint') %> <a class="link" href="/admin/messages/<%= doc.type %>_whatsapp"><%= t('msgs.title') %></a></p>
+  </div>
+</section>

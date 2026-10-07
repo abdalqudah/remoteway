@@ -1,0 +1,13 @@
+<section class="panel">
+  <div class="panel-head"><h2><%- icon('history') %> <%= t('sales.history') %></h2></div>
+  <% if (!sends.length) { %><div class="panel-body small muted"><%= t('sales.no_sends') %></div><% } else { %>
+  <ul class="timeline-list">
+    <% sends.forEach(function (s) { %><li>
+      <div class="row-sm wrap"><span class="badge"><%- icon(s.channel === 'whatsapp' ? 'message-circle' : 'mail', 'icon-sm') %> <%= s.channel === 'whatsapp' ? t('sales.by_whatsapp') : t('sales.by_email') %></span>
+        <span class="st st-<%= s.status === 'failed' ? 'rejected' : 'approved' %>"><%= t('sales.send_' + s.status) %></span></div>
+      <div class="small mt-1"><span dir="ltr"><%= s.recipient %></span> · <span class="muted"><%= s.user_name || '' %> · <%= fmt.date(s.created_at, { dateStyle: 'medium', timeStyle: 'short' }) %></span></div>
+      <% if (s.error) { %><div class="tiny text-danger mt-1" dir="ltr"><%= s.error %></div><% } %>
+    </li><% }) %>
+  </ul>
+  <% } %>
+</section>

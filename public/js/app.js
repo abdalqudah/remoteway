@@ -172,6 +172,55 @@
     });
   });
 
+  /* ---------- Quotation form: line items and live totals (the server recalculates) ---------- */
+  $$('[data-quote-form]').forEach(function (f) {
+    var body = $('[data-items] tbody', f);
+    var num = function (v) { var n = parseFloat(String(v || '').replace(/,/g, '')); return isFinite(n) ? n : 0; };
+    var show = function (n) { return n.toLocaleString(document.documentElement.lang === 'ar' ? 'ar-SA-u-nu-latn' : 'en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); };
+    var recalc = function () {
+      var sub = 0;
+      $$('[data-item]', body).forEach(function (r) {
+        var amt = Math.round(num($('[name=item_quantity]', r).value) * num($('[name=item_price]', r).value) * 100) / 100;
+        sub += amt; $('[data-line-amount]', r).textContent = show(amt);
+      });
+      var disc = Math.min(sub, num(($('[data-discount]', f) || {}).value));
+      var tax = Math.round((sub - disc) * num(($('[data-tax-rate]', f) || {}).value)) / 100;
+      $('[data-subtotal]', f).textContent = show(sub);
+      $('[data-tax]', f).textContent = show(tax);
+      $('[data-total]', f).textContent = show(sub - disc + tax);
+    };
+    var wire = function (r) {
+      $$('input, textarea', r).forEach(function (el) { el.addEventListener('input', recalc); });
+      $('[data-remove-item]', r).addEventListener('click', function () {
+        if ($$('[data-item]', body).length > 1) r.remove(); else $$('input, textarea', r).forEach(function (el) { el.value = el.name === 'item_quantity' ? '1' : ''; });
+        recalc();
+      });
+    };
+    $$('[data-item]', body).forEach(wire);
+    $('[data-add-item]', f).addEventListener('click', function () {
+      var rows = $$('[data-item]', body); var r = rows[rows.length - 1].cloneNode(true);
+      $$('input, textarea', r).forEach(function (el) { el.value = el.name === 'item_quantity' ? '1' : ''; });
+      body.appendChild(r); wire(r); recalc(); $('textarea', r).focus();
+    });
+    $$('[data-discount], [data-tax-rate]', f).forEach(function (el) { el.addEventListener('input', recalc); });
+    recalc();
+  });
+
+  /* ---------- Message texts: insert a placeholder where the cursor was ---------- */
+  $$('[data-msg-form]').forEach(function (f) {
+    var last = null;
+    $$('input:not([type=hidden]), textarea', f).forEach(function (el) { el.addEventListener('focus', function () { last = el; }); });
+    $$('[data-insert]').forEach(function (b) {
+      b.addEventListener('click', function () {
+        var el = last || $('textarea', f);
+        if (!el) return;
+        var v = b.getAttribute('data-insert'); var s = el.selectionStart || el.value.length; var e = el.selectionEnd || s;
+        el.value = el.value.slice(0, s) + v + el.value.slice(e);
+        el.focus(); el.setSelectionRange(s + v.length, s + v.length);
+      });
+    });
+  });
+
   $$('[data-print]').forEach(function (b) { b.addEventListener('click', function () { window.print(); }); });
 
   /* ---------- Sign-up wizard ---------- */

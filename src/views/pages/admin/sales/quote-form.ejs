@@ -1,0 +1,85 @@
+<%
+  var o = typeof old !== 'undefined' && old && Object.keys(old).length ? old : null;
+  var errs = typeof errors !== 'undefined' && errors ? errors : {};
+  var src = o || (q ? q : {});
+  var c = contact;
+  var val = function (k, d) { if (o) return o[k] || ''; if (q) return q[k] !== null && q[k] !== undefined ? q[k] : ''; return d !== undefined ? d : ''; };
+  var lc = val('locale', c && c.locale === 'en' ? 'en' : 'ar');
+  var today = new Date().toISOString().slice(0, 10);
+  var addDays = function (n) { var d = new Date(); d.setUTCDate(d.getUTCDate() + n); return d.toISOString().slice(0, 10); };
+  var items;
+  if (o) { var ds = [].concat(o.item_description || []), qs = [].concat(o.item_quantity || []), ps = [].concat(o.item_price || []); items = ds.map(function (d, i) { return { description: d, quantity: qs[i], unit_price: ps[i] }; }); }
+  else if (q) items = q.items.map(function (i) { return { description: i.description, quantity: Number(i.quantity), unit_price: Number(i.unit_price) }; });
+  else items = [{ description: '', quantity: 1, unit_price: '' }];
+  var field = function (name, label, opts) { opts = opts || {}; return { name: name, label: label, value: opts.value !== undefined ? opts.value : val(name, opts.d), required: opts.required, type: opts.type, attrs: opts.attrs, placeholder: opts.placeholder, help: opts.help, old: {}, errors: errs, options: opts.options }; };
+%>
+<div class="page-head">
+  <div><div class="eyebrow"><a href="/admin/quotes"><%= t('admin.quotes') %></a><%- icon('chevron-right', 'icon-sm flip-rtl') %></div><h1><%= q ? t('sales.edit_quote') + ' ' + q.number : t('sales.new_quote') %></h1></div>
+</div>
+<form method="post" action="<%= q ? '/admin/quotes/' + q.id : '/admin/quotes' %>" class="stack-lg" data-quote-form novalidate>
+  <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+  <input type="hidden" name="contact_id" value="<%= o ? (o.contact_id || '') : (c ? c.id : '') %>">
+  <section class="panel">
+    <div class="panel-head"><div><h2><%- icon('user') %> <%= t('sales.customer') %></h2><% if (c) { %><div class="panel-sub"><%= t('sales.from_crm') %> <a class="link" href="/admin/crm/contacts/<%= c.id %>"><%= c.name %></a></div><% } %></div></div>
+    <div class="panel-body stack">
+      <div class="grid grid-2">
+        <%- include('../../../partials/field', field('customer_name', t('sales.customer_name'), { d: c ? c.name : '', required: true })) %>
+        <%- include('../../../partials/field', field('customer_company', t('sales.customer_company'), { d: c ? c.company_name || '' : '' })) %>
+        <%- include('../../../partials/field', field('customer_email', t('fields.email'), { d: c ? c.email || '' : '', type: 'email', attrs: 'dir="ltr"' })) %>
+        <%- include('../../../partials/field', field('customer_phone', t('sales.mobile'), { d: c ? c.phone || '' : '', attrs: 'dir="ltr"', placeholder: '05xxxxxxxx' })) %>
+        <%- include('../../../partials/field', field('customer_vat', t('sales.customer_vat'), { attrs: 'dir="ltr"' })) %>
+        <%- include('../../../partials/field', field('customer_address', t('sales.customer_address'))) %>
+      </div>
+    </div>
+  </section>
+  <section class="panel">
+    <div class="panel-head"><h2><%- icon('file-signature') %> <%= t('sales.details') %></h2></div>
+    <div class="panel-body grid grid-4">
+      <%- include('../../../partials/field', field('locale', t('sales.doc_lang'), { value: lc, type: 'select', options: [{ value: 'ar', label: 'العربية' }, { value: 'en', label: 'English' }] })) %>
+      <%- include('../../../partials/field', field('issue_date', t('sales.date'), { value: o ? o.issue_date : (q ? fmt.dateInput(q.issue_date) : today), type: 'date' })) %>
+      <%- include('../../../partials/field', field('valid_until', t('sales.valid_until'), { value: o ? o.valid_until : (q ? fmt.dateInput(q.valid_until) : addDays(Number(p.valid_days) || 30)), type: 'date' })) %>
+      <%- include('../../../partials/field', field('currency', t('sales.currency'), { d: p.currency, attrs: 'dir="ltr" maxlength="3"' })) %>
+    </div>
+  </section>
+  <section class="panel">
+    <div class="panel-head"><h2><%- icon('list-checks') %> <%= t('sales.items') %></h2></div>
+    <% if (errs.items) { %><div class="panel-body"><div class="alert alert-error"><%- icon('circle-alert') %><div class="grow small"><%= errs.items %></div></div></div><% } %>
+    <div class="table-wrap"><table class="table items-table" data-items>
+      <thead><tr><th><%= t('fields.description') %></th><th style="width:110px"><%= t('billing.quantity') %></th><th style="width:150px"><%= t('billing.unit_price') %></th><th style="width:150px" class="text-end"><%= t('billing.amount') %></th><th style="width:44px"></th></tr></thead>
+      <tbody>
+        <% items.forEach(function (it) { %><tr data-item>
+          <td><textarea class="textarea" name="item_description" rows="1" aria-label="<%= t('fields.description') %>"><%= it.description %></textarea></td>
+          <td><input class="input num" name="item_quantity" inputmode="decimal" value="<%= it.quantity %>" dir="ltr" aria-label="<%= t('billing.quantity') %>"></td>
+          <td><input class="input num" name="item_price" inputmode="decimal" value="<%= it.unit_price %>" dir="ltr" aria-label="<%= t('billing.unit_price') %>"></td>
+          <td class="text-end num" data-line-amount>—</td>
+          <td><button class="btn btn-ghost btn-icon btn-sm" type="button" data-remove-item aria-label="<%= t('common.delete') %>"><%- icon('trash-2', 'icon-sm') %></button></td>
+        </tr><% }) %>
+      </tbody>
+    </table></div>
+    <div class="panel-body row between wrap" style="align-items:flex-start">
+      <button class="btn btn-secondary btn-sm" type="button" data-add-item><%- icon('plus', 'icon-sm') %><%= t('sales.add_line') %></button>
+      <div class="stack" style="min-width:280px">
+        <div class="grid grid-2">
+          <%- include('../../../partials/field', field('discount', t('sales.discount'), { d: '0', attrs: 'dir="ltr" inputmode="decimal" data-discount' })) %>
+          <%- include('../../../partials/field', field('tax_rate', t('sales.vat_rate'), { d: String(p.tax_rate), attrs: 'dir="ltr" inputmode="decimal" data-tax-rate' })) %>
+        </div>
+        <dl class="dl doc-totals" style="max-width:none">
+          <dt><%= t('billing.subtotal') %></dt><dd class="num text-end" data-subtotal>—</dd>
+          <dt><%= t('sales.vat') %></dt><dd class="num text-end" data-tax>—</dd>
+          <dt class="doc-total-label"><%= t('billing.total') %></dt><dd class="num text-end doc-total" data-total>—</dd>
+        </dl>
+      </div>
+    </div>
+  </section>
+  <section class="panel">
+    <div class="panel-head"><h2><%- icon('notebook-pen') %> <%= t('sales.notes_terms') %></h2></div>
+    <div class="panel-body grid grid-2">
+      <div class="field"><label class="label" for="f-notes"><%= t('sales.notes') %></label><textarea class="textarea" id="f-notes" name="notes" rows="5" placeholder="<%= t('sales.notes_ph') %>"><%= val('notes') %></textarea></div>
+      <div class="field"><label class="label" for="f-terms"><%= t('sales.terms') %></label><textarea class="textarea" id="f-terms" name="terms" rows="5"><%= o ? o.terms || '' : (q ? q.terms || '' : (lc === 'en' ? p.terms_en || p.terms_ar : p.terms_ar || p.terms_en) || '') %></textarea><span class="help"><%= t('sales.terms_help') %></span></div>
+    </div>
+    <div class="panel-foot row between wrap">
+      <a class="btn btn-ghost" href="<%= q ? '/admin/quotes/' + q.id : '/admin/quotes' %>"><%= t('common.cancel') %></a>
+      <button class="btn btn-dark" type="submit" data-busy><%- icon('check') %><%= t('sales.save_quote') %></button>
+    </div>
+  </section>
+</form>

@@ -55,6 +55,7 @@ router.use('/verify', require('../modules/learning/verify.web'));
 router.use('/calendar', require('../modules/integrations/web').feedRouter);
 router.use('/payments', require('../modules/payments/web'));
 router.use('/', require('../modules/crm/public.web')); // demo requests + WhatsApp webhook (internal CRM)
+router.use('/', require('../modules/sales/public.web')); // customer links: /q quotation, /i invoice, /f file
 router.use('/admin', requireAuth, requireSuperAdmin, require('../modules/admin/web'));
 router.use('/app', requireAuth, emailGate, resolveTenant, require('./app'));
 router.use('/kiosk', require('../modules/attendance/qr.web').display); // office screen showing the attendance QR

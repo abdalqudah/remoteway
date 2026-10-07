@@ -9,6 +9,9 @@
     <nav class="nav">
       <a href="/admin" class="<%= adminSection === 'overview' ? 'active' : '' %>"><%- icon('layout-dashboard') %><%= t('admin.overview') %></a>
       <% if (_can('crm')) { %><a href="/admin/crm" class="<%= adminSection === 'crm' ? 'active' : '' %>"><%- icon('users') %><%= t('crm.title') %></a><% } %>
+      <% if (_can('quotes')) { %><a href="/admin/quotes" class="<%= adminSection === 'quotes' ? 'active' : '' %>"><%- icon('file-signature') %><%= t('admin.quotes') %></a><% } %>
+      <% if (_can('files')) { %><a href="/admin/files" class="<%= adminSection === 'files' ? 'active' : '' %>"><%- icon('folder') %><%= t('admin.files') %></a><% } %>
+      <% if (_can('messages')) { %><a href="/admin/messages" class="<%= adminSection === 'messages' ? 'active' : '' %>"><%- icon('message-square') %><%= t('admin.messages') %></a><% } %>
       <% if (_can('organizations')) { %><a href="/admin/organizations" class="<%= adminSection === 'organizations' ? 'active' : '' %>"><%- icon('building-2') %><%= t('admin.organizations') %></a><% } %>
       <% if (_can('users')) { %><a href="/admin/users" class="<%= adminSection === 'users' ? 'active' : '' %>"><%- icon('user') %><%= t('admin.users') %></a><% } %>
       <% if (_can('plans')) { %><a href="/admin/plans" class="<%= adminSection === 'plans' ? 'active' : '' %>"><%- icon('layers') %><%= t('admin.plans') %></a><% } %>

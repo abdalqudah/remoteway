@@ -1,0 +1,31 @@
+<div class="page-head">
+  <div><div class="eyebrow"><a href="/admin/quotes"><%= t('admin.quotes') %></a><%- icon('chevron-right', 'icon-sm flip-rtl') %></div>
+    <h1 class="row-sm"><span class="mono" dir="ltr"><%= q.number %></span> <%- include('../../../partials/sales/state', { s: state }) %></h1>
+    <p><%= q.customer_name %><%= q.customer_company ? ' · ' + q.customer_company : '' %> · <span class="num"><%= fmt.money(q.total, q.currency) %></span></p></div>
+  <div class="page-actions">
+    <% if (['accepted', 'declined'].indexOf(q.status) === -1) { %><a class="btn btn-secondary" href="/admin/quotes/<%= q.id %>/edit"><%- icon('pencil') %><%= t('common.edit') %></a><% } %>
+    <form method="post" action="/admin/quotes/<%= q.id %>/duplicate"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><button class="btn btn-secondary" type="submit"><%- icon('copy') %><%= t('sales.duplicate') %></button></form>
+    <% if (q.status === 'draft') { %><form method="post" action="/admin/quotes/<%= q.id %>/delete" data-confirm="<%= t('sales.delete_confirm') %>"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><button class="btn btn-danger-ghost" type="submit"><%- icon('trash-2') %><%= t('common.delete') %></button></form><% } %>
+  </div>
+</div>
+<% if (q.status === 'accepted' || q.status === 'declined') { %>
+<div class="alert alert-<%= q.status === 'accepted' ? 'success' : 'error' %> mb-6"><%- icon(q.status === 'accepted' ? 'circle-check' : 'circle-x') %><div class="grow"><div class="alert-title"><%= t('sales.answered_' + q.status, { name: q.response_name || q.customer_name, date: fmt.date(q.responded_at, { dateStyle: 'medium', timeStyle: 'short' }) }) %></div><% if (q.response_note) { %><div class="small mt-1"><%= q.response_note %></div><% } %></div></div>
+<% } %>
+<div class="grid grid-3 align-start">
+  <div class="span-2 stack">
+    <section class="panel"><div class="panel-body"><%- include('../../../partials/sales/quote-doc', { q: q, p: p }) %></div></section>
+    <% if (q.contact_id) { %><p class="small muted"><%- icon('users', 'icon-sm') %> <a class="link" href="/admin/crm/contacts/<%= q.contact_id %>"><%= t('sales.open_in_crm') %></a></p><% } %>
+  </div>
+  <div class="stack">
+    <section class="panel">
+      <div class="panel-head"><h2><%- icon('eye') %> <%= t('sales.tracking') %></h2></div>
+      <div class="panel-body"><dl class="dl small">
+        <dt><%= t('sales.sent_at') %></dt><dd><%= q.sent_at ? fmt.date(q.sent_at, { dateStyle: 'medium', timeStyle: 'short' }) : '—' %></dd>
+        <dt><%= t('sales.first_viewed') %></dt><dd><%= q.first_viewed_at ? fmt.date(q.first_viewed_at, { dateStyle: 'medium', timeStyle: 'short' }) : t('sales.not_yet') %></dd>
+        <dt><%= t('sales.views') %></dt><dd class="num"><%= q.view_count %></dd>
+      </dl></div>
+    </section>
+    <%- include('../../../partials/sales/send-panel', { base: '/admin/quotes/' + q.id }) %>
+    <%- include('../../../partials/sales/sends', { sends: sends }) %>
+  </div>
+</div>

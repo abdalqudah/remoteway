@@ -1,6 +1,7 @@
 // Super Admin → CRM (RemoteWay's internal CRM). Mounted inside the admin router, so only the platform
 // team reaches it, and the section guard in admin/web.js applies (owner, admin, sales, support).
 const express = require('express');
+const knex = require('../../db/knex');
 const rateLimit = require('express-rate-limit');
 const { wrap, form, flash } = require('../../routes/helpers');
 const { E } = require('../../core/errors');
@@ -68,7 +69,11 @@ router.post('/contacts', form(async (req, res) => {
 const renderContact = async (req, res, extra = {}) => {
   const c = await crm.get(Number(req.params.id));
   const [channels, templates] = await Promise.all([comms.status(), comms.templates()]);
-  res.page('pages/admin/crm/contact', { layout: 'admin', title: c.name, crmTab: 'contacts', c, channels, templates, waWindow: comms.inWindow(c), tab: req.query.tab || extra.tab || 'email', ...extra });
+  // Quotations for this contact and the files the team can send them (Super Admin → Quotations / Files).
+  const sales = require('../sales/sales.service'); // eslint-disable-line global-require
+  const quotes = (await knex('quotes').where({ contact_id: c.id }).orderBy('id', 'desc').limit(20)).map((q) => ({ ...q, state: sales.quoteState(q) }));
+  const files = await knex('sales_files').where({ active: true }).orderBy('id', 'desc').select('id', 'title');
+  res.page('pages/admin/crm/contact', { layout: 'admin', title: c.name, crmTab: 'contacts', c, channels, templates, waWindow: comms.inWindow(c), tab: req.query.tab || extra.tab || 'email', quotes, salesFiles: files, ...extra });
 };
 router.get('/contacts/:id', wrap((req, res) => renderContact(req, res)));
 router.get('/contacts/:id/edit', wrap(async (req, res) => res.page('pages/admin/crm/contact-form', { layout: 'admin', title: req.t('common.edit'), crmTab: 'contacts', c: await crm.get(Number(req.params.id)) })));

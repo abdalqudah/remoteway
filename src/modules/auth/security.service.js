@@ -6,6 +6,7 @@ const knex = require('../../db/knex');
 const config = require('../../config');
 const audit = require('../../core/audit');
 const mailer = require('../../core/mailer');
+const messages = require('../../core/messages');
 const secrets = require('../../core/secrets');
 const totp = require('../../core/totp');
 const { translator } = require('../../core/i18n');
@@ -38,12 +39,13 @@ async function issueResetLink(userId, { ip, minutes = RESET_MINUTES } = {}) {
   return `${config.appUrl.replace(/\/+$/, '')}/reset/${token}`;
 }
 
-function emailResetLink(user, link, { locale, minutes = RESET_MINUTES } = {}) {
+async function emailResetLink(user, link, { locale, minutes = RESET_MINUTES } = {}) {
   const lang = user.locale || locale || 'en';
   const t = translator(lang);
+  const m = await messages.compose('password_reset', lang, { duration: minutes >= 120 ? t('auth.dur_hours', { n: Math.round(minutes / 60) }) : t('auth.dur_minutes', { n: minutes }), app: 'RemoteWay' });
   return mailer.send({
-    to: user.email, subject: `RemoteWay — ${t('auth.reset_subject')}`,
-    html: mailer.layout({ locale: lang, title: t('auth.reset_subject'), body: t('auth.reset_body', { duration: minutes >= 120 ? t('auth.dur_hours', { n: Math.round(minutes / 60) }) : t('auth.dur_minutes', { n: minutes }) }), cta: t('auth.reset_cta'), href: link }),
+    to: user.email, subject: m.subject,
+    html: mailer.layout({ locale: lang, title: m.title, body: m.body, cta: m.cta, href: link }),
   }).then(() => true).catch((e) => { console.error('[mail] reset failed:', e.message); return false; }); // eslint-disable-line no-console
 }
 

@@ -1,0 +1,34 @@
+<% var i = inv; var _c = i.currency; %>
+<% if (i.status === 'paid') { %><div class="alert alert-success mb-6 no-print"><%- icon('circle-check') %><div class="grow small"><%= t('billing.paid_on', { date: fmt.date(i.paid_at) }) %></div></div><% } %>
+<article class="doc">
+  <header class="doc-head">
+    <%- include('../../partials/sales/seller', { p: p }) %>
+    <div class="doc-meta">
+      <h1 class="doc-title"><%= t('billing.invoice') %></h1>
+      <div class="mono" dir="ltr"><%= i.number %></div>
+      <dl class="doc-dl small mt-2">
+        <dt><%= t('billing.date') %></dt><dd><%= fmt.date(i.issue_date) %></dd>
+        <dt><%= t('billing.due') %></dt><dd><%= fmt.date(i.due_date) %></dd>
+        <% if (i.period_start && i.period_end) { %><dt><%= t('sales.period') %></dt><dd><%= fmt.date(i.period_start) %> – <%= fmt.date(i.period_end) %></dd><% } %>
+      </dl>
+      <span class="badge badge-dot mt-2 <%= i.status === 'paid' ? 'badge-success' : 'badge-warning' %>"><%= t('billing.invoice_' + i.status) %></span>
+    </div>
+  </header>
+  <section class="doc-to"><div class="label"><%= t('billing.bill_to') %></div><div style="font-weight:700"><%= i.org_name %></div><% if (i.org_address) { %><div class="muted small"><%= i.org_address %></div><% } %></section>
+  <div class="table-wrap"><table class="table doc-table">
+    <thead><tr><th><%= t('fields.description') %></th><th class="text-end"><%= t('billing.quantity') %></th><th class="text-end"><%= t('billing.unit_price') %></th><th class="text-end"><%= t('billing.amount') %></th></tr></thead>
+    <tbody><% i.items.forEach(function (it) { %><tr><td class="doc-desc"><%= it.description %></td><td class="text-end num"><%= it.quantity %></td><td class="text-end num"><%= fmt.money(it.unit_price, _c) %></td><td class="text-end num"><%= fmt.money(it.amount, _c) %></td></tr><% }) %></tbody>
+  </table></div>
+  <dl class="dl doc-totals">
+    <dt><%= t('billing.subtotal') %></dt><dd class="num text-end"><%= fmt.money(i.subtotal, _c) %></dd>
+    <dt><%= t('billing.vat_line', { rate: Number(i.tax_rate) }) %></dt><dd class="num text-end"><%= fmt.money(i.tax, _c) %></dd>
+    <dt class="doc-total-label"><%= t('billing.total') %></dt><dd class="num text-end doc-total"><%= fmt.money(i.total, _c) %></dd>
+  </dl>
+  <% if (i.status === 'issued') { %>
+  <section class="doc-block small">
+    <div class="label"><%= t('sales.how_to_pay') %></div>
+    <% if (p.iban) { %><div><%= t('sales.pay_by_transfer') %></div><div><%= p.bank_name || '' %><%= p.account_name ? ' · ' + p.account_name : '' %></div><div class="mono" dir="ltr" style="text-align:start"><%= p.iban.replace(/(.{4})/g, '$1 ').trim() %></div><div class="muted"><%= t('sales.pay_reference', { number: i.number }) %></div><% } %>
+    <div class="mt-2 no-print"><a class="link" href="/app/billing/invoices/<%= i.id %>"><%= t('sales.pay_online_signin') %></a></div>
+  </section>
+  <% } %>
+</article>

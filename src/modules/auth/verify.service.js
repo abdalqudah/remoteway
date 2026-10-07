@@ -7,7 +7,7 @@ const knex = require('../../db/knex');
 const config = require('../../config');
 const audit = require('../../core/audit');
 const mailer = require('../../core/mailer');
-const { translator } = require('../../core/i18n');
+const messages = require('../../core/messages');
 const { sha256 } = require('../../core/tokens');
 const { AppError } = require('../../core/errors');
 
@@ -29,10 +29,10 @@ async function send(user, { locale } = {}) {
   const token = crypto.randomBytes(32).toString('hex');
   await knex('email_verifications').insert({ user_id: user.id, email: user.email, token_hash: sha256(token), expires_at: new Date(Date.now() + HOURS * 3600_000) });
   const lang = user.locale || locale || 'en';
-  const t = translator(lang);
+  const m = await messages.compose('verify_email', lang, { name: user.name, hours: HOURS, app: 'RemoteWay' });
   await mailer.send({
-    to: user.email, subject: `RemoteWay — ${t('verify.mail_subject')}`,
-    html: mailer.layout({ locale: lang, title: t('verify.mail_subject'), body: t('verify.mail_body', { name: user.name, hours: HOURS }), cta: t('verify.mail_cta'), href: `${config.appUrl.replace(/\/+$/, '')}/verify-email/${token}` }),
+    to: user.email, subject: m.subject,
+    html: mailer.layout({ locale: lang, title: m.title, body: m.body, cta: m.cta, href: `${config.appUrl.replace(/\/+$/, '')}/verify-email/${token}` }),
   }).catch((e) => console.error('[mail] verification failed:', e.message)); // eslint-disable-line no-console
   return true;
 }

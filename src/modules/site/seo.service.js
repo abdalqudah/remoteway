@@ -15,7 +15,7 @@ const PAGES = ['home', 'pricing', 'jobs', 'talent', 'join', 'signup', 'login', '
 const PATH_PAGE = { '/': 'home', '/pricing': 'pricing', '/jobs': 'jobs', '/talent': 'talent', '/join': 'join', '/signup': 'signup', '/login': 'login', '/demo': 'demo', '/privacy': 'privacy', '/terms': 'terms' };
 const AI_BOTS = { gptbot: 'GPTBot', oai_searchbot: 'OAI-SearchBot', chatgpt_user: 'ChatGPT-User', claudebot: 'ClaudeBot', perplexitybot: 'PerplexityBot', google_extended: 'Google-Extended', applebot_extended: 'Applebot-Extended', ccbot: 'CCBot', bytespider: 'Bytespider' };
 // Signed-in and one-time pages: never indexed, never any pixel.
-const PRIVATE_PATHS = ['/app', '/admin', '/me', '/api', '/security', '/reset', '/login/2fa', '/verify-email', '/payments', '/webhooks', '/org-brand', '/invitations', '/kiosk', '/q/', '/auth/', '/sso'];
+const PRIVATE_PATHS = ['/app', '/admin', '/me', '/api', '/security', '/reset', '/login/2fa', '/verify-email', '/payments', '/webhooks', '/org-brand', '/invitations', '/kiosk', '/q/', '/quote/', '/invoice/', '/file/', '/auth/', '/sso'];
 const isPrivate = (p) => PRIVATE_PATHS.some((x) => p === x || p.startsWith(x.endsWith('/') ? x : `${x}/`));
 const SOCIAL = ['x', 'linkedin', 'instagram', 'facebook', 'youtube', 'tiktok', 'snapchat', 'whatsapp', 'telegram', 'threads'];
 // Pixel id formats and the hosts each one needs in the Content-Security-Policy.

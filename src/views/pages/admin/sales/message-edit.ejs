@@ -1,0 +1,58 @@
+<%
+  var o = typeof old !== 'undefined' && old && Object.keys(old).length ? old : null;
+  var errs = typeof errors !== 'undefined' && errors ? errors : {};
+  var langName = { ar: 'العربية', en: 'English' };
+%>
+<div class="page-head">
+  <div><div class="eyebrow"><a href="/admin/messages"><%= t('msgs.title') %></a><%- icon('chevron-right', 'icon-sm flip-rtl') %></div><h1><%= t('msgs.m_' + m.key) %></h1><p><%= t('msgs.empty_default') %></p></div>
+  <div class="page-actions">
+    <% if (m.edited) { %><form method="post" action="/admin/messages/<%= m.key %>/reset"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><button class="btn btn-secondary" type="submit"><%- icon('refresh-cw') %><%= t('msgs.reset') %></button></form><% } %>
+  </div>
+</div>
+<div class="grid grid-3 align-start">
+<form method="post" action="/admin/messages/<%= m.key %>" class="panel span-2" data-msg-form novalidate>
+  <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+  <% ['ar', 'en'].forEach(function (lc) { %>
+  <div class="panel-head"><h2><%= langName[lc] %></h2></div>
+  <div class="panel-body stack" dir="<%= lc === 'ar' ? 'rtl' : 'ltr' %>">
+    <% m.fields.forEach(function (f) {
+      var name = lc + '_' + f; var d = m.langs[lc][f];
+      var val = o ? (o[name] || '') : (d.saved || d.default);
+      var big = f === 'body' || f === 'text'; %>
+    <div class="field">
+      <label class="label" for="f-<%= name %>"><%= t('msgs.f_' + f) %></label>
+      <% if (big) { %><textarea class="textarea<%= errs[name] ? ' is-invalid' : '' %>" id="f-<%= name %>" name="<%= name %>" rows="<%= f === 'text' ? 7 : 6 %>"><%= val %></textarea>
+      <% } else { %><input class="input<%= errs[name] ? ' is-invalid' : '' %>" id="f-<%= name %>" name="<%= name %>" value="<%= val %>"><% } %>
+      <% if (errs[name]) { %><span class="field-error"><%= errs[name] %></span><% } %>
+    </div>
+    <% }) %>
+  </div>
+  <% }) %>
+  <div class="panel-foot row between wrap">
+    <div class="row-sm wrap">
+      <% if (m.kind === 'email') { ['ar', 'en'].forEach(function (lc) { %><button class="btn btn-secondary btn-sm" type="submit" formaction="/admin/messages/<%= m.key %>/test" name="locale" value="<%= lc %>" formnovalidate><%- icon('send') %><%= t('msgs.send_test') %> · <%= langName[lc] %></button><% }) } %>
+    </div>
+    <button class="btn btn-dark" type="submit"><%- icon('check') %><%= t('common.save') %></button>
+  </div>
+</form>
+<div class="stack">
+  <section class="panel">
+    <div class="panel-head"><div><h2><%- icon('puzzle') %> <%= t('msgs.placeholders') %></h2><div class="panel-sub"><%= t('msgs.placeholders_help') %></div></div></div>
+    <div class="panel-body row-sm wrap">
+      <% m.vars.forEach(function (v) { %><button class="chip-btn" type="button" data-insert="{<%= v %>}" title="<%= t('msgs.v_' + v) %>"><span class="mono" dir="ltr">{<%= v %>}</span> · <%= t('msgs.v_' + v) %></button><% }) %>
+    </div>
+  </section>
+  <section class="panel">
+    <div class="panel-head row between"><div><h2><%- icon('eye') %> <%= m.kind === 'email' ? t('msgs.preview') : t('msgs.whatsapp_preview') %></h2><div class="panel-sub"><%= t('msgs.preview_note') %></div></div>
+      <div class="row-sm"><% ['ar', 'en'].forEach(function (lc) { %><a class="btn btn-sm <%= lang === lc ? 'btn-dark' : 'btn-ghost' %>" href="?lang_preview=<%= lc %>"><%= lc.toUpperCase() %></a><% }) %></div></div>
+    <div class="panel-body">
+      <% var p = previews[lang]; if (p.kind === 'email') { %>
+        <div class="small muted mb-2"><%= t('msgs.f_subject') %>: <strong class="text"><%= p.subject %></strong></div>
+        <div class="mail-preview"><%- p.html %></div>
+      <% } else { %>
+        <div class="wa-preview" dir="<%= lang === 'ar' ? 'rtl' : 'ltr' %>"><div class="wa-bubble"><%= p.text %></div></div>
+      <% } %>
+    </div>
+  </section>
+</div>
+</div>

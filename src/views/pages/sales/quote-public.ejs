@@ -1,0 +1,30 @@
+<%
+  var errs = typeof errors !== 'undefined' && errors ? errors : {};
+  var o = typeof old !== 'undefined' && old ? old : {};
+%>
+<% if (state === 'accepted') { %>
+<div class="alert alert-success mb-6 no-print"><%- icon('circle-check') %><div class="grow"><div class="alert-title"><%= t('sales.public_accepted', { date: fmt.date(q.responded_at, { dateStyle: 'medium' }) }) %></div><div class="small"><%= t('sales.public_accepted_sub') %></div></div></div>
+<% } else if (state === 'declined') { %>
+<div class="alert alert-info mb-6 no-print"><%- icon('info') %><div class="grow small"><%= t('sales.public_declined') %></div></div>
+<% } else if (state === 'expired') { %>
+<div class="alert alert-warning mb-6 no-print"><%- icon('clock') %><div class="grow small"><%= t('sales.public_expired') %></div></div>
+<% } %>
+<%- include('../../partials/sales/quote-doc', { q: q, p: p }) %>
+<% if (['accepted', 'declined', 'expired'].indexOf(state) === -1) { %>
+<section class="doc-respond no-print" id="respond">
+  <h2 class="h3"><%= t('sales.public_respond') %></h2>
+  <p class="small muted"><%= t('sales.public_respond_sub', { date: fmt.date(q.valid_until) }) %></p>
+  <% if (typeof formError !== 'undefined' && formError && !Object.keys(errs).length) { %><div class="alert alert-error mb-4"><%- icon('circle-alert') %><div class="grow small"><%= formError.message %></div></div><% } %>
+  <form method="post" action="/quote/<%= q.token %>/respond" class="stack" novalidate>
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+    <div class="grid grid-2">
+      <%- include('../../partials/field', { name: 'name', label: t('sales.your_name'), value: o.name || '', required: true }) %>
+      <%- include('../../partials/field', { name: 'note', label: t('sales.your_note'), value: o.note || '' }) %>
+    </div>
+    <div class="row-sm wrap">
+      <button class="btn btn-primary" type="submit" name="action" value="accept" data-busy><%- icon('circle-check') %><%= t('sales.accept') %></button>
+      <button class="btn btn-ghost" type="submit" name="action" value="decline" formnovalidate><%= t('sales.decline') %></button>
+    </div>
+  </form>
+</section>
+<% } %>

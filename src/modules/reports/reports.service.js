@@ -6,6 +6,7 @@ const config = require('../../config');
 const csv = require('../../core/csv');
 const jobs = require('../../core/jobs');
 const mailer = require('../../core/mailer');
+const messages = require('../../core/messages');
 const audit = require('../../core/audit');
 const { translator } = require('../../core/i18n');
 const { E, AppError } = require('../../core/errors');
@@ -316,10 +317,11 @@ async function deliver({ scheduleId }) {
     if (!user) continue;
     const t = translator(user.locale);
     const table = toTable(result, t);
+    const m = await messages.compose('report_delivery', user.locale, { report: report.name, rows: result.rows.length, app: brand ? brand.name : 'RemoteWay' });
     await mailer.send({
       to: user.email,
-      subject: `${brand ? brand.name : 'RemoteWay'} — ${report.name}`,
-      html: mailer.layout({ locale: user.locale, title: report.name, body: t('reports.email_body', { rows: result.rows.length }), cta: t('reports.open'), href: `${base}/app/reports/saved/${report.id}`, brand }),
+      subject: m.subject,
+      html: mailer.layout({ locale: user.locale, title: m.title, body: m.body, cta: m.cta, href: `${base}/app/reports/saved/${report.id}`, brand }),
       fromName: brand ? brand.senderName : null, organizationId: s.organization_id,
       attachments: [{ filename: `${report.name.replace(/[^\p{L}\p{N} _-]/gu, '').trim() || 'report'}.csv`, content: csv.build(table.header, table.rows), contentType: 'text/csv; charset=utf-8' }],
     });

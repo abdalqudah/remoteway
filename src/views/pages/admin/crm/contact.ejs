@@ -2,7 +2,7 @@
 <%
   var s = c.signals; var a = c.ai_summary;
   var icons = { note: 'pencil', call: 'phone', meeting: 'users', email: 'mail', sms: 'message-square', whatsapp: 'message-square', stage_change: 'arrow-right', registration: 'user-plus', profile_completed: 'badge-check',
-    applied: 'briefcase', subscription_started: 'receipt', subscription_paid: 'credit-card', follow_up: 'clock', follow_up_done: 'circle-check', assigned: 'user-cog', demo_request: 'sparkles', system: 'info' };
+    applied: 'briefcase', quote_viewed: 'eye', quote_accepted: 'circle-check', quote_declined: 'circle-x', subscription_started: 'receipt', subscription_paid: 'credit-card', follow_up: 'clock', follow_up_done: 'circle-check', assigned: 'user-cog', demo_request: 'sparkles', system: 'info' };
   var tpl = function (ch) { return templates.filter(function (x) { return x.channel === ch; }); };
   var err = errors || {};
 %>
@@ -16,7 +16,7 @@
   </div>
   <div class="row-sm wrap">
     <% if (c.email) { %><a class="btn btn-ghost btn-sm" href="mailto:<%= c.email %>" dir="ltr"><%- icon('mail', 'icon-sm') %><%= c.email %></a><% } %>
-    <% if (c.phone) { %><a class="btn btn-ghost btn-sm" href="tel:+<%= c.phone %>" dir="ltr"><%- icon('phone', 'icon-sm') %>+<%= c.phone %></a><% } %>
+    <% if (c.phone) { %><a class="btn btn-ghost btn-sm" href="tel:+<%= c.phone %>" dir="ltr"><%- icon('phone', 'icon-sm') %>+<%= c.phone %></a><a class="btn btn-wa btn-sm" href="https://wa.me/<%= c.phone %>" target="_blank" rel="noopener"><%- icon('message-circle', 'icon-sm') %>WhatsApp</a><% } %>
     <a class="btn btn-secondary btn-sm" href="/admin/crm/contacts/<%= c.id %>/edit"><%- icon('pencil', 'icon-sm') %><%= t('common.edit') %></a>
     <% if (crmCanManage) { %><form method="post" action="/admin/crm/contacts/<%= c.id %>/delete" data-confirm="<%= t('crm.confirm_delete') %>"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><button class="btn btn-danger-ghost btn-sm" type="submit"><%- icon('trash-2', 'icon-sm') %></button></form><% } %>
   </div>
@@ -101,6 +101,18 @@
   </div>
 
   <aside class="stack-lg">
+    <% if (adminCan('quotes') || adminCan('files')) { %>
+    <section class="panel"><div class="panel-head"><h2><%- icon('file-signature') %> <%= t('sales.crm_panel') %></h2></div><div class="panel-body stack-sm">
+      <% if (adminCan('quotes')) { %>
+        <% quotes.forEach(function (q) { %><a class="row between small" href="/admin/quotes/<%= q.id %>"><span class="mono" dir="ltr"><%= q.number %></span><span class="num"><%= fmt.money(q.total, q.currency) %></span><%- include('../../../partials/sales/state', { s: q.state }) %></a><% }) %>
+        <a class="btn btn-secondary btn-sm" href="/admin/quotes/new?contact=<%= c.id %>"><%- icon('plus', 'icon-sm') %><%= t('sales.new_quote') %></a>
+      <% } %>
+      <% if (adminCan('files') && salesFiles.length) { %>
+        <div class="label mt-2"><%= t('sales.send_a_file') %></div>
+        <% salesFiles.forEach(function (f) { %><a class="row between small link" href="/admin/files/<%= f.id %>?contact=<%= c.id %>#send"><span><%- icon('file-text', 'icon-sm') %> <%= f.title %></span><%- icon('send', 'icon-sm') %></a><% }) %>
+      <% } %>
+    </div></section>
+    <% } %>
     <section class="panel"><div class="panel-head"><h2><%= t('crm.status_owner') %></h2></div><div class="panel-body stack">
       <form method="post" action="/admin/crm/contacts/<%= c.id %>/stage" class="stack-sm">
         <input type="hidden" name="_csrf" value="<%= csrfToken %>">

@@ -6,6 +6,7 @@ const config = require('../config');
 const { translator } = require('./i18n');
 const secrets = require('./secrets');
 const smtp = require('./smtp');
+const messages = require('./messages');
 
 // SMTP settings come from Super Admin → Email (stored encrypted in the database) and fall back to .env.
 let transport;
@@ -129,7 +130,7 @@ function layout({ locale, title, body, cta, href, brand }) {
   return `<!doctype html><html dir="${dir}"><body style="margin:0;background:#f7f7f7;font-family:Tahoma,Arial,sans-serif;color:#0a0a0a">
 <div style="max-width:560px;margin:24px auto;background:#fff;border:1px solid #e2e2e2;border-radius:14px;overflow:hidden">
 ${header}
-<div style="padding:24px"><h2 style="margin:0 0 12px;font-size:18px">${escapeHtml(title)}</h2><p style="line-height:1.7;margin:0 0 20px">${escapeHtml(body)}</p>
+<div style="padding:24px"><h2 style="margin:0 0 12px;font-size:18px">${escapeHtml(title)}</h2><p style="line-height:1.7;margin:0 0 20px">${escapeHtml(body).replace(/\n/g, '<br>')}</p>
 ${href ? `<a href="${escapeHtml(href)}" style="display:inline-block;background:#000;color:#fff;text-decoration:none;padding:10px 18px;border-radius:999px;font-weight:700">${escapeHtml(cta)}</a>` : ''}
 </div></div></body></html>`;
 }
@@ -214,13 +215,13 @@ async function send({ to, subject, html, attachments, fromName, organizationId }
 }
 
 async function sendInvitation({ email, link, organizationName, roleName, locale = 'en', organizationId }) {
-  const t = translator(locale);
   const brand = await require('../modules/branding/branding.service').forEmail(organizationId); // eslint-disable-line global-require
   const href = brand && brand.base && link.startsWith(config.appUrl) ? brand.base + link.slice(config.appUrl.replace(/\/+$/, '').length) : link;
+  const m = await messages.compose('invitation', locale, { org: organizationName, role: roleName, app: brand ? brand.name : 'RemoteWay' });
   return send({
     to: email,
-    subject: t('mail.invite_subject', { org: organizationName, app: brand ? brand.name : 'RemoteWay' }),
-    html: layout({ locale, title: t('mail.invite_subject', { org: organizationName, app: brand ? brand.name : 'RemoteWay' }), body: t('mail.invite_body', { org: organizationName, role: roleName }), cta: t('auth.invite_join'), href, brand }),
+    subject: m.subject,
+    html: layout({ locale, title: m.title, body: m.body, cta: m.cta, href, brand }),
     fromName: brand ? brand.senderName : organizationName, organizationId,
   });
 }
@@ -233,10 +234,11 @@ async function sendNotificationEmail(userId, type, data, link, organizationId) {
   const text = t(`notif.${type}`, data);
   const brand = await require('../modules/branding/branding.service').forEmail(organizationId); // eslint-disable-line global-require
   const base = brand && brand.base ? brand.base : config.appUrl;
+  const m = await messages.compose('notification', u.locale, { text, app: brand ? brand.name : 'RemoteWay' });
   return send({
     to: u.email,
-    subject: `${brand ? brand.name : 'RemoteWay'} — ${text}`,
-    html: layout({ locale: u.locale, title: text, body: t('mail.notification_body', { app: brand ? brand.name : 'RemoteWay' }), cta: t('mail.open', { app: brand ? brand.name : 'RemoteWay' }), href: link ? `${base}${link}` : base, brand }),
+    subject: m.subject,
+    html: layout({ locale: u.locale, title: m.title, body: m.body, cta: m.cta, href: link ? `${base}${link}` : base, brand }),
     fromName: brand ? brand.senderName : null, organizationId,
   });
 }
@@ -257,11 +259,11 @@ async function sendNotificationEmails(organizationId, userIds, type, data, link)
   const users = await knex('users').whereIn('id', userIds).where({ status: 'active' }).select('email', 'locale');
   for (const u of users) {
     const t = translator(u.locale);
-    const text = t(`notif.${type}`, data);
+    const m = await messages.compose('notification', u.locale, { text: t(`notif.${type}`, data), app: 'RemoteWay' });
     await send({
       to: u.email,
-      subject: `RemoteWay — ${text}`,
-      html: layout({ locale: u.locale, title: text, body: t('mail.notification_body', { app: 'RemoteWay' }), cta: t('mail.open', { app: 'RemoteWay' }), href: link ? `${config.appUrl}${link}` : config.appUrl }),
+      subject: m.subject,
+      html: layout({ locale: u.locale, title: m.title, body: m.body, cta: m.cta, href: link ? `${config.appUrl}${link}` : config.appUrl }),
       organizationId,
     });
   }

@@ -1,5 +1,15 @@
 # RemoteWay — Changelog
 
+## 1.10.0 — Quotations, files to send, invoice links, editable message texts
+
+- **Super Admin → Message texts:** the wording of the account emails (invitation, email confirmation, password reset, notifications, talent invitations, scheduled reports) and of the texts used to send quotations, invoices and files by email and WhatsApp — in Arabic and English, with placeholders ({customer}, {number}, {total}, {link}…), a preview, “send me a test” and “back to the default text”. Unknown placeholders are refused.
+- **Super Admin → Quotations:** line items, discount, VAT and validity date, numbered Q-YYYY-NNNN, with your company details (legal name, VAT and CR numbers, address, bank/IBAN, default terms) printed on them. Duplicate, edit until the customer answers, delete drafts only.
+- **The customer’s link** (`/quote/…`): a clean page in the quotation’s language (switchable), printable / save as PDF, with **Accept** (with their name and a note) or **Decline**. Opening and answering are tracked, shown on the quotation and written to the CRM timeline; the person who made the quotation gets an email when it is answered. Expired quotations cannot be accepted.
+- **Super Admin → Files to send:** upload the company profile, brochures or price lists (PDF, images, Word/PowerPoint/Excel — content checked) once; each gets a link (`/file/…`) that counts opens and can be switched off.
+- **Invoices:** a **Send** button on every invoice gives the company a link (`/invoice/…`) to view and print it, with the bank details for transfer.
+- **Sending (quotations, files, invoices):** WhatsApp opens on your phone or computer with the customer’s number and the message ready (a wa.me link — you press Send), or email with a button to the link (files can be attached). The texts are ready in Arabic or English and can be edited before sending. Every send is logged with who sent it and added to the CRM contact’s timeline.
+- **CRM contact page:** a WhatsApp button next to the number, the contact’s quotations, “New quotation” and one-click “send a file”.
+
 ## 1.9.2 — Job seekers' menu
 
 - The account menu of a job seeker (personal account without a company) no longer offers “Create a company workspace”. Companies still sign up from the sign-up page.

@@ -1,0 +1,13 @@
+<div class="page-head"><div><h1><%= t('msgs.title') %></h1><p><%= t('msgs.sub') %></p></div></div>
+<% ['sales', 'account'].forEach(function (g) { var rows = list.filter(function (m) { return m.group === g; }); %>
+<section class="panel mb-6">
+  <div class="panel-head"><h2><%- icon(g === 'sales' ? 'file-text' : 'mail') %> <%= t('msgs.group_' + g) %></h2></div>
+  <div class="table-wrap"><table class="table">
+    <tbody><% rows.forEach(function (m) { %><tr>
+      <td><a class="link" href="/admin/messages/<%= m.key %>" style="font-weight:600"><%= t('msgs.m_' + m.key) %></a></td>
+      <td><span class="badge"><%- icon(m.kind === 'email' ? 'mail' : 'message-circle', 'icon-sm') %> <%= t('msgs.kind_' + m.kind) %></span></td>
+      <td class="text-end"><span class="badge <%= m.edited ? 'badge-success' : '' %>"><%= m.edited ? t('msgs.edited') : t('msgs.default') %></span></td>
+    </tr><% }) %></tbody>
+  </table></div>
+</section>
+<% }) %>

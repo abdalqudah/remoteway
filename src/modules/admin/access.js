@@ -31,6 +31,9 @@ const SECTIONS = {
   domains: ['owner', 'admin', 'support'], // white-label custom domains
   sandbox: ['owner', 'admin'], // test companies for the team
   users: ['owner', 'admin', 'support'], // find accounts, create password reset links
+  quotes: ['owner', 'admin', 'sales', 'finance'], // quotations to customers
+  files: ['owner', 'admin', 'sales'], // company profile and other files to send
+  messages: ['owner', 'admin', 'sales'], // wording of emails and WhatsApp texts
 };
 // Changing things (POST) in these sections needs a narrower role than reading them.
 const WRITE = {
@@ -39,6 +42,7 @@ const WRITE = {
   launch: ['owner'], // removing the demo data
   marketing: ['owner', 'admin'],
   domains: ['owner', 'admin'],
+  messages: ['owner', 'admin'],
 };
 
 const roleOf = (user) => (user && user.is_super_admin ? (ROLES.includes(user.platform_role) ? user.platform_role : 'owner') : null);

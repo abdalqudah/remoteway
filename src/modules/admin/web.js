@@ -363,6 +363,8 @@ router.post('/ai/test', form(async (req, res) => {
 
 // ---------- Internal CRM ----------
 router.use('/crm', require('../crm/web'));
+router.use('/messages', require('../sales/messages.web'));
+router.use('/', require('../sales/admin.web')); // quotations, files to send, sending invoices
 
 // ---------- Database backups ----------
 const backups = require('./backup.service');
