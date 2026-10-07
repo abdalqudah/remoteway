@@ -35,8 +35,9 @@ before(async () => {
   await pay('saudi_ok'); await pay('veteran'); await pay('trainee');
   await pay('expat', { iban: null, gosi_registered: false });
   // unknown: no pay profile at all
-  const monday = addDays(today, -14);
-  for (let i = 0; i < 6; i += 1) await h.knex('attendance').insert({ organization_id: co.organizationId, employee_id: E.saudi_ok, work_date: addDays(monday, i), clock_in: new Date(), worked_minutes: 10 * 60 });
+  // Six 10-hour days inside one Sunday-to-Saturday week (the check groups by YEARWEEK mode 0), two weeks back.
+  const sunday = addDays(today, -14 - new Date(`${today}T00:00:00Z`).getUTCDay());
+  for (let i = 0; i < 6; i += 1) await h.knex('attendance').insert({ organization_id: co.organizationId, employee_id: E.saudi_ok, work_date: addDays(sunday, i), clock_in: new Date(), worked_minutes: 10 * 60 });
 });
 after(async () => { await h.knex.destroy(); });
 

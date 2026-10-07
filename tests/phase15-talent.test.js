@@ -54,7 +54,9 @@ describe('Phase 15 — talent & jobs marketplace', () => {
   let nora; let omar; let pia;
   test('individual sign-up, profile sections, completion, photo and CV', async () => {
     nora = await join('Nora Haddad', 'nora@talent.test');
-    assert.match((await nora.get('/me')).text, /Profile completion/);
+    const meHome = (await nora.get('/me')).text;
+    assert.match(meHome, /Profile completion/);
+    assert.doesNotMatch(meHome, /href="\/organizations\/new"/, 'job seekers are not offered a company workspace');
     await buildProfile(nora, { headline: 'Digital Marketing Specialist · SEO & Paid Ads', specialization: 'Digital Marketing', skills: ['SEO', 'Google Ads', 'GA4', 'Content'], years: 4 });
     let r = await nora.agent.post('/me/profile/photo').field('_csrf', nora.csrf).attach('file', PNG, 'me.png');
     assert.equal(r.status, 302);

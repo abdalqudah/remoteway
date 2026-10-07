@@ -1,5 +1,10 @@
 # RemoteWay — Changelog
 
+## 1.9.2 — Job seekers' menu
+
+- The account menu of a job seeker (personal account without a company) no longer offers “Create a company workspace”. Companies still sign up from the sign-up page.
+- Test fix: the weekly working-hours compliance test no longer depends on the day of the week it runs.
+
 ## 1.9.1 — Works on MySQL 5.7 and older MariaDB
 
 - Fixed the SQL error `near 'RECURSIVE team AS (…'` on servers running MySQL 5.7 or MariaDB before 10.2 (common on shared hosting): a manager's reporting line (team view, leave approvals, attendance) is now worked out in the app from one simple query instead of `WITH RECURSIVE`.
