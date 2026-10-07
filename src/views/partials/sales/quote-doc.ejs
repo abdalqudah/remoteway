@@ -4,7 +4,7 @@
     <%- include('seller', { p: p }) %>
     <div class="doc-meta">
       <h1 class="doc-title"><%= t('sales.quotation') %></h1>
-      <div class="mono" dir="ltr"><%= _q.number %></div>
+      <div class="mono" dir="ltr"><%= _q.number %><%= _q.revision > 1 ? ' · ' + t('sales.rev', { n: _q.revision }) : '' %></div>
       <dl class="doc-dl small mt-2">
         <dt><%= t('sales.date') %></dt><dd><%= fmt.date(_q.issue_date) %></dd>
         <dt><%= t('sales.valid_until') %></dt><dd><%= fmt.date(_q.valid_until) %></dd>
@@ -33,4 +33,5 @@
   <% if (_q.terms) { %><section class="doc-block"><div class="label"><%= t('sales.terms') %></div><div class="doc-text small"><%= _q.terms %></div></section><% } %>
   <% if (p.iban) { %><section class="doc-block small"><div class="label"><%= t('sales.bank_details') %></div>
     <div><%= p.bank_name || '' %><%= p.account_name ? ' · ' + p.account_name : '' %></div><div class="mono" dir="ltr" style="text-align:start"><%= p.iban.replace(/(.{4})/g, '$1 ').trim() %></div></section><% } %>
+  <%- include('acceptance', { q: _q }) %>
 </article>

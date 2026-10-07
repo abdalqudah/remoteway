@@ -101,7 +101,7 @@
   </div>
 
   <aside class="stack-lg">
-    <% if (adminCan('quotes') || adminCan('files')) { %>
+    <% if (adminCan('quotes') || adminCan('files') || adminCan('templates')) { %>
     <section class="panel"><div class="panel-head"><h2><%- icon('file-signature') %> <%= t('sales.crm_panel') %></h2></div><div class="panel-body stack-sm">
       <% if (adminCan('quotes')) { %>
         <% quotes.forEach(function (q) { %><a class="row between small" href="/admin/quotes/<%= q.id %>"><span class="mono" dir="ltr"><%= q.number %></span><span class="num"><%= fmt.money(q.total, q.currency) %></span><%- include('../../../partials/sales/state', { s: q.state }) %></a><% }) %>
@@ -110,6 +110,10 @@
       <% if (adminCan('files') && salesFiles.length) { %>
         <div class="label mt-2"><%= t('sales.send_a_file') %></div>
         <% salesFiles.forEach(function (f) { %><a class="row between small link" href="/admin/files/<%= f.id %>?contact=<%= c.id %>#send"><span><%- icon('file-text', 'icon-sm') %> <%= f.title %></span><%- icon('send', 'icon-sm') %></a><% }) %>
+      <% } %>
+      <% if (adminCan('templates') && docTemplates.length) { %>
+        <div class="label mt-2"><%= t('tpl.make_document') %></div>
+        <% docTemplates.forEach(function (d) { %><a class="row between small link" href="/admin/templates/<%= d.id %>?contact=<%= c.id %>"><span><%- icon('pencil', 'icon-sm') %> <%= d.name %></span><%- icon('chevron-right', 'icon-sm flip-rtl') %></a><% }) %>
       <% } %>
     </div></section>
     <% } %>

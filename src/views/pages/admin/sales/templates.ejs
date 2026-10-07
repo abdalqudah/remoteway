@@ -1,0 +1,35 @@
+<div class="page-head">
+  <div><h1><%= t('tpl.title') %></h1><p><%= t('tpl.sub') %></p></div>
+  <div class="page-actions"><a class="btn btn-dark" href="/admin/templates/new"><%- icon('pencil') %><%= t('tpl.new_online') %></a></div>
+</div>
+<div class="grid grid-3 align-start">
+<section class="panel span-2">
+  <% if (!list.length) { %><div class="panel-body"><div class="empty"><%- icon('file-text') %><p><%= t('tpl.none') %></p></div></div><% } else { %>
+  <div class="table-wrap"><table class="table">
+    <thead><tr><th><%= t('tpl.template') %></th><th><%= t('tpl.fields') %></th><th class="text-end"><%= t('tpl.uses') %></th><th></th></tr></thead>
+    <tbody><% list.forEach(function (tp) { %><tr<%= tp.active ? '' : ' class="muted"' %>>
+      <td><a class="link" href="/admin/templates/<%= tp.id %>" style="font-weight:600"><%= tp.name %></a><div class="small muted"><%- icon(tp.kind === 'docx' ? 'file-text' : 'pencil', 'icon-sm') %> <%= t('tpl.kind_' + tp.kind) %></div></td>
+      <td class="small"><% tp.fields.slice(0, 6).forEach(function (f) { %><span class="tag mono" dir="ltr">{<%= f %>}</span> <% }) %><%= tp.fields.length > 6 ? '…' : '' %><% if (!tp.fields.length) { %><span class="muted"><%= t('tpl.no_fields') %></span><% } %></td>
+      <td class="text-end num"><%= tp.uses %></td>
+      <td class="text-end"><a class="btn btn-secondary btn-sm" href="/admin/templates/<%= tp.id %>"><%- icon('send', 'icon-sm') %><%= t('tpl.use') %></a></td>
+    </tr><% }) %></tbody>
+  </table></div>
+  <% } %>
+</section>
+<div class="stack">
+<form method="post" action="/admin/templates" enctype="multipart/form-data" class="panel" novalidate>
+  <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+  <div class="panel-head"><div><h2><%- icon('upload') %> <%= t('tpl.upload_word') %></h2><div class="panel-sub"><%= t('tpl.upload_word_sub') %></div></div></div>
+  <div class="panel-body stack">
+    <div class="field"><label class="label" for="f-file"><%= t('tpl.word_file') %><span class="req">*</span></label><input class="input" id="f-file" name="file" type="file" accept=".docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document"><% if (typeof errors !== 'undefined' && errors && errors.file) { %><span class="field-error"><%= errors.file %></span><% } %></div>
+    <%- include('../../../partials/field', { name: 'name', label: t('tpl.name'), placeholder: t('tpl.name_ph') }) %>
+  </div>
+  <div class="panel-foot row-end"><button class="btn btn-dark" type="submit" data-busy><%- icon('upload') %><%= t('sales.upload') %></button></div>
+</form>
+<section class="panel"><div class="panel-head"><h2><%- icon('info') %> <%= t('tpl.how_title') %></h2></div><div class="panel-body small stack-sm">
+  <p><%= t('tpl.how_1') %></p>
+  <div class="row-sm wrap"><% ['company_name', 'customer_name', 'date', 'اسم_الشركة', 'اسم_العميل', 'التاريخ'].forEach(function (k) { %><span class="tag mono">{<%= k %>}</span><% }) %></div>
+  <p><%= t('tpl.how_2') %></p><p class="muted"><%= t('tpl.how_3') %></p>
+</div></section>
+</div>
+</div>

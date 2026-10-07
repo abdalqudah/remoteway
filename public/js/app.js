@@ -161,6 +161,24 @@
     apply();
   });
 
+  /* ---------- Show / hide password (every password field) ---------- */
+  (function () {
+    var ar = document.documentElement.lang === 'ar';
+    var useIcon = function (n) { var u = document.querySelector('svg use[href*="#i-"]'); var base = u ? u.getAttribute('href').split('#')[0] : '/icons.svg'; return '<svg class="icon icon-sm" aria-hidden="true"><use href="' + base + '#i-' + n + '"></use></svg>'; };
+    $$('input[type=password]').forEach(function (inp) {
+      if (inp.closest('.pw-wrap')) return;
+      var wrap = document.createElement('span'); wrap.className = 'pw-wrap';
+      inp.parentNode.insertBefore(wrap, inp); wrap.appendChild(inp);
+      var b = document.createElement('button'); b.type = 'button'; b.className = 'pw-eye';
+      var set = function (shown) { b.innerHTML = useIcon(shown ? 'eye-off' : 'eye'); b.setAttribute('aria-label', shown ? (ar ? 'إخفاء كلمة المرور' : 'Hide password') : (ar ? 'إظهار كلمة المرور' : 'Show password')); b.setAttribute('aria-pressed', shown ? 'true' : 'false'); };
+      set(false);
+      b.addEventListener('click', function () { var shown = inp.type === 'password'; inp.type = shown ? 'text' : 'password'; set(shown); inp.focus(); });
+      wrap.appendChild(b);
+      // Never submit the form with the password left visible in the browser's form history.
+      if (inp.form) inp.form.addEventListener('submit', function () { inp.type = 'password'; });
+    });
+  })();
+
   /* ---------- Copy to clipboard ---------- */
   $$('[data-copy]').forEach(function (btn) {
     btn.addEventListener('click', function () {
@@ -200,10 +218,81 @@
     $('[data-add-item]', f).addEventListener('click', function () {
       var rows = $$('[data-item]', body); var r = rows[rows.length - 1].cloneNode(true);
       $$('input, textarea', r).forEach(function (el) { el.value = el.name === 'item_quantity' ? '1' : ''; });
+      r.setAttribute('data-service', '');
       body.appendChild(r); wire(r); recalc(); $('textarea', r).focus();
     });
     $$('[data-discount], [data-tax-rate]', f).forEach(function (el) { el.addEventListener('input', recalc); });
+    // Services: ticking adds a line (text in the document language, default price to change for this customer).
+    var blankRow = function () { var rows = $$('[data-item]', body); var r = rows[rows.length - 1].cloneNode(true); $$('input, textarea', r).forEach(function (el) { el.value = el.name === 'item_quantity' ? '1' : ''; }); r.setAttribute('data-service', ''); return r; };
+    var isEmpty = function (r) { return !$('[name=item_description]', r).value.trim() && !$('[name=item_price]', r).value.trim(); };
+    $$('[data-service-picker] input[type=checkbox]', f).forEach(function (cb) {
+      cb.addEventListener('change', function () {
+        var existing = $('[data-item][data-service="' + cb.value + '"]', body);
+        if (cb.checked && !existing) {
+          var lang = ($('[name=locale]', f) || {}).value === 'en' ? 'en' : 'ar';
+          var empty = $$('[data-item]', body).filter(isEmpty)[0];
+          var r = empty || blankRow();
+          r.setAttribute('data-service', cb.value);
+          $('[name=item_service_id]', r).value = cb.value;
+          var ta = $('[name=item_description]', r); ta.value = cb.getAttribute('data-text-' + lang); ta.rows = ta.value.split('\n').length > 1 ? 2 : 1;
+          $('[name=item_quantity]', r).value = '1';
+          $('[name=item_price]', r).value = cb.getAttribute('data-price');
+          if (!empty) { body.appendChild(r); wire(r); }
+          recalc(); $('[name=item_price]', r).focus(); $('[name=item_price]', r).select();
+        } else if (!cb.checked && existing) {
+          if ($$('[data-item]', body).length > 1) existing.remove(); else { $$('input, textarea', existing).forEach(function (el) { el.value = el.name === 'item_quantity' ? '1' : ''; }); existing.setAttribute('data-service', ''); }
+          recalc();
+        }
+      });
+    });
+    // Removing a line by hand unticks its service (works for lines added later too).
+    body.addEventListener('click', function (e) { if (e.target.closest('[data-remove-item]')) setTimeout(function () { $$('[data-service-picker] input[type=checkbox]', f).forEach(function (cb) { cb.checked = Boolean($('[data-item][data-service="' + cb.value + '"]', body)); }); }, 0); });
     recalc();
+  });
+
+  /* ---------- Signature pad (accepting a quotation) ---------- */
+  $$('[data-sign-form]').forEach(function (f) {
+    var c = $('[data-signature-pad]', f); if (!c) return;
+    var ctx = c.getContext('2d'); var drawn = false; var down = false; var last = null;
+    ctx.lineWidth = 2.6; ctx.lineCap = 'round'; ctx.lineJoin = 'round'; ctx.strokeStyle = '#0b2a6b';
+    var pos = function (e) { var r = c.getBoundingClientRect(); return { x: (e.clientX - r.left) * (c.width / r.width), y: (e.clientY - r.top) * (c.height / r.height) }; };
+    c.addEventListener('pointerdown', function (e) { down = true; last = pos(e); c.setPointerCapture(e.pointerId); e.preventDefault(); });
+    c.addEventListener('pointermove', function (e) {
+      if (!down) return; var p = pos(e);
+      ctx.beginPath(); ctx.moveTo(last.x, last.y); ctx.lineTo(p.x, p.y); ctx.stroke(); last = p;
+      if (!drawn) { drawn = true; var h = $('[data-sign-hint]', f); if (h) h.hidden = true; }
+    });
+    ['pointerup', 'pointercancel', 'pointerleave'].forEach(function (ev) { c.addEventListener(ev, function () { down = false; }); });
+    $('[data-signature-clear]', f).addEventListener('click', function () { ctx.clearRect(0, 0, c.width, c.height); drawn = false; var h = $('[data-sign-hint]', f); if (h) h.hidden = false; $('[data-signature-value]', f).value = ''; });
+    f.addEventListener('submit', function () { $('[data-signature-value]', f).value = drawn ? c.toDataURL('image/png') : ''; });
+  });
+
+  /* ---------- Document editor (templates and documents written online) ---------- */
+  $$('[data-editor]').forEach(function (ed) {
+    var area = $('[data-editor-area]', ed); var val = $('[data-editor-value]', ed);
+    try { document.execCommand('styleWithCSS', false, false); } catch (e) { /* older browsers */ }
+    $$('[data-cmd]', ed).forEach(function (b) {
+      b.addEventListener('mousedown', function (e) { e.preventDefault(); });
+      b.addEventListener('click', function () { area.focus(); document.execCommand(b.getAttribute('data-cmd'), false, b.getAttribute('data-arg') || null); });
+    });
+    var insert = function (text) { area.focus(); document.execCommand('insertText', false, text); };
+    $$('[data-editor-insert]', ed).forEach(function (b) { b.addEventListener('mousedown', function (e) { e.preventDefault(); }); b.addEventListener('click', function () { insert(b.getAttribute('data-editor-insert')); }); });
+    $$('[data-editor-custom]', ed).forEach(function (b) {
+      b.addEventListener('mousedown', function (e) { e.preventDefault(); });
+      b.addEventListener('click', function () {
+        var sel = window.getSelection(); var range = sel.rangeCount ? sel.getRangeAt(0) : null;
+        var n = window.prompt(b.getAttribute('data-editor-custom'));
+        n = (n || '').trim().replace(/\s+/g, '_').replace(/[^\p{L}\p{N}_]/gu, '');
+        if (!n) return;
+        if (range) { sel.removeAllRanges(); sel.addRange(range); }
+        insert('{' + n + '}');
+      });
+    });
+    var form = ed.closest('form');
+    if (form) form.addEventListener('submit', function () { val.value = area.innerHTML; });
+  });
+  $$('[data-contact-pick]').forEach(function (sel) {
+    sel.addEventListener('change', function () { window.location.href = sel.getAttribute('data-contact-pick') + (sel.value ? '?contact=' + encodeURIComponent(sel.value) : ''); });
   });
 
   /* ---------- Message texts: insert a placeholder where the cursor was ---------- */

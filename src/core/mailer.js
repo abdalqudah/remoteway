@@ -169,46 +169,85 @@ async function sandboxOf(organizationId) {
 }
 const GENERATED = /\.sandbox\.remoteway\.local>?$/i; // test accounts' addresses: they do not exist
 
-async function send({ to, subject, html, attachments, fromName, organizationId }) {
+/**
+ * Every email is written to the email log (Super Admin → Email → Email log): who it was for, what kind,
+ * whether it was sent, failed (with the server's answer) or not sent and why. Never the content.
+ */
+async function logEmail(entry) {
+  try {
+    await knex('email_log').insert({
+      kind: String(entry.kind || 'other').slice(0, 40), to_addr: String(entry.to || '').slice(0, 255), subject: entry.subject ? String(entry.subject).slice(0, 255) : null,
+      organization_id: entry.organizationId || null, via: entry.via, status: entry.status, reason: entry.reason || null,
+      error: entry.error ? String(entry.error).slice(0, 500) : null, response: entry.response ? String(entry.response).slice(0, 500) : null,
+      message_id: entry.messageId ? String(entry.messageId).slice(0, 255) : null, duration_ms: entry.ms || null,
+    });
+    if (Math.random() < 0.02) { // keep the last 90 days
+      await knex('email_log').where('created_at', '<', new Date(Date.now() - 90 * 86_400_000)).del();
+    }
+  } catch (e) {
+    console.error('[mail] could not write the email log:', e.message); // eslint-disable-line no-console
+  }
+}
+/** For flows that decide not to send at all (e.g. password reset for an unknown address). */
+const logNotSent = (entry) => logEmail({ via: 'none', status: 'not_sent', ...entry });
+
+async function send({ to, subject, html, attachments, fromName, organizationId, kind = 'other' }) {
+  const base = { kind, to, organizationId };
   // Test companies: generated addresses do not exist (never sent to), emails can be switched off per
   // test company, and every message is marked [TEST].
   const sb = await sandboxOf(organizationId);
   if (GENERATED.test(String(to || '')) || (sb && !sb.emails)) {
-    if (config.isTest) testOutbox.push({ to, subject, html, attachments, via: 'sandbox', organizationId });
+    if (config.isTest) testOutbox.push({ to, subject, html, attachments, via: 'sandbox', organizationId, kind });
+    await logEmail({ ...base, subject, via: 'none', status: 'not_sent', reason: GENERATED.test(String(to || '')) ? 'test_address' : 'test_company_emails_off' });
     return false;
   }
   if (sb) subject = `[TEST] ${subject}`; // eslint-disable-line no-param-reassign
+  base.subject = subject;
   const company = organizationId ? await orgMail(organizationId) : null;
   const blocked = !company && organizationId && !sb && await requireCompanyEmail();
   if (config.isTest) {
     const via = company ? 'company' : blocked ? 'blocked' : 'platform';
     const fromAddr = company ? `${quoteName(company.fromName || fromName || 'RemoteWay')} <${company.fromEmail}>` : (fromName ? fromWithName(fromName) : undefined);
     const replyTo = company ? company.replyTo || undefined : ((currentConfig() || {}).replyTo || undefined);
-    testOutbox.push({ to, subject, html, attachments, from: fromAddr, replyTo, via, organizationId });
+    testOutbox.push({ to, subject, html, attachments, from: fromAddr, replyTo, via, organizationId, kind });
+    await logEmail({ ...base, via: via === 'blocked' ? 'none' : via, status: via === 'blocked' ? 'not_sent' : 'sent', reason: via === 'blocked' ? 'company_mailbox_required' : 'test_mode' });
     return false;
   }
+  const started = Date.now();
   if (company) {
     const hit = orgCache.get(organizationId);
     if (!hit.transport) hit.transport = transportFor(company);
     try {
-      await hit.transport.sendMail({ from: `${quoteName(company.fromName || fromName || 'RemoteWay')} <${company.fromEmail}>`, replyTo: company.replyTo || undefined, to, subject, html, attachments });
+      const info = await hit.transport.sendMail({ from: `${quoteName(company.fromName || fromName || 'RemoteWay')} <${company.fromEmail}>`, replyTo: company.replyTo || undefined, to, subject, html, attachments });
+      await logEmail({ ...base, via: 'company', status: 'sent', response: info && info.response, messageId: info && info.messageId, ms: Date.now() - started });
       return true;
     } catch (e) {
       // Recorded for the company's settings page and the SMTP log; the job queue retries notification emails.
       const ex = smtp.explain(e, company);
       await knex('organization_mail').where({ organization_id: organizationId }).update({ last_error: `${ex.message} ${ex.code ? `(${ex.code})` : ''}`.trim().slice(0, 500), last_error_at: new Date() }).catch(() => {});
       await smtp.logEvent({ scope: 'company', organizationId, action: 'send', settings: company, ok: false, error: ex });
+      await logEmail({ ...base, via: 'company', status: 'failed', error: `${ex.code ? `${ex.code}: ` : ''}${ex.message}`, response: ex.detail, ms: Date.now() - started });
       throw e;
     }
   }
-  if (blocked) return false;
+  if (blocked) {
+    await logEmail({ ...base, via: 'none', status: 'not_sent', reason: 'company_mailbox_required' });
+    return false;
+  }
   const t = getTransport();
-  if (!t) return false;
+  if (!t) {
+    await logEmail({ ...base, via: 'none', status: 'not_sent', reason: 'email_not_configured' });
+    return false;
+  }
   const cfg = currentConfig();
   try {
-    await t.sendMail({ from: fromWithName(fromName), replyTo: cfg && cfg.replyTo ? cfg.replyTo : undefined, to, subject, html, attachments });
+    const info = await t.sendMail({ from: fromWithName(fromName), replyTo: cfg && cfg.replyTo ? cfg.replyTo : undefined, to, subject, html, attachments });
+    const rejected = info && Array.isArray(info.rejected) && info.rejected.length;
+    await logEmail({ ...base, via: 'platform', status: rejected ? 'failed' : 'sent', error: rejected ? `Rejected by the server: ${info.rejected.join(', ')}` : null, response: info && info.response, messageId: info && info.messageId, ms: Date.now() - started });
   } catch (e) {
-    await smtp.logEvent({ scope: 'platform', action: 'send', settings: cfg || {}, ok: false, error: smtp.explain(e, cfg || {}) });
+    const ex = smtp.explain(e, cfg || {});
+    await smtp.logEvent({ scope: 'platform', action: 'send', settings: cfg || {}, ok: false, error: ex });
+    await logEmail({ ...base, via: 'platform', status: 'failed', error: `${ex.code ? `${ex.code}: ` : ''}${ex.message}`, response: ex.detail, ms: Date.now() - started });
     throw e;
   }
   return true;
@@ -219,6 +258,7 @@ async function sendInvitation({ email, link, organizationName, roleName, locale 
   const href = brand && brand.base && link.startsWith(config.appUrl) ? brand.base + link.slice(config.appUrl.replace(/\/+$/, '').length) : link;
   const m = await messages.compose('invitation', locale, { org: organizationName, role: roleName, app: brand ? brand.name : 'RemoteWay' });
   return send({
+    kind: 'invitation',
     to: email,
     subject: m.subject,
     html: layout({ locale, title: m.title, body: m.body, cta: m.cta, href, brand }),
@@ -236,6 +276,7 @@ async function sendNotificationEmail(userId, type, data, link, organizationId) {
   const base = brand && brand.base ? brand.base : config.appUrl;
   const m = await messages.compose('notification', u.locale, { text, app: brand ? brand.name : 'RemoteWay' });
   return send({
+    kind: 'notification',
     to: u.email,
     subject: m.subject,
     html: layout({ locale: u.locale, title: m.title, body: m.body, cta: m.cta, href: link ? `${base}${link}` : base, brand }),
@@ -261,6 +302,7 @@ async function sendNotificationEmails(organizationId, userIds, type, data, link)
     const t = translator(u.locale);
     const m = await messages.compose('notification', u.locale, { text: t(`notif.${type}`, data), app: 'RemoteWay' });
     await send({
+      kind: 'notification',
       to: u.email,
       subject: m.subject,
       html: layout({ locale: u.locale, title: m.title, body: m.body, cta: m.cta, href: link ? `${config.appUrl}${link}` : config.appUrl }),
@@ -269,4 +311,4 @@ async function sendNotificationEmails(organizationId, userIds, type, data, link)
   }
 }
 
-module.exports = { canSendFor, orgMail, forgetOrg, requireCompanyEmail, forgetPolicy, testOutbox, layout, enabled, send, sendInvitation, sendNotificationEmails, sendNotificationEmail, sendTest, refresh, currentConfig };
+module.exports = { logNotSent, canSendFor, orgMail, forgetOrg, requireCompanyEmail, forgetPolicy, testOutbox, layout, enabled, send, sendInvitation, sendNotificationEmails, sendNotificationEmail, sendTest, refresh, currentConfig };

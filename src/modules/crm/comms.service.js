@@ -92,7 +92,7 @@ async function sendEmail(ctx, contactId, { subject, body }) {
   const sender = await knex('users').where({ id: ctx.userId }).first('name');
   let status = 'sent'; let error = null;
   try {
-    await mailer.send({ to: c.email, subject: s, html: mailer.layout({ locale: c.locale, title: s, body: b }), fromName: sender ? `${sender.name} · RemoteWay` : 'RemoteWay' });
+    await mailer.send({ kind: 'crm_email', to: c.email, subject: s, html: mailer.layout({ locale: c.locale, title: s, body: b }), fromName: sender ? `${sender.name} · RemoteWay` : 'RemoteWay' });
   } catch (e) { status = 'failed'; error = e.message; }
   await crm.addActivity(c.id, { type: 'email', direction: 'out', channel: 'email', subject: s, body: b, status, userId: ctx.userId, meta: error ? { error: String(error).slice(0, 300) } : {} });
   if (status === 'failed') throw failed(error);

@@ -1,5 +1,5 @@
 <% var s = saved || {}; %>
-<div class="page-head"><div><h1><%= t('admin.email') %></h1><p><%= t('admin.email_sub') %></p></div></div>
+<div class="page-head"><div><h1><%= t('admin.email') %></h1><p><%= t('admin.email_sub') %></p></div><div class="page-actions"><a class="btn btn-secondary" href="/admin/email/log"><%- icon('history') %><%= t('maillog.title') %></a></div></div>
 <div class="alert <%= source ? 'alert-success' : 'alert-warning' %> mb-6"><%- icon(source ? 'circle-check' : 'triangle-alert') %><div>
   <div class="alert-title"><%= source === 'admin' ? t('admin.email_on_admin') : source === 'env' ? t('admin.email_on_env') : t('admin.email_off') %></div>
   <div class="small text-2"><%= t('admin.email_used_for') %></div></div></div>

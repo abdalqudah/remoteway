@@ -1,0 +1,14 @@
+<%
+  var errs = typeof errors !== 'undefined' && errors ? errors : {};
+  var o = typeof old !== 'undefined' && old && Object.keys(old).length ? old : null;
+  var html = o ? o.body_html : (tp ? tp.body_html : '<h2 style="text-align: center;">' + t('tpl.sample_title') + '</h2><p>' + t('tpl.sample_body') + '</p>');
+%>
+<div class="page-head"><div><div class="eyebrow"><a href="/admin/templates"><%= t('tpl.title') %></a><%- icon('chevron-right', 'icon-sm flip-rtl') %></div><h1><%= tp ? tp.name : t('tpl.new_online') %></h1><p><%= t('tpl.editor_sub') %></p></div></div>
+<form method="post" action="<%= tp ? '/admin/templates/' + tp.id : '/admin/templates/html' %>" class="panel" data-editor-form novalidate>
+  <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+  <div class="panel-body stack">
+    <%- include('../../../partials/field', { name: 'name', label: t('tpl.name'), value: o ? o.name : (tp ? tp.name : ''), required: true, errors: errs, old: {} }) %>
+    <%- include('../../../partials/sales/editor', { name: 'body_html', html: html, known: known, errors: errs }) %>
+  </div>
+  <div class="panel-foot row between"><a class="btn btn-ghost" href="<%= tp ? '/admin/templates/' + tp.id : '/admin/templates' %>"><%= t('common.cancel') %></a><button class="btn btn-dark" type="submit"><%- icon('check') %><%= t('common.save') %></button></div>
+</form>

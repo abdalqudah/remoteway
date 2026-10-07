@@ -1,0 +1,14 @@
+<% var _ev = (events || []).filter(function (e) { return ['negotiation', 'reply', 'revised'].indexOf(e.type) !== -1; }); if (_ev.length) { %>
+<div class="convo" id="conversation">
+  <% _ev.forEach(function (e) { var mine = e.by === 'team'; %>
+  <div class="convo-msg <%= mine ? 'is-team' : 'is-customer' %>">
+    <div class="tiny muted"><%= mine ? (typeof teamView !== 'undefined' && teamView ? (e.user_name || t('sales.team')) : t('sales.team')) : (e.name || t('sales.customer')) %> · <%= fmt.date(e.created_at, { dateStyle: 'medium', timeStyle: 'short' }) %></div>
+    <% if (e.type === 'revised') { %><div class="small"><strong><%= t('sales.revised_offer', { n: e.revision }) %></strong><% if (e.amount) { %> · <span class="num"><%= fmt.money(e.amount, q.currency) %></span><% } %></div>
+    <% } else { %>
+      <% if (e.amount) { %><div class="small"><%= t('sales.proposed') %>: <strong class="num"><%= fmt.money(e.amount, q.currency) %></strong></div><% } %>
+      <div class="convo-text"><%= e.message %></div>
+    <% } %>
+  </div>
+  <% }) %>
+</div>
+<% } %>

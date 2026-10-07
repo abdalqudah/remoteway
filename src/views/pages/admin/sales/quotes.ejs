@@ -2,6 +2,7 @@
   <div><h1><%= t('admin.quotes') %></h1><p><%= t('sales.quotes_sub') %></p></div>
   <div class="page-actions">
     <% if (['owner', 'admin'].indexOf(platformRole) !== -1) { %><a class="btn btn-secondary" href="/admin/quotes/settings"><%- icon('building-2') %><%= t('sales.settings_title') %></a><% } %>
+    <a class="btn btn-secondary" href="/admin/quotes/services"><%- icon('list-checks') %><%= t('sales.services_title') %></a>
     <a class="btn btn-dark" href="/admin/quotes/new"><%- icon('plus') %><%= t('sales.new_quote') %></a>
   </div>
 </div>

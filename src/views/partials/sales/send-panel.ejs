@@ -29,7 +29,7 @@
       <div class="field"><label class="label" for="em-to"><%= t('sales.email_to') %></label><input class="input" id="em-to" name="to" type="email" dir="ltr" value="<%= doc.email || '' %>" placeholder="name@company.com"></div>
       <div class="field"><label class="label" for="em-subject"><%= t('msgs.f_subject') %></label><input class="input" id="em-subject" name="subject" value="<%= drafts.email.subject %>"></div>
       <div class="field"><label class="label" for="em-body"><%= t('sales.message') %></label><textarea class="textarea" id="em-body" name="body" rows="7" dir="<%= doc.locale === 'ar' ? 'rtl' : 'ltr' %>"><%= drafts.email.body %></textarea><span class="help"><%= t('sales.email_help', { cta: drafts.email.cta }) %></span></div>
-      <% if (doc.type === 'file') { %><label class="check"><input type="checkbox" name="attach" value="1"<%= doc.file.size <= 10 * 1024 * 1024 ? ' checked' : ' disabled' %>><span><%= t('sales.attach_file') %></span></label><% } %>
+      <% if (doc.type === 'file' && doc.file.storage_key) { %><label class="check"><input type="checkbox" name="attach" value="1"<%= doc.file.size <= 10 * 1024 * 1024 ? ' checked' : ' disabled' %>><span><%= t('sales.attach_file') %></span></label><% } %>
       <div class="row-end"><button class="btn btn-dark" type="submit" data-busy><%- icon('send') %><%= t('sales.send_email') %></button></div>
     </form>
     <p class="small muted"><%= t('sales.edit_texts_hint') %> <a class="link" href="/admin/messages/<%= doc.type %>_whatsapp"><%= t('msgs.title') %></a></p>

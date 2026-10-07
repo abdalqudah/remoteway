@@ -1,0 +1,51 @@
+<%
+  var o = typeof old !== 'undefined' && old && Object.keys(old).length ? old : null;
+  var vals = values;
+  if (o && o.field_name) { var ns = [].concat(o.field_name), vs = [].concat(o.field_value || []); vals = {}; ns.forEach(function (n, i) { vals[n] = vs[i] || ''; }); }
+%>
+<div class="page-head">
+  <div><div class="eyebrow"><a href="/admin/templates"><%= t('tpl.title') %></a><%- icon('chevron-right', 'icon-sm flip-rtl') %></div><h1><%= tp.name %></h1><p><%- icon(tp.kind === 'docx' ? 'file-text' : 'pencil', 'icon-sm') %> <%= t('tpl.kind_' + tp.kind) %></p></div>
+  <div class="page-actions">
+    <% if (tp.kind === 'html') { %><a class="btn btn-secondary" href="/admin/templates/<%= tp.id %>/edit"><%- icon('pencil') %><%= t('tpl.edit_template') %></a><% } else { %><a class="btn btn-secondary" href="/admin/templates/<%= tp.id %>/download"><%- icon('download') %><%= t('tpl.download_template') %></a><% } %>
+    <form method="post" action="/admin/templates/<%= tp.id %>/delete" data-confirm="<%= t('tpl.delete_confirm') %>"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><button class="btn btn-danger-ghost" type="submit"><%- icon('trash-2') %><%= t('common.delete') %></button></form>
+  </div>
+</div>
+<div class="grid grid-3 align-start">
+  <form method="post" action="/admin/templates/<%= tp.id %>/generate" class="panel span-2" novalidate>
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+    <div class="panel-head"><div><h2><%- icon('send') %> <%= t('tpl.make_for') %></h2><div class="panel-sub"><%= t('tpl.make_for_sub') %></div></div></div>
+    <div class="panel-body stack">
+      <div class="field"><label class="label" for="f-contact"><%= t('tpl.customer') %></label>
+        <select class="select" id="f-contact" name="contact_id" data-contact-pick="/admin/templates/<%= tp.id %>">
+          <option value=""><%= t('tpl.no_customer') %></option>
+          <% contacts.forEach(function (c) { %><option value="<%= c.id %>"<%= contact && contact.id === c.id ? ' selected' : '' %>><%= c.name %><%= c.company_name && c.company_name !== c.name ? ' · ' + c.company_name : '' %></option><% }) %>
+        </select><span class="help"><%= t('tpl.customer_help') %></span></div>
+      <% if (!tp.fields.length) { %><div class="alert alert-info"><%- icon('info') %><div class="grow small"><%= t('tpl.no_fields_help') %></div></div><% } %>
+      <div class="grid grid-2">
+        <% tp.fields.forEach(function (f, i) { %><div class="field">
+          <label class="label" for="f-v<%= i %>"><span class="mono" dir="ltr">{<%= f %>}</span></label>
+          <input type="hidden" name="field_name" value="<%= f %>">
+          <input class="input" id="f-v<%= i %>" name="field_value" value="<%= vals[f] || '' %>">
+        </div><% }) %>
+      </div>
+      <%- include('../../../partials/field', { name: 'title', label: t('tpl.doc_title'), value: o ? o.title : '', placeholder: tp.name + (contact ? ' — ' + (contact.company_name || contact.name) : ''), help: t('tpl.doc_title_help') }) %>
+    </div>
+    <div class="panel-foot row-end"><button class="btn btn-dark" type="submit" data-busy><%- icon('file-check') %><%= t('tpl.create_and_send') %></button></div>
+  </form>
+  <div class="stack">
+    <% if (tp.kind === 'docx') { %>
+    <form method="post" action="/admin/templates/<%= tp.id %>/file" enctype="multipart/form-data" class="panel">
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+      <div class="panel-head"><h2><%- icon('upload') %> <%= t('tpl.replace_word') %></h2></div>
+      <div class="panel-body stack-sm"><p class="small muted"><%= tp.filename %></p><input class="input" name="file" type="file" accept=".docx" aria-label="<%= t('tpl.word_file') %>"></div>
+      <div class="panel-foot row-end"><button class="btn btn-secondary btn-sm" type="submit"><%= t('sales.upload') %></button></div>
+    </form>
+    <% } else { %>
+    <section class="panel"><div class="panel-head"><h2><%- icon('eye') %> <%= t('msgs.preview') %></h2></div><div class="panel-body"><div class="doc-body tpl-preview"><%- tp.body_html %></div></div></section>
+    <% } %>
+    <section class="panel"><div class="panel-head"><h2><%- icon('history') %> <%= t('tpl.made') %></h2></div>
+      <% if (!made.length) { %><div class="panel-body small muted"><%= t('tpl.none_made') %></div><% } else { %>
+      <ul class="timeline-list"><% made.forEach(function (m) { %><li><a class="link small" href="/admin/files/<%= m.id %>"><%= m.title %></a><div class="tiny muted"><%= m.contact_name || '' %> · <%= fmt.date(m.created_at, { dateStyle: 'medium' }) %></div></li><% }) %></ul><% } %>
+    </section>
+  </div>
+</div>

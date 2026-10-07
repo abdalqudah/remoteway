@@ -182,7 +182,7 @@ async function notifyStaff({ ticketId, kind }) {
     ? await knex('users').where({ id: t.assigned_to, status: 'active' }).select('email')
     : await knex('users').where({ is_super_admin: true, status: 'active' }).select('email');
   for (const s of staff) {
-    await mailer.send({
+    await mailer.send({ kind: 'support',
       to: s.email,
       subject: `[RemoteWay support] ${kind === 'new' ? 'New' : 'Reply'} · ${t.priority.toUpperCase()} · ${t.subject}`,
       html: mailer.layout({ locale: 'en', title: t.subject, body: `${t.organization_name} · ${t.created_by_name || ''} (${t.category}, ${t.priority}). First response due ${new Date(t.first_response_due).toISOString().replace('T', ' ').slice(0, 16)} UTC.`, cta: 'Open ticket', href: `${config.appUrl}/admin/support/${t.id}` }),

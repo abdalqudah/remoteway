@@ -56,7 +56,7 @@ router.post('/:key/test', wrap(async (req, res) => {
     flash(req, 'warning', req.t('msgs.test_off'));
   } else {
     const m = await messages.compose(def.key, locale, messages.sample(def.key, locale));
-    await mailer.send({ to: req.user.email, subject: `[TEST] ${m.subject}`, html: mailer.layout({ locale, title: m.title, body: m.body, cta: m.cta, href: config.appUrl }) });
+    await mailer.send({ kind: 'message_test', to: req.user.email, subject: `[TEST] ${m.subject}`, html: mailer.layout({ locale, title: m.title, body: m.body, cta: m.cta, href: config.appUrl }) });
     flash(req, 'success', req.t('msgs.test_sent', { email: req.user.email }));
   }
   res.redirect(`/admin/messages/${def.key}`);

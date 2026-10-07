@@ -21,10 +21,11 @@ async function requestReset(email, { ip, locale } = {}) {
   const mail = String(email || '').trim().toLowerCase();
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(mail)) throw E.validation({ email: 'Enter a valid email address.' });
   const user = await knex('users').where({ email: mail, status: 'active' }).whereNull('deleted_at').first('id', 'name', 'locale');
-  if (!user) return;
+  // The person always sees the same answer; the email log (platform team only) says what really happened.
+  if (!user) { await mailer.logNotSent({ kind: 'password_reset', to: mail, reason: 'no_account' }); return; }
   // At most 3 requests per hour per account
   const [{ n }] = await knex('password_resets').where({ user_id: user.id }).where('created_at', '>=', new Date(Date.now() - 3600_000)).count({ n: '*' });
-  if (Number(n) >= 3) return;
+  if (Number(n) >= 3) { await mailer.logNotSent({ kind: 'password_reset', to: mail, reason: 'too_many_requests' }); return; }
   const link = await issueResetLink(user.id, { ip, minutes: RESET_MINUTES });
   await emailResetLink({ ...user, email: mail }, link, { locale, minutes: RESET_MINUTES });
   await audit.record({ userId: user.id, ip }, 'auth.password_reset_requested', { entityType: 'user', entityId: user.id });
@@ -43,7 +44,7 @@ async function emailResetLink(user, link, { locale, minutes = RESET_MINUTES } = 
   const lang = user.locale || locale || 'en';
   const t = translator(lang);
   const m = await messages.compose('password_reset', lang, { duration: minutes >= 120 ? t('auth.dur_hours', { n: Math.round(minutes / 60) }) : t('auth.dur_minutes', { n: minutes }), app: 'RemoteWay' });
-  return mailer.send({
+  return mailer.send({ kind: 'password_reset',
     to: user.email, subject: m.subject,
     html: mailer.layout({ locale: lang, title: m.title, body: m.body, cta: m.cta, href: link }),
   }).then(() => true).catch((e) => { console.error('[mail] reset failed:', e.message); return false; }); // eslint-disable-line no-console
@@ -78,6 +79,7 @@ async function adminResetLink(ctx, userId, { organizationId = null } = {}) {
   }
   const link = await issueResetLink(user.id, { ip: ctx.ip, minutes: 24 * 60 });
   const emailed = canEmail() ? await emailResetLink(user, link, { minutes: 24 * 60 }) : false;
+  if (!canEmail()) await mailer.logNotSent({ kind: 'password_reset', to: user.email, reason: 'email_not_configured_link_shown' });
   if (emailOnly && !emailed) throw E.conflict('RESET_EMAIL_FAILED', 'The reset email could not be sent. Try again later.');
   await audit.record({ ...ctx, organizationId: organizationId || ctx.organizationId }, 'auth.password_reset_link_created', { entityType: 'user', entityId: user.id, newValues: { emailed, emailOnly } });
   return { link: emailOnly ? null : link, emailed, email: user.email };

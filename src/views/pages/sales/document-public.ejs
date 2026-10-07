@@ -1,0 +1,4 @@
+<article class="doc">
+  <header class="doc-head"><%- include('../../partials/sales/seller', { p: p }) %><div class="doc-meta"><div class="small muted"><%= fmt.date(f.created_at, { dateStyle: 'long' }) %></div></div></header>
+  <div class="doc-body"><%- f.body_html %></div>
+</article>

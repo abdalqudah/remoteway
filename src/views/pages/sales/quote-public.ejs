@@ -1,30 +1,80 @@
 <%
   var errs = typeof errors !== 'undefined' && errors ? errors : {};
   var o = typeof old !== 'undefined' && old ? old : {};
+  var open = ['accepted', 'declined', 'expired'].indexOf(state) === -1;
+  var err = function (k) { return errs[k] ? '<span class="field-error">' + escapeHtml(errs[k]) + '</span>' : ''; };
 %>
 <% if (state === 'accepted') { %>
-<div class="alert alert-success mb-6 no-print"><%- icon('circle-check') %><div class="grow"><div class="alert-title"><%= t('sales.public_accepted', { date: fmt.date(q.responded_at, { dateStyle: 'medium' }) }) %></div><div class="small"><%= t('sales.public_accepted_sub') %></div></div></div>
+<div class="alert alert-success mb-6 no-print"><%- icon('circle-check') %><div class="grow"><div class="alert-title"><%= t('sales.public_accepted', { date: fmt.date(q.responded_at, { dateStyle: 'medium' }) }) %></div><div class="small"><%= t('sales.public_signed_copy') %></div>
+  <form method="post" action="/quote/<%= q.token %>/email-copy" class="row-sm wrap mt-2"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><input class="input" name="email" type="email" dir="ltr" value="<%= q.customer_email || '' %>" placeholder="name@company.com" style="max-width:260px" aria-label="<%= t('fields.email') %>"><button class="btn btn-secondary btn-sm" type="submit"><%- icon('mail', 'icon-sm') %><%= t('sales.email_me_copy') %></button><button class="btn btn-dark btn-sm" type="button" data-print><%- icon('download', 'icon-sm') %><%= t('sales.print_signed') %></button></form>
+</div></div>
 <% } else if (state === 'declined') { %>
 <div class="alert alert-info mb-6 no-print"><%- icon('info') %><div class="grow small"><%= t('sales.public_declined') %></div></div>
 <% } else if (state === 'expired') { %>
 <div class="alert alert-warning mb-6 no-print"><%- icon('clock') %><div class="grow small"><%= t('sales.public_expired') %></div></div>
+<% } else if (state === 'negotiating') { %>
+<div class="alert alert-info mb-6 no-print"><%- icon('message-circle') %><div class="grow small"><%= t('sales.public_negotiating') %></div></div>
 <% } %>
 <%- include('../../partials/sales/quote-doc', { q: q, p: p }) %>
-<% if (['accepted', 'declined', 'expired'].indexOf(state) === -1) { %>
+
+<% if (events.some(function (e) { return ['negotiation', 'reply', 'revised'].indexOf(e.type) !== -1; })) { %>
+<section class="doc-respond no-print"><h2 class="h3"><%= t('sales.conversation') %></h2><%- include('../../partials/sales/conversation', { events: events, q: q }) %></section>
+<% } %>
+
+<% if (open) { %>
 <section class="doc-respond no-print" id="respond">
   <h2 class="h3"><%= t('sales.public_respond') %></h2>
   <p class="small muted"><%= t('sales.public_respond_sub', { date: fmt.date(q.valid_until) }) %></p>
-  <% if (typeof formError !== 'undefined' && formError && !Object.keys(errs).length) { %><div class="alert alert-error mb-4"><%- icon('circle-alert') %><div class="grow small"><%= formError.message %></div></div><% } %>
-  <form method="post" action="/quote/<%= q.token %>/respond" class="stack" novalidate>
+  <nav class="tabs mb-4"><% ['accept', 'negotiate', 'decline'].forEach(function (x) { %><a href="?tab=<%= x %>#respond" class="<%= tab === x ? 'active' : '' %>"><%= t('sales.tab_' + x) %></a><% }) %></nav>
+
+  <% if (tab === 'accept') { %>
+  <form method="post" action="/quote/<%= q.token %>/accept" enctype="multipart/form-data" class="stack" data-sign-form novalidate>
     <input type="hidden" name="_csrf" value="<%= csrfToken %>">
     <div class="grid grid-2">
-      <%- include('../../partials/field', { name: 'name', label: t('sales.your_name'), value: o.name || '', required: true }) %>
-      <%- include('../../partials/field', { name: 'note', label: t('sales.your_note'), value: o.note || '' }) %>
+      <%- include('../../partials/field', { name: 'name', label: t('sales.your_name'), value: o.name || q.customer_name || '', required: true, errors: errs, old: {} }) %>
+      <%- include('../../partials/field', { name: 'title', label: t('sales.your_title'), value: o.title || '', placeholder: t('sales.your_title_ph'), errors: errs, old: {} }) %>
     </div>
-    <div class="row-sm wrap">
-      <button class="btn btn-primary" type="submit" name="action" value="accept" data-busy><%- icon('circle-check') %><%= t('sales.accept') %></button>
-      <button class="btn btn-ghost" type="submit" name="action" value="decline" formnovalidate><%= t('sales.decline') %></button>
+    <div class="field">
+      <span class="label"><%= t('sales.signature') %><span class="req">*</span></span>
+      <div class="sign-pad"><canvas data-signature-pad width="640" height="200" aria-label="<%= t('sales.sign_here') %>"></canvas><span class="sign-hint" data-sign-hint><%= t('sales.sign_here') %></span></div>
+      <input type="hidden" name="signature" data-signature-value>
+      <div class="row between wrap"><span class="help"><%= t('sales.sign_help') %></span><button class="btn btn-ghost btn-sm" type="button" data-signature-clear><%- icon('refresh-cw', 'icon-sm') %><%= t('sales.clear_signature') %></button></div>
+      <%- err('signature') %>
     </div>
+    <div class="field">
+      <label class="label" for="f-stamp"><%= t('sales.stamp') %><span class="req">*</span></label>
+      <input class="input" id="f-stamp" name="stamp" type="file" accept="image/png,image/jpeg">
+      <span class="help"><%= t('sales.stamp_help') %></span><%- err('stamp') %>
+    </div>
+    <details class="sign-alt"<%= errs.signed_file ? ' open' : '' %>><summary class="small"><%= t('sales.or_upload_signed') %></summary>
+      <div class="field mt-2"><input class="input" name="signed_file" type="file" accept="application/pdf,image/png,image/jpeg" aria-label="<%= t('sales.signed_file') %>"><span class="help"><%= t('sales.signed_file_help') %></span><%- err('signed_file') %></div>
+    </details>
+    <%- include('../../partials/field', { name: 'note', label: t('sales.your_note'), value: o.note || '', errors: errs, old: {} }) %>
+    <p class="small muted"><%= t('sales.accept_legal') %></p>
+    <div><button class="btn btn-primary" type="submit" data-busy><%- icon('circle-check') %><%= t('sales.accept_and_sign') %></button></div>
   </form>
+  <% } else if (tab === 'negotiate') { %>
+  <form method="post" action="/quote/<%= q.token %>/negotiate" class="stack" novalidate>
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+    <p class="small"><%= t('sales.negotiate_help', { total: fmt.money(q.total, q.currency) }) %></p>
+    <div class="grid grid-2">
+      <%- include('../../partials/field', { name: 'amount', label: t('sales.proposed_amount'), value: o.amount || '', attrs: 'dir="ltr" inputmode="decimal"', help: t('sales.proposed_amount_help', { currency: q.currency }), errors: errs, old: {} }) %>
+      <%- include('../../partials/field', { name: 'name', label: t('sales.your_name'), value: o.name || q.customer_name || '', errors: errs, old: {} }) %>
+    </div>
+    <div class="field"><label class="label" for="f-message"><%= t('sales.message') %><span class="req">*</span></label><textarea class="textarea<%= errs.message ? ' is-invalid' : '' %>" id="f-message" name="message" rows="4" placeholder="<%= t('sales.negotiate_ph') %>"><%= o.message || '' %></textarea><%- err('message') %></div>
+    <div><button class="btn btn-dark" type="submit" data-busy><%- icon('send') %><%= t('sales.send_negotiation') %></button></div>
+  </form>
+  <% } else { %>
+  <form method="post" action="/quote/<%= q.token %>/decline" class="stack" novalidate>
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+    <fieldset class="field"><legend class="label"><%= t('sales.decline_reason') %><span class="req">*</span></legend>
+      <div class="stack-sm"><% reasons.forEach(function (r) { %><label class="check"><input type="radio" name="reason" value="<%= r %>"<%= o.reason === r ? ' checked' : '' %>><span><%= t('sales.reason_' + r) %></span></label><% }) %></div><%- err('reason') %>
+    </fieldset>
+    <div class="field"><label class="label" for="f-dnote"><%= t('sales.decline_note') %></label><textarea class="textarea<%= errs.note ? ' is-invalid' : '' %>" id="f-dnote" name="note" rows="3"><%= o.note || '' %></textarea><%- err('note') %></div>
+    <%- include('../../partials/field', { name: 'name', label: t('sales.your_name'), value: o.name || q.customer_name || '', errors: errs, old: {} }) %>
+    <p class="small muted"><%= t('sales.decline_alt') %> <a class="link" href="?tab=negotiate#respond"><%= t('sales.tab_negotiate') %></a></p>
+    <div><button class="btn btn-danger" type="submit"><%= t('sales.confirm_decline') %></button></div>
+  </form>
+  <% } %>
 </section>
 <% } %>

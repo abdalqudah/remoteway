@@ -15,13 +15,27 @@ const events = require('./events');
 const parse = (v, d) => { if (v == null) return d; if (typeof v !== 'string') return v; try { return JSON.parse(v); } catch { return d; } };
 const maskPhone = (p) => (p ? `${String(p).slice(0, 4)}•••${String(p).slice(-3)}` : null);
 
-/** Phone → international digits (Saudi local numbers 05xxxxxxxx become 9665xxxxxxxx). */
+// Country codes whose national numbers start with a 0 that is dropped after the code (+966 0 5x… → +966 5x…).
+const TRUNK_ZERO = ['966', '971', '962', '965', '968', '973', '974', '961', '963', '964', '967', '970', '20', '212', '213', '216', '218', '249', '90', '44', '92', '91', '60', '62', '63', '33', '49', '39', '34', '31', '32', '41', '43'];
+const LOCAL = { SA: ['966', /^05\d{8}$/], AE: ['971', /^05\d{8}$/], JO: ['962', /^07\d{8}$/], KW: ['965', null], QA: ['974', null], BH: ['973', null], OM: ['968', null], EG: ['20', /^01\d{9}$/] };
+
+/**
+ * Phone → international digits for SMS and WhatsApp links. Accepts +966…, 00966…, 966…, a local 05… number,
+ * Arabic-Indic digits, spaces, dashes and brackets, and drops the 0 some people write after the country code
+ * (+966 05… or 00966 05… → 9665…), which WhatsApp otherwise reports as a number that does not exist.
+ */
 function normalizePhone(raw, countryCode = 'SA') {
-  let d = String(raw || '').replace(/[^\d+]/g, '');
+  let d = String(raw || '')
+    .replace(/[٠-٩]/g, (c) => String(c.charCodeAt(0) - 0x0660)).replace(/[۰-۹]/g, (c) => String(c.charCodeAt(0) - 0x06f0))
+    .replace(/[^\d+]/g, '');
+  const local = LOCAL[countryCode] || LOCAL.SA;
   if (d.startsWith('+')) d = d.slice(1);
   else if (d.startsWith('00')) d = d.slice(2);
-  else if (countryCode === 'SA' && /^05\d{8}$/.test(d)) d = `966${d.slice(1)}`;
+  else if (local[1] && local[1].test(d)) d = `${local[0]}${d.slice(1)}`;
   else if (countryCode === 'SA' && /^5\d{8}$/.test(d)) d = `966${d}`;
+  d = d.replace(/\+/g, '');
+  const cc = TRUNK_ZERO.find((c) => d.startsWith(`${c}0`));
+  if (cc && d.length > cc.length + 8) d = cc + d.slice(cc.length + 1);
   return /^\d{9,15}$/.test(d) ? d : null;
 }
 

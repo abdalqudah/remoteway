@@ -30,7 +30,7 @@ async function send(user, { locale } = {}) {
   await knex('email_verifications').insert({ user_id: user.id, email: user.email, token_hash: sha256(token), expires_at: new Date(Date.now() + HOURS * 3600_000) });
   const lang = user.locale || locale || 'en';
   const m = await messages.compose('verify_email', lang, { name: user.name, hours: HOURS, app: 'RemoteWay' });
-  await mailer.send({
+  await mailer.send({ kind: 'verify_email',
     to: user.email, subject: m.subject,
     html: mailer.layout({ locale: lang, title: m.title, body: m.body, cta: m.cta, href: `${config.appUrl.replace(/\/+$/, '')}/verify-email/${token}` }),
   }).catch((e) => console.error('[mail] verification failed:', e.message)); // eslint-disable-line no-console

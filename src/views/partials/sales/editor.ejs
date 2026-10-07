@@ -1,0 +1,31 @@
+<%
+  // name (textarea field name), html (current), known (placeholder names); errors
+  var _e = typeof errors !== 'undefined' && errors ? errors : {};
+%>
+<div class="rte" data-editor>
+  <div class="rte-bar" role="toolbar" aria-label="<%= t('tpl.toolbar') %>">
+    <button type="button" class="rte-btn" data-cmd="bold" title="<%= t('tpl.bold') %>"><strong>B</strong></button>
+    <button type="button" class="rte-btn" data-cmd="italic" title="<%= t('tpl.italic') %>"><em>I</em></button>
+    <button type="button" class="rte-btn" data-cmd="underline" title="<%= t('tpl.underline') %>"><u>U</u></button>
+    <span class="rte-sep"></span>
+    <button type="button" class="rte-btn" data-cmd="formatBlock" data-arg="h2" title="<%= t('tpl.heading') %>">H2</button>
+    <button type="button" class="rte-btn" data-cmd="formatBlock" data-arg="h3" title="<%= t('tpl.subheading') %>">H3</button>
+    <button type="button" class="rte-btn" data-cmd="formatBlock" data-arg="p" title="<%= t('tpl.paragraph') %>">¶</button>
+    <span class="rte-sep"></span>
+    <button type="button" class="rte-btn" data-cmd="insertUnorderedList" title="<%= t('tpl.bullets') %>">•</button>
+    <button type="button" class="rte-btn" data-cmd="insertOrderedList" title="<%= t('tpl.numbers') %>">1.</button>
+    <span class="rte-sep"></span>
+    <button type="button" class="rte-btn" data-cmd="justifyRight" title="<%= t('tpl.align_right') %>">⇥</button>
+    <button type="button" class="rte-btn" data-cmd="justifyCenter" title="<%= t('tpl.align_center') %>">↔</button>
+    <button type="button" class="rte-btn" data-cmd="justifyLeft" title="<%= t('tpl.align_left') %>">⇤</button>
+    <span class="rte-sep"></span>
+    <button type="button" class="rte-btn" data-cmd="undo" title="<%= t('tpl.undo') %>">↶</button>
+  </div>
+  <div class="rte-area doc-body" contenteditable="true" data-editor-area dir="auto" aria-label="<%= t('tpl.document') %>"><%- html || '' %></div>
+  <textarea name="<%= name %>" hidden data-editor-value><%= html || '' %></textarea>
+  <div class="rte-ph"><span class="small muted"><%= t('tpl.insert_field') %>:</span>
+    <% known.filter(function (k) { return /^[a-z_]+$/.test(k); }).forEach(function (k) { %><button type="button" class="chip-btn" data-editor-insert="{<%= k %>}"><span class="mono" dir="ltr">{<%= k %>}</span></button><% }) %>
+    <button type="button" class="chip-btn" data-editor-custom="<%= t('tpl.custom_prompt') %>">+ <%= t('tpl.custom_field') %></button>
+  </div>
+  <% if (_e[name]) { %><span class="field-error"><%= _e[name] %></span><% } %>
+</div>

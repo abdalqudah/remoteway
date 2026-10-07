@@ -9,11 +9,32 @@
   </div>
 </div>
 <% if (q.status === 'accepted' || q.status === 'declined') { %>
-<div class="alert alert-<%= q.status === 'accepted' ? 'success' : 'error' %> mb-6"><%- icon(q.status === 'accepted' ? 'circle-check' : 'circle-x') %><div class="grow"><div class="alert-title"><%= t('sales.answered_' + q.status, { name: q.response_name || q.customer_name, date: fmt.date(q.responded_at, { dateStyle: 'medium', timeStyle: 'short' }) }) %></div><% if (q.response_note) { %><div class="small mt-1"><%= q.response_note %></div><% } %></div></div>
+<div class="alert alert-<%= q.status === 'accepted' ? 'success' : 'error' %> mb-6"><%- icon(q.status === 'accepted' ? 'circle-check' : 'circle-x') %><div class="grow"><div class="alert-title"><%= t('sales.answered_' + q.status, { name: q.response_name || q.customer_name, date: fmt.date(q.responded_at, { dateStyle: 'medium', timeStyle: 'short' }) }) %></div>
+  <% if (q.decline_reason) { %><div class="small mt-1"><%= t('sales.reason') %>: <strong><%= t('sales.reason_' + q.decline_reason) %></strong></div><% } %>
+  <% if (q.response_note) { %><div class="small mt-1"><%= q.response_note %></div><% } %>
+  <% if (q.status === 'accepted') { %><div class="small mt-1"><%= q.signature_key ? '✓ ' + t('sales.signature') : '' %> <%= q.stamp_key ? ' ✓ ' + t('sales.stamp') : '' %> <% if (q.signed_file_key) { %> ✓ <a class="link" href="/quote/<%= q.token %>/signed-file" target="_blank" rel="noopener"><%= t('sales.signed_file') %></a><% } %></div><% } %>
+</div></div>
+<% } else if (state === 'negotiating') { %>
+<div class="alert alert-warning mb-6"><%- icon('message-circle') %><div class="grow"><div class="alert-title"><%= t('sales.admin_negotiating') %></div><div class="small"><%= t('sales.admin_negotiating_help') %></div></div><a class="btn btn-dark btn-sm" href="/admin/quotes/<%= q.id %>/edit"><%- icon('pencil', 'icon-sm') %><%= t('sales.revise_offer') %></a></div>
 <% } %>
 <div class="grid grid-3 align-start">
   <div class="span-2 stack">
     <section class="panel"><div class="panel-body"><%- include('../../../partials/sales/quote-doc', { q: q, p: p }) %></div></section>
+    <section class="panel" id="conversation">
+      <div class="panel-head"><div><h2><%- icon('message-circle') %> <%= t('sales.conversation') %></h2><div class="panel-sub"><%= t('sales.conversation_sub') %></div></div></div>
+      <div class="panel-body stack">
+        <%- include('../../../partials/sales/conversation', { events: events, q: q, teamView: true }) %>
+        <% if (!events.some(function (e) { return ['negotiation', 'reply', 'revised'].indexOf(e.type) !== -1; })) { %><p class="small muted"><%= t('sales.no_conversation') %></p><% } %>
+        <% if (['accepted', 'declined'].indexOf(q.status) === -1) { %>
+        <form method="post" action="/admin/quotes/<%= q.id %>/reply" class="stack-sm">
+          <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+          <textarea class="textarea" name="message" rows="3" placeholder="<%= t('sales.reply_ph') %>" aria-label="<%= t('sales.message') %>"></textarea>
+          <div class="row between wrap"><label class="check small"><input type="hidden" name="email" value="0"><input type="checkbox" name="email" value="1"<%= q.customer_email ? ' checked' : ' disabled' %>><span><%= t('sales.reply_email', { email: q.customer_email || '—' }) %></span></label>
+            <button class="btn btn-dark btn-sm" type="submit"><%- icon('send', 'icon-sm') %><%= t('sales.send_reply') %></button></div>
+        </form>
+        <% } %>
+      </div>
+    </section>
     <% if (q.contact_id) { %><p class="small muted"><%- icon('users', 'icon-sm') %> <a class="link" href="/admin/crm/contacts/<%= q.contact_id %>"><%= t('sales.open_in_crm') %></a></p><% } %>
   </div>
   <div class="stack">

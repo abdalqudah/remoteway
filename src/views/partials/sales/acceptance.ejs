@@ -1,0 +1,15 @@
+<% if (q.status === 'accepted') { var _base = '/quote/' + q.token; %>
+<section class="doc-block doc-accept">
+  <div class="label"><%= t('sales.acceptance') %></div>
+  <div class="doc-accept-grid">
+    <div class="small">
+      <div><span class="muted"><%= t('sales.signed_by') %>:</span> <strong><%= q.response_name %></strong><%= q.signer_title ? ' · ' + q.signer_title : '' %></div>
+      <div><span class="muted"><%= t('sales.signed_on') %>:</span> <%= fmt.date(q.responded_at, { dateStyle: 'medium', timeStyle: 'short' }) %></div>
+      <% if (q.response_note) { %><div class="mt-1"><span class="muted"><%= t('sales.note') %>:</span> <%= q.response_note %></div><% } %>
+      <% if (q.signed_file_key) { %><div class="mt-2 no-print"><a class="link" href="<%= _base %>/signed-file" target="_blank" rel="noopener"><%- icon('file-check', 'icon-sm') %> <%= t('sales.signed_file') %></a></div><% } %>
+    </div>
+    <% if (q.signature_key) { %><figure class="doc-sign"><img src="<%= _base %>/signature" alt="<%= t('sales.signature') %>"><figcaption class="tiny muted"><%= t('sales.signature') %></figcaption></figure><% } %>
+    <% if (q.stamp_key) { %><figure class="doc-sign"><img src="<%= _base %>/stamp" alt="<%= t('sales.stamp') %>"><figcaption class="tiny muted"><%= t('sales.stamp') %></figcaption></figure><% } %>
+  </div>
+</section>
+<% } %>

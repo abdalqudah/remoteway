@@ -260,7 +260,7 @@ async function sendReminders(now = new Date()) {
   for (const f of due) {
     await knex('crm_followups').where({ id: f.id }).update({ reminded_at: new Date() });
     if (mailer.enabled()) {
-      await mailer.send({ to: f.email, subject: `CRM follow-up: ${f.name}`, html: mailer.layout({ locale: f.locale || 'en', title: `Follow up with ${f.name}`, body: f.note || '', cta: 'Open contact', href: `${config.appUrl}/admin/crm/contacts/${f.contact_id}` }) }).catch(() => {});
+      await mailer.send({ kind: 'crm_followup', to: f.email, subject: `CRM follow-up: ${f.name}`, html: mailer.layout({ locale: f.locale || 'en', title: `Follow up with ${f.name}`, body: f.note || '', cta: 'Open contact', href: `${config.appUrl}/admin/crm/contacts/${f.contact_id}` }) }).catch(() => {});
     }
   }
   return due.length;

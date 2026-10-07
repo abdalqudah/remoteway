@@ -1,14 +1,22 @@
 <div class="page-head">
   <div><div class="eyebrow"><a href="/admin/files"><%= t('admin.files') %></a><%- icon('chevron-right', 'icon-sm flip-rtl') %></div><h1><%= f.title %></h1><p class="small" dir="ltr" style="text-align:start"><%= f.filename %> · <%= (f.size / 1048576).toFixed(1) %> MB</p></div>
   <div class="page-actions">
-    <a class="btn btn-secondary" href="/admin/files/<%= f.id %>/download"><%- icon('download') %><%= t('sales.download') %></a>
+    <a class="btn btn-secondary" href="/admin/files/<%= f.id %>/download"<%= f.body_html ? ' target="_blank"' : '' %>><%- icon(f.body_html ? 'eye' : 'download') %><%= f.body_html ? t('tpl.view_document') : t('sales.download') %></a>
     <form method="post" action="/admin/files/<%= f.id %>/delete" data-confirm="<%= t('sales.file_delete_confirm') %>"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><button class="btn btn-danger-ghost" type="submit"><%- icon('trash-2') %><%= t('common.delete') %></button></form>
   </div>
 </div>
 <div class="grid grid-3 align-start">
   <div class="span-2 stack">
     <% if (contact) { %><div class="alert alert-info"><%- icon('users') %><div class="grow small"><%= t('sales.sending_to_contact') %> <a class="link" href="/admin/crm/contacts/<%= contact.id %>"><%= contact.name %></a></div></div><% } %>
-    <%- include('../../../partials/sales/send-panel', { base: '/admin/files/' + f.id, contactId: contact ? contact.id : null }) %>
+    <%- include('../../../partials/sales/send-panel', { base: '/admin/files/' + f.id, contactId: contact ? contact.id : (f.contact_id || null) }) %>
+    <% if (f.body_html) { %>
+    <form method="post" action="/admin/files/<%= f.id %>/body" class="panel" data-editor-form>
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>"><input type="hidden" name="title" value="<%= f.title %>">
+      <div class="panel-head"><div><h2><%- icon('pencil') %> <%= t('tpl.edit_document') %></h2><div class="panel-sub"><%= t('tpl.edit_document_sub') %></div></div></div>
+      <div class="panel-body"><%- include('../../../partials/sales/editor', { name: 'body_html', html: f.body_html, known: [] }) %></div>
+      <div class="panel-foot row-end"><button class="btn btn-dark btn-sm" type="submit"><%- icon('check', 'icon-sm') %><%= t('common.save') %></button></div>
+    </form>
+    <% } %>
   </div>
   <div class="stack">
     <form method="post" action="/admin/files/<%= f.id %>" class="panel">

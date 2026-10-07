@@ -5,7 +5,7 @@
   <div class="table-wrap"><table class="table">
     <thead><tr><th><%= t('sales.file') %></th><th class="text-end"><%= t('sales.size') %></th><th class="text-end"><%= t('sales.opens') %></th><th></th></tr></thead>
     <tbody><% files.forEach(function (f) { %><tr<%= f.active ? '' : ' class="muted"' %>>
-      <td><a class="link" href="/admin/files/<%= f.id %>" style="font-weight:600"><%= f.title %></a><% if (!f.active) { %> <span class="badge"><%= t('sales.inactive') %></span><% } %><div class="small muted" dir="ltr" style="text-align:start"><%= f.filename %></div></td>
+      <td><a class="link" href="/admin/files/<%= f.id %>" style="font-weight:600"><%= f.title %></a><% if (!f.active) { %> <span class="badge"><%= t('sales.inactive') %></span><% } %><div class="small muted"><% if (f.contact_name) { %><%- icon('user', 'icon-sm') %> <%= f.contact_name %> · <% } %><% if (f.template_name) { %><%- icon('file-text', 'icon-sm') %> <%= f.template_name %> · <% } %><span dir="ltr"><%= f.filename %></span></div></td>
       <td class="text-end num nowrap"><%= (f.size / 1048576).toFixed(1) %> MB</td>
       <td class="text-end num"><%= f.open_count %></td>
       <td class="text-end"><a class="btn btn-secondary btn-sm" href="/admin/files/<%= f.id %>#send"><%- icon('send', 'icon-sm') %><%= t('sales.send') %></a></td>

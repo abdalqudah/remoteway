@@ -318,7 +318,7 @@ async function deliver({ scheduleId }) {
     const t = translator(user.locale);
     const table = toTable(result, t);
     const m = await messages.compose('report_delivery', user.locale, { report: report.name, rows: result.rows.length, app: brand ? brand.name : 'RemoteWay' });
-    await mailer.send({
+    await mailer.send({ kind: 'report',
       to: user.email,
       subject: m.subject,
       html: mailer.layout({ locale: user.locale, title: m.title, body: m.body, cta: m.cta, href: `${base}/app/reports/saved/${report.id}`, brand }),

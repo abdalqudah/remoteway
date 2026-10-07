@@ -205,7 +205,7 @@ async function invite(ctx, profileId, { job_id: jobId, message }) {
     const org = await knex('organizations').where({ id: ctx.organizationId }).first('name');
     const u = await knex('users').where({ id: p.user_id }).first('email', 'locale');
     const m = await messages.compose('talent_invite', u.locale, { org: org.name, job: job ? job.title : '', message: message ? str(message, 600) : '', app: 'RemoteWay' });
-    await mailer.send({
+    await mailer.send({ kind: 'talent_invite',
       to: u.email,
       subject: m.subject,
       html: mailer.layout({ locale: u.locale, title: m.title, body: m.body, cta: m.cta, href: `${config.appUrl}/me` }),

@@ -9,6 +9,7 @@ const access = require('../admin/access');
 const knex = require('../../db/knex');
 const storage = require('../../core/storage');
 const sales = require('./sales.service');
+const response = require('./quote-response.service');
 
 const router = express.Router();
 const STATES = ['draft', 'sent', 'viewed', 'accepted', 'declined', 'expired'];
@@ -68,6 +69,27 @@ router.post('/quotes/settings', form(async (req, res) => {
   res.redirect('/admin/quotes/settings');
 }, renderSettings));
 
+// ---------- Services catalog ----------
+const renderServices = async (req, res, extra = {}) => {
+  res.page('pages/admin/sales/services', { layout: 'admin', title: req.t('sales.services_title'), services: await sales.listServices(), p: await sales.profile(), editId: Number(req.query.edit) || null, ...extra });
+};
+router.get('/quotes/services', wrap(renderServices));
+router.post('/quotes/services', form(async (req, res) => {
+  await sales.saveService(req.ctx, null, req.body);
+  flash(req, 'success', req.t('common.saved'));
+  res.redirect('/admin/quotes/services');
+}, renderServices));
+router.post('/quotes/services/:sid', form(async (req, res) => {
+  await sales.saveService(req.ctx, req.params.sid, req.body);
+  flash(req, 'success', req.t('common.saved'));
+  res.redirect('/admin/quotes/services');
+}, (req, res, extra) => renderServices(req, res, { ...extra, editId: Number(req.params.sid) })));
+router.post('/quotes/services/:sid/delete', wrap(async (req, res) => {
+  const r = await sales.removeService(req.ctx, req.params.sid);
+  flash(req, 'success', req.t(r === 'deleted' ? 'sales.service_deleted' : 'sales.service_deactivated'));
+  res.redirect('/admin/quotes/services');
+}));
+
 // ---------- Quotations ----------
 router.get('/quotes', wrap(async (req, res) => {
   const all = await sales.listQuotes();
@@ -82,7 +104,8 @@ const renderForm = async (req, res, extra = {}) => {
   let contact = null;
   const cid = Number(req.query.contact) || (q && q.contact_id);
   if (cid) contact = await knex('crm_contacts').where({ id: cid }).first();
-  res.page('pages/admin/sales/quote-form', { layout: 'admin', title: q ? `${req.t('sales.edit_quote')} ${q.number}` : req.t('sales.new_quote'), q, contact, p, ...extra });
+  const services = (await sales.listServices({ activeOnly: true })).map((sv) => ({ ...sv, text_ar: sales.serviceText(sv, 'ar'), text_en: sales.serviceText(sv, 'en') }));
+  res.page('pages/admin/sales/quote-form', { layout: 'admin', title: q ? `${req.t('sales.edit_quote')} ${q.number}` : req.t('sales.new_quote'), q, contact, p, services, ...extra });
 };
 router.get('/quotes/new', wrap(renderForm));
 router.post('/quotes', form(async (req, res) => {
@@ -93,12 +116,23 @@ router.post('/quotes', form(async (req, res) => {
 
 router.get('/quotes/:id', wrap(async (req, res) => {
   const q = await sales.getQuote(req.params.id);
-  res.page('pages/admin/sales/quote', { layout: 'admin', title: q.number, q, state: sales.quoteState(q), p: await sales.profile(), ...(await panel(req, res, 'quote', q.id)) });
+  res.page('pages/admin/sales/quote', { layout: 'admin', title: q.number, q, state: sales.quoteState(q), p: await sales.profile(), events: await response.events(q.id), reasons: response.DECLINE_REASONS, ...(await panel(req, res, 'quote', q.id)) });
+}));
+router.post('/quotes/:id/reply', wrap(async (req, res) => {
+  try {
+    await response.teamReply(req.ctx, req.params.id, { ...req.body, base: res.locals.baseUrl });
+    flash(req, 'success', req.t('sales.reply_sent'));
+  } catch (e) {
+    if (!(e instanceof AppError)) throw e;
+    flash(req, 'error', e.details ? Object.values(e.details).map((m) => translateMessage(req.locale, m)).join(' ') : translateMessage(req.locale, e.message));
+  }
+  res.redirect(`/admin/quotes/${Number(req.params.id)}#conversation`);
 }));
 router.get('/quotes/:id/edit', wrap(renderForm));
 router.post('/quotes/:id', form(async (req, res) => {
-  await sales.updateQuote(req.ctx, req.params.id, req.body);
-  flash(req, 'success', req.t('sales.quote_saved'));
+  const before = await sales.updateQuote(req.ctx, req.params.id, req.body);
+  await response.markRevised(req.ctx, before); // the customer was negotiating: this is the revised offer
+  flash(req, 'success', req.t(before.status === 'negotiating' ? 'sales.quote_revised' : 'sales.quote_saved'));
   res.redirect(`/admin/quotes/${Number(req.params.id)}`);
 }, renderForm));
 router.post('/quotes/:id/duplicate', wrap(async (req, res) => {
@@ -137,13 +171,24 @@ router.get('/files/:id', wrap(async (req, res) => {
 }));
 router.get('/files/:id/download', wrap(async (req, res) => {
   const f = await sales.getFile(req.params.id);
+  if (f.body_html) return res.redirect(`/file/${f.token}`);
   res.set('Content-Type', f.mime);
   res.set('Content-Disposition', `attachment; filename*=UTF-8''${encodeURIComponent(f.filename)}`);
-  storage.createReadStream(f.storage_key).on('error', () => res.status(404).end()).pipe(res);
+  return storage.createReadStream(f.storage_key).on('error', () => res.status(404).end()).pipe(res);
 }));
 router.post('/files/:id', wrap(async (req, res) => {
   try {
     await sales.updateFile(req.ctx, req.params.id, req.body);
+    flash(req, 'success', req.t('common.saved'));
+  } catch (e) {
+    if (!(e instanceof AppError)) throw e;
+    flash(req, 'error', e.details ? Object.values(e.details).map((m) => translateMessage(req.locale, m)).join(' ') : translateMessage(req.locale, e.message));
+  }
+  res.redirect(`/admin/files/${Number(req.params.id)}`);
+}));
+router.post('/files/:id/body', wrap(async (req, res) => {
+  try {
+    await require('./templates.service').updateDocumentBody(req.ctx, req.params.id, req.body); // eslint-disable-line global-require
     flash(req, 'success', req.t('common.saved'));
   } catch (e) {
     if (!(e instanceof AppError)) throw e;

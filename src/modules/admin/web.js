@@ -220,6 +220,19 @@ router.post('/email/policy', wrap(async (req, res) => {
   res.redirect('/admin/email');
 }));
 router.get('/email', wrap((req, res) => renderEmail(req, res)));
+// Every email the platform tried to send: sent, failed (with the server's answer) or not sent and why.
+router.get('/email/log', wrap(async (req, res) => {
+  const f = { q: String(req.query.q || '').trim().slice(0, 120), status: ['sent', 'failed', 'not_sent'].includes(req.query.status) ? req.query.status : '', kind: String(req.query.kind || '').replace(/[^a-z_]/g, '').slice(0, 40) };
+  const q = knex('email_log as l').leftJoin('organizations as o', 'o.id', 'l.organization_id');
+  if (f.q) q.where('l.to_addr', 'like', `%${f.q.replace(/[%_]/g, '\\$&')}%`);
+  if (f.status) q.where('l.status', f.status);
+  if (f.kind) q.where('l.kind', f.kind);
+  const rows = await q.select('l.*', 'o.name as org_name').orderBy('l.id', 'desc').limit(200);
+  const since = new Date(Date.now() - 7 * 86_400_000);
+  const stats = Object.fromEntries((await knex('email_log').where('created_at', '>=', since).groupBy('status').select('status').count({ n: '*' })).map((r) => [r.status, Number(r.n)]));
+  const kinds = (await knex('email_log').distinct('kind').orderBy('kind')).map((r) => r.kind);
+  res.page('pages/admin/email-log', { layout: 'admin', title: req.t('maillog.title'), rows, f, stats, kinds, configured: mailer.enabled() });
+}));
 // JSON for scripts and the UI: never the password (masked when one is stored).
 router.get('/email/settings', wrap(async (req, res) => {
   const saved = await savedSmtp();
@@ -364,6 +377,7 @@ router.post('/ai/test', form(async (req, res) => {
 // ---------- Internal CRM ----------
 router.use('/crm', require('../crm/web'));
 router.use('/messages', require('../sales/messages.web'));
+router.use('/templates', require('../sales/templates.web'));
 router.use('/', require('../sales/admin.web')); // quotations, files to send, sending invoices
 
 // ---------- Database backups ----------

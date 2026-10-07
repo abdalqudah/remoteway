@@ -1,0 +1,35 @@
+<div class="page-head">
+  <div><div class="eyebrow"><a href="/admin/email"><%= t('admin.email') %></a><%- icon('chevron-right', 'icon-sm flip-rtl') %></div><h1><%= t('maillog.title') %></h1><p><%= t('maillog.sub') %></p></div>
+</div>
+<% if (!configured) { %><div class="alert alert-error mb-6"><%- icon('circle-alert') %><div class="grow"><div class="alert-title"><%= t('maillog.not_configured') %></div><div class="small"><a class="link" href="/admin/email"><%= t('maillog.set_up') %></a></div></div></div><% } %>
+<div class="summary-strip mb-6">
+  <span class="chip"><strong class="text-success"><%= stats.sent || 0 %></strong> <%= t('maillog.st_sent') %></span>
+  <span class="chip"><strong class="text-danger"><%= stats.failed || 0 %></strong> <%= t('maillog.st_failed') %></span>
+  <span class="chip"><strong><%= stats.not_sent || 0 %></strong> <%= t('maillog.st_not_sent') %></span>
+  <span class="small muted"><%= t('maillog.last7') %></span>
+</div>
+<form method="get" action="/admin/email/log" class="row-sm wrap mb-4">
+  <input class="input" name="q" value="<%= f.q %>" placeholder="<%= t('maillog.search') %>" dir="ltr" style="max-width:280px" aria-label="<%= t('maillog.search') %>">
+  <select class="select" name="status" style="max-width:180px" aria-label="<%= t('fields.status') %>"><option value=""><%= t('common.all') %></option><% ['sent', 'failed', 'not_sent'].forEach(function (s) { %><option value="<%= s %>"<%= f.status === s ? ' selected' : '' %>><%= t('maillog.st_' + s) %></option><% }) %></select>
+  <select class="select" name="kind" style="max-width:220px" aria-label="<%= t('maillog.kind') %>"><option value=""><%= t('maillog.all_kinds') %></option><% kinds.forEach(function (k) { %><option value="<%= k %>"<%= f.kind === k ? ' selected' : '' %>><%= t('maillog.k_' + k) !== 'maillog.k_' + k ? t('maillog.k_' + k) : k %></option><% }) %></select>
+  <button class="btn btn-secondary" type="submit"><%- icon('filter') %><%= t('maillog.filter') %></button>
+</form>
+<section class="panel">
+  <% if (!rows.length) { %><div class="panel-body"><div class="empty"><%- icon('mail') %><p><%= t('maillog.empty') %></p></div></div><% } else { %>
+  <div class="table-wrap"><table class="table">
+    <thead><tr><th><%= t('maillog.when') %></th><th><%= t('maillog.to') %></th><th><%= t('maillog.kind') %></th><th><%= t('fields.status') %></th><th><%= t('maillog.details') %></th></tr></thead>
+    <tbody><% rows.forEach(function (r) { var kl = t('maillog.k_' + r.kind); %><tr>
+      <td class="nowrap small"><%= fmt.date(r.created_at, { dateStyle: 'medium', timeStyle: 'medium' }) %></td>
+      <td><span dir="ltr"><%= r.to_addr %></span><% if (r.org_name) { %><div class="small muted"><%= r.org_name %></div><% } %></td>
+      <td class="small"><%= kl !== 'maillog.k_' + r.kind ? kl : r.kind %><% if (r.subject) { %><div class="muted tiny truncate" style="max-width:260px"><%= r.subject %></div><% } %></td>
+      <td><span class="st st-<%= r.status === 'sent' ? 'approved' : r.status === 'failed' ? 'rejected' : 'pending' %>"><%= t('maillog.st_' + r.status) %></span><div class="tiny muted"><%= r.via === 'company' ? t('maillog.via_company') : r.via === 'platform' ? t('maillog.via_platform') : '' %></div></td>
+      <td class="small" style="max-width:360px">
+        <% if (r.reason) { var rl = t('maillog.r_' + r.reason); %><div><%= rl !== 'maillog.r_' + r.reason ? rl : r.reason %></div><% } %>
+        <% if (r.error) { %><div class="text-danger" dir="ltr" style="text-align:start"><%= r.error %></div><% } %>
+        <% if (r.response) { %><details><summary class="muted tiny"><%= t('maillog.server_answer') %></summary><pre class="mono tiny smtp-detail" dir="ltr"><%= r.response %></pre></details><% } %>
+      </td>
+    </tr><% }) %></tbody>
+  </table></div>
+  <% } %>
+</section>
+<p class="small muted mt-4"><%= t('maillog.note') %></p>

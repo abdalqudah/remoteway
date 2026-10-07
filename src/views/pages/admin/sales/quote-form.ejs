@@ -8,9 +8,11 @@
   var today = new Date().toISOString().slice(0, 10);
   var addDays = function (n) { var d = new Date(); d.setUTCDate(d.getUTCDate() + n); return d.toISOString().slice(0, 10); };
   var items;
-  if (o) { var ds = [].concat(o.item_description || []), qs = [].concat(o.item_quantity || []), ps = [].concat(o.item_price || []); items = ds.map(function (d, i) { return { description: d, quantity: qs[i], unit_price: ps[i] }; }); }
-  else if (q) items = q.items.map(function (i) { return { description: i.description, quantity: Number(i.quantity), unit_price: Number(i.unit_price) }; });
-  else items = [{ description: '', quantity: 1, unit_price: '' }];
+  if (o) { var ds = [].concat(o.item_description || []), qs = [].concat(o.item_quantity || []), ps = [].concat(o.item_price || []); var sv = [].concat(o.item_service_id || []); items = ds.map(function (d, i) { return { description: d, quantity: qs[i], unit_price: ps[i], service_id: sv[i] || '' }; }); }
+  else if (q) items = q.items.map(function (i) { return { description: i.description, quantity: Number(i.quantity), unit_price: Number(i.unit_price), service_id: i.service_id || '' }; });
+  else items = [];
+  var picked = items.map(function (i) { return String(i.service_id || ''); }).filter(Boolean);
+  if (!items.length) items = [{ description: '', quantity: 1, unit_price: '', service_id: '' }];
   var field = function (name, label, opts) { opts = opts || {}; return { name: name, label: label, value: opts.value !== undefined ? opts.value : val(name, opts.d), required: opts.required, type: opts.type, attrs: opts.attrs, placeholder: opts.placeholder, help: opts.help, old: {}, errors: errs, options: opts.options }; };
 %>
 <div class="page-head">
@@ -42,13 +44,27 @@
     </div>
   </section>
   <section class="panel">
+    <div class="panel-head row between wrap"><div><h2><%- icon('list-checks') %> <%= t('sales.pick_services') %></h2><div class="panel-sub"><%= t('sales.pick_services_sub') %></div></div><a class="btn btn-ghost btn-sm" href="/admin/quotes/services"><%- icon('settings', 'icon-sm') %><%= t('sales.services_title') %></a></div>
+    <div class="panel-body">
+      <% if (!services.length) { %><p class="small muted"><%= t('sales.no_services') %> <a class="link" href="/admin/quotes/services"><%= t('sales.add_service') %></a></p><% } else { %>
+      <div class="service-picker" data-service-picker>
+        <% services.forEach(function (sv) { %><label class="service-pick">
+          <input type="checkbox" value="<%= sv.id %>" data-text-ar="<%= sv.text_ar %>" data-text-en="<%= sv.text_en %>" data-price="<%= Number(sv.price) %>"<%= picked.indexOf(String(sv.id)) !== -1 ? ' checked' : '' %>>
+          <span class="grow"><strong><%= locale === 'en' ? sv.name_en || sv.name_ar : sv.name_ar %></strong><% var u = locale === 'en' ? sv.unit_en || sv.unit_ar : sv.unit_ar || sv.unit_en; if (u) { %><span class="muted small"> · <%= u %></span><% } %></span>
+          <span class="num small muted nowrap"><%= fmt.money(sv.price, p.currency) %></span>
+        </label><% }) %>
+      </div>
+      <% } %>
+    </div>
+  </section>
+  <section class="panel">
     <div class="panel-head"><h2><%- icon('list-checks') %> <%= t('sales.items') %></h2></div>
     <% if (errs.items) { %><div class="panel-body"><div class="alert alert-error"><%- icon('circle-alert') %><div class="grow small"><%= errs.items %></div></div></div><% } %>
     <div class="table-wrap"><table class="table items-table" data-items>
       <thead><tr><th><%= t('fields.description') %></th><th style="width:110px"><%= t('billing.quantity') %></th><th style="width:150px"><%= t('billing.unit_price') %></th><th style="width:150px" class="text-end"><%= t('billing.amount') %></th><th style="width:44px"></th></tr></thead>
       <tbody>
-        <% items.forEach(function (it) { %><tr data-item>
-          <td><textarea class="textarea" name="item_description" rows="1" aria-label="<%= t('fields.description') %>"><%= it.description %></textarea></td>
+        <% items.forEach(function (it) { %><tr data-item data-service="<%= it.service_id || '' %>">
+          <td><input type="hidden" name="item_service_id" value="<%= it.service_id || '' %>"><textarea class="textarea" name="item_description" rows="<%= String(it.description || '').split('\n').length > 1 ? 2 : 1 %>" aria-label="<%= t('fields.description') %>"><%= it.description %></textarea></td>
           <td><input class="input num" name="item_quantity" inputmode="decimal" value="<%= it.quantity %>" dir="ltr" aria-label="<%= t('billing.quantity') %>"></td>
           <td><input class="input num" name="item_price" inputmode="decimal" value="<%= it.unit_price %>" dir="ltr" aria-label="<%= t('billing.unit_price') %>"></td>
           <td class="text-end num" data-line-amount>—</td>

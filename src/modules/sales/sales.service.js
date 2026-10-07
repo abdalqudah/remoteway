@@ -57,7 +57,7 @@ const sellerName = (p, locale) => (locale === 'ar' ? p.legal_name_ar || p.legal_
 /** Line items from the form (parallel arrays), with amounts; empty rows are skipped. */
 function readItems(body, currency) {
   const list = (k) => [].concat(body[k] === undefined ? [] : body[k]);
-  const desc = list('item_description'); const qty = list('item_quantity'); const price = list('item_price');
+  const desc = list('item_description'); const qty = list('item_quantity'); const price = list('item_price'); const svc = list('item_service_id');
   const items = []; const errors = {};
   for (let i = 0; i < desc.length && items.length < 50; i += 1) {
     const d = str(desc[i], 500);
@@ -67,7 +67,7 @@ function readItems(body, currency) {
     else if (!Number.isFinite(q) || q <= 0 || q > 100000) errors.items = 'Quantities must be more than zero.';
     else if (!Number.isFinite(p) || p < 0 || p > 100000000) errors.items = 'Prices must be zero or more.';
     const amount = money.roundMils(money.toMils(p) * (Number.isFinite(q) ? q : 0), currency);
-    items.push({ description: d, quantity: q, unit_price: p, amountMils: amount, sort: items.length });
+    items.push({ description: d, quantity: q, unit_price: p, amountMils: amount, sort: items.length, service_id: Number(svc[i]) || null });
   }
   if (!items.length) errors.items = 'Add at least one line.';
   return { items, errors };
@@ -104,6 +104,7 @@ async function readQuote(body) {
   if (!v.customer_name) errors.customer_name = 'Enter the customer name.';
   if (v.customer_email && !EMAIL_RE.test(v.customer_email)) errors.customer_email = 'Enter a valid email address.';
   if (v.customer_phone && !normalizePhone(v.customer_phone)) errors.customer_phone = 'Enter a valid mobile number (e.g. 05xxxxxxxx or +9665xxxxxxxx).';
+  else if (v.customer_phone) v.customer_phone = `+${normalizePhone(v.customer_phone)}`; // one clean format (+9665…)
   if (v.valid_until < v.issue_date) errors.valid_until = 'The quotation must be valid on or after its date.';
   if (v.contact_id && !(await knex('crm_contacts').where({ id: v.contact_id }).first('id'))) v.contact_id = null;
   const taxRate = body.tax_rate === undefined || body.tax_rate === '' ? Number(p.tax_rate) : Number(body.tax_rate);
@@ -116,7 +117,7 @@ async function readQuote(body) {
   return { v: { ...v, tax_rate: taxRate, ...totals(items, { discount, taxRate, currency: v.currency }) }, items };
 }
 
-const itemRows = (quoteId, items) => items.map((i) => ({ quote_id: quoteId, description: i.description, quantity: i.quantity, unit_price: i.unit_price, amount: money.fromMils(i.amountMils), sort: i.sort }));
+const itemRows = (quoteId, items) => items.map((i) => ({ quote_id: quoteId, description: i.description, quantity: i.quantity, unit_price: i.unit_price, amount: money.fromMils(i.amountMils), sort: i.sort, service_id: i.service_id || null }));
 
 async function createQuote(ctx, body) {
   const { v, items } = await readQuote(body);
@@ -146,15 +147,19 @@ async function updateQuote(ctx, id, body) {
     await trx('quote_items').insert(itemRows(q.id, items));
   });
   await audit.record(ctx, 'platform.quote_updated', { entityType: 'quote', entityId: q.id, newValues: { total: v.total } });
+  return q;
 }
 
 async function duplicateQuote(ctx, id) {
   const q = await getQuote(id);
   const p = await profile();
   const newId = await knex.transaction(async (trx) => {
-    const { id: _i, number: _n, token: _t, status: _s, sent_at: _a, first_viewed_at: _b, last_viewed_at: _c, view_count: _d, responded_at: _e, response_name: _f, response_note: _g, created_at: _h, updated_at: _j, items, ...rest } = q; // eslint-disable-line no-unused-vars
+    const DROP = ['id', 'number', 'token', 'status', 'sent_at', 'first_viewed_at', 'last_viewed_at', 'view_count', 'responded_at', 'response_name', 'response_note', 'created_at', 'updated_at', 'items',
+      'revision', 'signer_title', 'signature_key', 'stamp_key', 'signed_file_key', 'signed_file_mime', 'signed_file_name', 'decline_reason', 'response_ip'];
+    const rest = Object.fromEntries(Object.entries(q).filter(([k]) => !DROP.includes(k)));
+    const { items } = q;
     const [qid] = await trx('quotes').insert({ ...rest, issue_date: today(), valid_until: addDays(today(), p.valid_days), number: await nextQuoteNumber(trx), token: randomToken(24), created_by: ctx.userId });
-    await trx('quote_items').insert(items.map((i) => ({ quote_id: qid, description: i.description, quantity: i.quantity, unit_price: i.unit_price, amount: i.amount, sort: i.sort })));
+    await trx('quote_items').insert(items.map((i) => ({ quote_id: qid, description: i.description, quantity: i.quantity, unit_price: i.unit_price, amount: i.amount, sort: i.sort, service_id: i.service_id })));
     return qid;
   });
   await audit.record(ctx, 'platform.quote_created', { entityType: 'quote', entityId: newId, newValues: { from: q.number } });
@@ -172,6 +177,7 @@ async function removeQuote(ctx, id) {
 function quoteState(q) {
   if (q.status === 'accepted' || q.status === 'declined') return q.status;
   if (toDateInput(q.valid_until) < today()) return 'expired';
+  if (q.status === 'negotiating') return 'negotiating';
   if (q.first_viewed_at) return 'viewed';
   return q.status;
 }
@@ -186,7 +192,7 @@ async function listQuotes({ state } = {}) {
 function quoteSummary(rows) {
   const year = String(new Date().getUTCFullYear());
   const sum = (list) => list.reduce((s, q) => s + Number(q.total), 0);
-  const open = rows.filter((q) => ['sent', 'viewed'].includes(q.state));
+  const open = rows.filter((q) => ['sent', 'viewed', 'negotiating'].includes(q.state));
   const won = rows.filter((q) => q.state === 'accepted' && toDateInput(q.responded_at || q.updated_at).startsWith(year));
   return { open: open.length, openTotal: sum(open), won: won.length, wonTotal: sum(won), drafts: rows.filter((q) => q.state === 'draft').length };
 }
@@ -208,29 +214,42 @@ async function quoteByToken(token, { count = true } = {}) {
   return q;
 }
 
-/** The customer accepts or declines from their link. */
-async function respond(token, { action, name, note }) {
-  const q = await quoteByToken(token, { count: false });
-  const state = quoteState(q);
-  if (['accepted', 'declined'].includes(state)) throw E.conflict('QUOTE_ANSWERED', 'This quotation was already answered.');
-  if (state === 'expired') throw E.conflict('QUOTE_EXPIRED', 'This quotation has expired. Please ask us for an updated one.');
-  if (!['accept', 'decline'].includes(action)) throw E.validation({ action: 'Choose accept or decline.' });
-  const who = str(name, 150);
-  if (action === 'accept' && !who) throw E.validation({ name: 'Enter your name to accept.' });
-  const status = action === 'accept' ? 'accepted' : 'declined';
-  await knex('quotes').where({ id: q.id }).update({ status, responded_at: new Date(), response_name: who || null, response_note: str(note, 500) || null, updated_at: new Date() });
-  if (q.contact_id) {
-    await require('../crm/crm.service').addActivity(q.contact_id, { type: `quote_${status}`, direction: 'in', channel: 'platform', subject: q.number, body: [who, str(note, 500)].filter(Boolean).join(' · ') || null, status: 'received', meta: { quote_id: q.id } }); // eslint-disable-line global-require
-  }
-  await audit.record({ userId: null }, `platform.quote_${status}`, { entityType: 'quote', entityId: q.id, newValues: { by: who || null } });
-  // Tell whoever made the quotation.
-  const owner = q.created_by ? await knex('users').where({ id: q.created_by }).first('email', 'locale') : null;
-  if (owner) {
-    const ar = owner.locale === 'ar';
-    const title = ar ? `${q.number}: ${status === 'accepted' ? 'وافق العميل على عرض السعر' : 'رفض العميل عرض السعر'}` : `${q.number} was ${status} by the customer`;
-    await mailer.send({ to: owner.email, subject: title, html: mailer.layout({ locale: owner.locale, title, body: `${q.customer_name}${q.customer_company ? ` · ${q.customer_company}` : ''}${who ? `\n${who}` : ''}${note ? `\n${str(note, 500)}` : ''}`, cta: ar ? 'فتح العرض' : 'Open quotation', href: `${config.appUrl}/admin/quotes/${q.id}` }) }).catch(() => {});
-  }
-  return status;
+// ---------- Services catalog (ticked into quotations, priced per customer) ----------
+const listServices = ({ activeOnly = false } = {}) => {
+  const q = knex('sales_services').orderBy('sort').orderBy('id');
+  return activeOnly ? q.where({ active: true }) : q;
+};
+/** The line text for a quotation in its language: name (unit) and the description below it. */
+function serviceText(sv, locale) {
+  const en = locale === 'en';
+  const name = (en ? sv.name_en || sv.name_ar : sv.name_ar || sv.name_en) || '';
+  const unit = en ? sv.unit_en || sv.unit_ar : sv.unit_ar || sv.unit_en;
+  const desc = en ? sv.description_en || sv.description_ar : sv.description_ar || sv.description_en;
+  return `${name}${unit ? ` (${unit})` : ''}${desc ? `\n${desc}` : ''}`.slice(0, 500);
+}
+async function saveService(ctx, id, body) {
+  const v = {
+    name_ar: str(body.name_ar, 200), name_en: str(body.name_en, 200) || null, description_ar: str(body.description_ar, 1000) || null, description_en: str(body.description_en, 1000) || null,
+    unit_ar: str(body.unit_ar, 60) || null, unit_en: str(body.unit_en, 60) || null, price: Number(String(body.price || '0').replace(/,/g, '')), active: body.active !== '0', sort: Number.parseInt(body.sort, 10) || 0,
+  };
+  const errors = {};
+  if (!v.name_ar && !v.name_en) errors.name_ar = 'Enter the service name.';
+  if (!v.name_ar) v.name_ar = v.name_en || '';
+  if (!Number.isFinite(v.price) || v.price < 0) errors.price = 'Prices must be zero or more.';
+  if (Object.keys(errors).length) throw E.validation(errors);
+  if (id) {
+    if (!(await knex('sales_services').where({ id: Number(id) }).first('id'))) throw E.notFound('Service');
+    await knex('sales_services').where({ id: Number(id) }).update({ ...v, updated_at: new Date() });
+  } else [id] = await knex('sales_services').insert(v); // eslint-disable-line no-param-reassign
+  await audit.record(ctx, 'platform.sales_service_saved', { entityType: 'sales_service', entityId: Number(id), newValues: { name: v.name_ar, price: v.price } });
+  return Number(id);
+}
+/** Services used in quotations are switched off instead (old quotations keep their lines). */
+async function removeService(ctx, id) {
+  const used = await knex('quote_items').where({ service_id: Number(id) }).first('id');
+  if (used) await knex('sales_services').where({ id: Number(id) }).update({ active: false, updated_at: new Date() });
+  else await knex('sales_services').where({ id: Number(id) }).del();
+  return used ? 'deactivated' : 'deleted';
 }
 
 // ---------- Files to send (company profile, brochures…) ----------
@@ -259,7 +278,8 @@ async function uploadFile(ctx, file, body) {
   return id;
 }
 
-const listFiles = () => knex('sales_files').orderBy('active', 'desc').orderBy('id', 'desc');
+const listFiles = () => knex('sales_files as f').leftJoin('crm_contacts as c', 'c.id', 'f.contact_id').leftJoin('document_templates as t', 't.id', 'f.template_id')
+  .select('f.*', 'c.name as contact_name', 'c.company_name as contact_company', 't.name as template_name').orderBy('f.active', 'desc').orderBy('f.id', 'desc');
 async function getFile(id) {
   const f = await knex('sales_files').where({ id: Number(id) }).first();
   if (!f) throw E.notFound('File');
@@ -274,7 +294,7 @@ async function updateFile(ctx, id, body) {
 async function removeFile(ctx, id) {
   const f = await getFile(id);
   await knex('sales_files').where({ id: f.id }).del();
-  await storage.remove(f.storage_key).catch(() => {});
+  if (f.storage_key) await storage.remove(f.storage_key).catch(() => {});
   await audit.record(ctx, 'platform.sales_file_deleted', { entityType: 'sales_file', entityId: f.id, oldValues: { title: f.title } });
 }
 async function fileByToken(token) {
@@ -344,7 +364,8 @@ async function sendable(type, id, base, extra = {}) {
   }
   if (type === 'file') {
     const f = await getFile(id);
-    const c = extra.contactId ? await knex('crm_contacts').where({ id: Number(extra.contactId) }).first() : null;
+    const cid = extra.contactId || f.contact_id;
+    const c = cid ? await knex('crm_contacts').where({ id: Number(cid) }).first() : null;
     const locale = extra.locale || (c && c.locale) || 'ar';
     return {
       type, id: f.id, label: f.title, locale, contactId: c ? c.id : null, name: c ? c.name : '', email: c ? c.email : '', phone: c ? c.phone : '', link: `${root}/file/${f.token}`, file: f,
@@ -386,11 +407,11 @@ async function sendEmail(ctx, type, id, body, base) {
   if (!config.isTest && !mailer.enabled()) throw E.conflict('MAIL_OFF', 'Email is not set up yet (Super Admin → Email). Use WhatsApp or copy the link meanwhile.');
   const d = await drafts(doc);
   const attachments = [];
-  if (type === 'file' && body.attach === '1' && doc.file.size <= 10 * 1024 * 1024) attachments.push({ filename: doc.file.filename, content: await storage.read(doc.file.storage_key), contentType: doc.file.mime });
+  if (type === 'file' && body.attach === '1' && doc.file.storage_key && doc.file.size <= 10 * 1024 * 1024) attachments.push({ filename: doc.file.filename, content: await storage.read(doc.file.storage_key), contentType: doc.file.mime });
   const sender = await knex('users').where({ id: ctx.userId }).first('name');
   let status = 'sent'; let error = null;
   try {
-    const sent = await mailer.send({ to, subject, html: mailer.layout({ locale: doc.locale, title: d.email.title, body: text, cta: d.email.cta, href: doc.link }), attachments: attachments.length ? attachments : undefined, fromName: sender ? `${sender.name} · ${sellerName(await profile(), doc.locale)}` : undefined });
+    const sent = await mailer.send({ kind: type, to, subject, html: mailer.layout({ locale: doc.locale, title: d.email.title, body: text, cta: d.email.cta, href: doc.link }), attachments: attachments.length ? attachments : undefined, fromName: sender ? `${sender.name} · ${sellerName(await profile(), doc.locale)}` : undefined });
     if (!sent && !config.isTest) { status = 'failed'; error = 'The email was not sent (email settings).'; }
   } catch (e) { status = 'failed'; error = e.message; }
   await logSend(ctx, doc, { channel: 'email', recipient: to, status, error, subject, body: text });
@@ -419,8 +440,9 @@ const sendsFor = (type, id) => knex('document_sends as s').leftJoin('users as u'
   .select('s.*', 'u.name as user_name').orderBy('s.id', 'desc').limit(50);
 
 module.exports = {
+  listServices, serviceText, saveService, removeService,
   profile, saveProfile, sellerName, PROFILE_FIELDS,
-  createQuote, getQuote, updateQuote, duplicateQuote, removeQuote, listQuotes, quoteSummary, quoteState, quoteByToken, respond, readItems, totals,
+  createQuote, getQuote, updateQuote, duplicateQuote, removeQuote, listQuotes, quoteSummary, quoteState, quoteByToken, readItems, totals,
   uploadFile, listFiles, getFile, updateFile, removeFile, fileByToken, countOpen,
   invoiceShareToken, invoiceByToken, invoiceRecipient,
   DOC_TYPES, sendable, drafts, sendEmail, logWhatsApp, whatsappLink, sendsFor,

@@ -34,6 +34,7 @@ const SECTIONS = {
   quotes: ['owner', 'admin', 'sales', 'finance'], // quotations to customers
   files: ['owner', 'admin', 'sales'], // company profile and other files to send
   messages: ['owner', 'admin', 'sales'], // wording of emails and WhatsApp texts
+  templates: ['owner', 'admin', 'sales'], // document templates filled per customer
 };
 // Changing things (POST) in these sections needs a narrower role than reading them.
 const WRITE = {

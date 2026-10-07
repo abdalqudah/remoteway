@@ -72,8 +72,9 @@ const renderContact = async (req, res, extra = {}) => {
   // Quotations for this contact and the files the team can send them (Super Admin → Quotations / Files).
   const sales = require('../sales/sales.service'); // eslint-disable-line global-require
   const quotes = (await knex('quotes').where({ contact_id: c.id }).orderBy('id', 'desc').limit(20)).map((q) => ({ ...q, state: sales.quoteState(q) }));
-  const files = await knex('sales_files').where({ active: true }).orderBy('id', 'desc').select('id', 'title');
-  res.page('pages/admin/crm/contact', { layout: 'admin', title: c.name, crmTab: 'contacts', c, channels, templates, waWindow: comms.inWindow(c), tab: req.query.tab || extra.tab || 'email', quotes, salesFiles: files, ...extra });
+  const files = await knex('sales_files').where({ active: true }).whereNull('template_id').orderBy('id', 'desc').select('id', 'title');
+  const docTemplates = await knex('document_templates').where({ active: true }).orderBy('name').select('id', 'name');
+  res.page('pages/admin/crm/contact', { layout: 'admin', title: c.name, crmTab: 'contacts', c, channels, templates, waWindow: comms.inWindow(c), tab: req.query.tab || extra.tab || 'email', quotes, salesFiles: files, docTemplates, ...extra });
 };
 router.get('/contacts/:id', wrap((req, res) => renderContact(req, res)));
 router.get('/contacts/:id/edit', wrap(async (req, res) => res.page('pages/admin/crm/contact-form', { layout: 'admin', title: req.t('common.edit'), crmTab: 'contacts', c: await crm.get(Number(req.params.id)) })));

@@ -8,6 +8,8 @@ const mailer = require('../src/core/mailer');
 const messages = require('../src/core/messages');
 
 const PDF = Buffer.from('%PDF-1.4\n1 0 obj<</Type/Catalog>>endobj\ntrailer<</Root 1 0 R>>\n%%EOF\n');
+const PNG_B64 = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==';
+const PNG = Buffer.from(PNG_B64, 'base64');
 let root; let sales; let support; let contactId;
 
 async function teamMember(role) {
@@ -131,15 +133,28 @@ describe('Quotations', () => {
     assert.equal(q.view_count, 1); assert.ok(q.first_viewed_at);
     assert.ok(await h.knex('crm_activities').where({ contact_id: contactId, type: 'quote_viewed' }).first());
     const csrf = v.text.match(/name="_csrf" value="([^"]+)"/)[1];
-    assert.equal((await anon.post(`/quote/${token}/respond`).type('form').send({ _csrf: csrf, action: 'accept', name: '' })).status, 422, 'a name is needed to accept');
+    const accept = (fields, files = {}) => {
+      let r = anon.post(`/quote/${token}/accept`).field('_csrf', csrf);
+      for (const [k, v] of Object.entries(fields)) r = r.field(k, v);
+      for (const [k, v] of Object.entries(files)) r = r.attach(k, v, `${k}.png`);
+      return r;
+    };
+    const noName = await accept({ name: '', signature: `data:image/png;base64,${PNG_B64}` }, { stamp: PNG });
+    assert.equal(noName.status, 422, 'a name is needed to accept');
+    const noStamp = await accept({ name: 'Ahmed Alotaibi', signature: `data:image/png;base64,${PNG_B64}` });
+    assert.equal(noStamp.status, 422, 'the company stamp is needed');
     mailer.testOutbox.length = 0;
-    const ok = await anon.post(`/quote/${token}/respond`).type('form').send({ _csrf: csrf, action: 'accept', name: 'Ahmed Alotaibi', note: 'Start next month' });
+    const ok = await accept({ name: 'Ahmed Alotaibi', title: 'CEO', note: 'Start next month', signature: `data:image/png;base64,${PNG_B64}` }, { stamp: PNG });
     assert.equal(ok.status, 302);
     const done = await h.knex('quotes').where({ id: qid }).first();
-    assert.equal(done.status, 'accepted'); assert.equal(done.response_name, 'Ahmed Alotaibi');
+    assert.equal(done.status, 'accepted'); assert.equal(done.response_name, 'Ahmed Alotaibi'); assert.ok(done.signature_key); assert.ok(done.stamp_key);
     assert.ok(await h.knex('crm_activities').where({ contact_id: contactId, type: 'quote_accepted' }).first());
     assert.ok(mailer.testOutbox.some((m) => /accepted/.test(m.subject)), 'the quotation maker is told');
-    assert.equal((await anon.post(`/quote/${token}/respond`).type('form').send({ _csrf: csrf, action: 'decline' })).status, 409, 'answered once');
+    assert.ok(mailer.testOutbox.some((m) => m.to === 'ahmed@horizon.test' && m.html.includes(`/quote/${token}`)), 'the customer gets the signed copy link');
+    const sig = await anon.get(`/quote/${token}/signature`).buffer(true);
+    assert.equal(sig.status, 200); assert.equal(sig.headers['content-type'], 'image/png');
+    assert.match((await anon.get(`/quote/${token}`)).text, /\/quote\/[^"]+\/stamp/, 'the signed copy shows the stamp');
+    assert.equal((await anon.post(`/quote/${token}/decline`).type('form').send({ _csrf: csrf, reason: 'price' })).status, 409, 'answered once');
     assert.equal((await sales.form(`/admin/quotes/${qid}`, quoteBody())).status, 409, 'an answered quotation is not edited');
   });
 
@@ -154,9 +169,9 @@ describe('Quotations', () => {
     const anon = h.request.agent(h.getApp());
     const v = await anon.get(`/quote/${copy.token}`);
     assert.match(v.text, /expired/i);
-    assert.doesNotMatch(v.text, /\/respond"/, 'no accept form on an expired quotation');
+    assert.doesNotMatch(v.text, /\/accept"/, 'no accept form on an expired quotation');
     const csrf = v.text.match(/name="csrf-token" content="([^"]+)"/)[1];
-    assert.equal((await anon.post(`/quote/${copy.token}/respond`).type('form').send({ _csrf: csrf, action: 'accept', name: 'X' })).status, 409);
+    assert.equal((await anon.post(`/quote/${copy.token}/decline`).type('form').send({ _csrf: csrf, reason: 'price' })).status, 409);
     await sales.form(`/admin/quotes/${copyId}/delete`, {});
     assert.equal(await h.knex('quotes').where({ id: copyId }).first(), undefined);
     assert.equal((await anon.get('/quote/not-a-real-token-at-all-xxxxx')).status, 404);

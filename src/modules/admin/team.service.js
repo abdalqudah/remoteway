@@ -37,7 +37,7 @@ async function add(ctx, { name, email, role, password }) {
   }
   await audit.record(ctx, 'platform.team_added', { entityType: 'user', entityId: userId, newValues: { email: mail, role } });
   if (mailer.enabled()) {
-    await mailer.send({
+    await mailer.send({ kind: 'team_access',
       to: mail, subject: 'RemoteWay — platform administration access',
       html: mailer.layout({ locale: 'en', title: 'You now have access to RemoteWay administration', body: `Role: ${role}. Sign in with ${existing ? 'your existing password' : 'the password shared with you, then change it from your profile'}.`, cta: 'Sign in', href: `${config.appUrl}/login` }),
     }).catch(() => {});

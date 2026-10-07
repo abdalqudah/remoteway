@@ -1,5 +1,15 @@
 # RemoteWay — Changelog
 
+## 1.11.0 — Services, signed acceptance, negotiation, document templates, email log
+
+- **Services catalog** (Quotations → Services): name and description in Arabic and English, unit and default price. In a quotation you tick services and set the price for that customer; free lines still work. Services used in quotations are hidden instead of deleted.
+- **Signed acceptance:** the customer accepts with their name, job title, a signature drawn with the finger or mouse and the company stamp image — or by uploading the quotation already signed and stamped (PDF or image). The quotation page then shows the signature and stamp, is printable / saveable as PDF as the signed copy, and can be emailed to the customer again; the signed copy link is emailed to the customer and the team is told by email.
+- **Decline with a reason** (price, timing, another provider, not needed, other) and **negotiation**: the customer proposes an amount with a message; the team replies (shown on the customer’s link and emailed) and edits the quotation to send a revised offer (revision 2, 3…) on the same link. Everything is on the CRM timeline.
+- **Document templates** (new section): upload a Word template (.docx) with fields like {company_name} or {اسم_الشركة}, or write one in the online editor (headings, bold, lists, alignment). “Create for a customer” fills the fields from the CRM contact (company, name, email, phone, date), saves the document in the system linked to the contact, and opens the send panel (WhatsApp or email). Online documents open as a printable page with the letterhead and can still be edited.
+- **Email log** (Email → Email log): every email the platform tries to send — sent (with the mail server’s answer), failed (with the error), or not sent and why (email not set up, no account for a password reset, company mailbox required…). Kept 90 days.
+- **Phone numbers:** +966 05…, 00966 05…, Arabic digits, spaces and dashes are now all turned into the right international number — WhatsApp no longer says the number does not exist. Numbers already saved in the CRM were corrected.
+- **Sign-in:** a wrong password shows a red message on the sign-in page instead of an error page, and every password field has an eye button to show what was typed.
+
 ## 1.10.0 — Quotations, files to send, invoice links, editable message texts
 
 - **Super Admin → Message texts:** the wording of the account emails (invitation, email confirmation, password reset, notifications, talent invitations, scheduled reports) and of the texts used to send quotations, invoices and files by email and WhatsApp — in Arabic and English, with placeholders ({customer}, {number}, {total}, {link}…), a preview, “send me a test” and “back to the default text”. Unknown placeholders are refused.

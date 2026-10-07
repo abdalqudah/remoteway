@@ -19,7 +19,7 @@ router.post('/demo', limiter, form(async (req, res) => {
   if (mailer.enabled()) {
     const team = await knex('users').where({ is_super_admin: true, status: 'active' }).whereIn('platform_role', ['owner', 'admin', 'sales']).pluck('email');
     for (const to of team) {
-      await mailer.send({ to, subject: `New demo request: ${String(req.body.name || '').slice(0, 80)}`, html: mailer.layout({ locale: 'en', title: 'New demo request', body: `${req.body.name} · ${req.body.company_name || ''} · ${req.body.email || ''}`, cta: 'Open in CRM', href: `${config.appUrl}/admin/crm/contacts/${id}` }) }).catch(() => {});
+      await mailer.send({ kind: 'demo_request', to, subject: `New demo request: ${String(req.body.name || '').slice(0, 80)}`, html: mailer.layout({ locale: 'en', title: 'New demo request', body: `${req.body.name} · ${req.body.company_name || ''} · ${req.body.email || ''}`, cta: 'Open in CRM', href: `${config.appUrl}/admin/crm/contacts/${id}` }) }).catch(() => {});
     }
   }
   res.locals.pixelEventNow = 'lead'; // reported on this confirmation page
